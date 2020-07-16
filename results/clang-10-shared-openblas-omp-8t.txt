@@ -1,0 +1,68 @@
+CMake options:
+    -DTB_ENABLE_MKL=OFF
+    -DTB_ENABLE_LTO=OFF
+    -DTB_ENABLE_OPENMP=ON
+    -DTB_ENABLE_ASAN:BOOL=OFF
+    -DTB_EIGEN3_BLAS:BOOL=ON
+    -DTB_DOWNLOAD_METHOD=fetch
+    -DTB_PRINT_INFO=ON
+    -DBUILD_SHARED_LIBS:BOOL=ON
+    -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+
+
+
+Build messages:
+
+    Building CXX object CMakeFiles/tensorbench.dir/source/main.cpp.o
+    /usr/bin/clang++-10  -DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE_STRICT -DEIGEN_USE_THREADS -DFMT_LOCALE -DFMT_SHARED -DH5PP_DOWNLOAD_METHOD=fetch -DH5_BUILT_AS_DYNAMIC_LIB -DLAPACK_COMPLEX_CUSTOM -DOPENBLAS_AVAILABLE -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -Dlapack_complex_double="std::complex<double>" -Dlapack_complex_float="std::complex<float>" -I/home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/gitversion -I/home/david/GitProjects/tensorbench/source -isystem /home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/Eigen3/include/eigen3 -isystem /home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/OpenBLAS/include/openblas -isystem /home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/h5pp/include -isystem /home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/h5pp/spdlog/include -isystem /home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/h5pp/fmt/include -isystem /home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/h5pp/hdf5/include  -march=native -mtune=native -O3 -DNDEBUG -fPIE   -Wall -g -mfma -fopenmp=libomp -std=c++17 -Xclang -include-pch -Xclang /home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/CMakeFiles/tensorbench.dir/cmake_pch.hxx.pch -Xclang -include -Xclang /home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/CMakeFiles/tensorbench.dir/cmake_pch.hxx -o CMakeFiles/tensorbench.dir/source/main.cpp.o -c /home/david/GitProjects/tensorbench/source/main.cpp
+    Linking CXX executable tensorbench
+    /home/david/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/202.6397.12/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/tensorbench.dir/link.txt --verbose=1
+    /usr/bin/clang++-10  -march=native -mtune=native -O3 -DNDEBUG   CMakeFiles/tensorbench.dir/source/main.cpp.o CMakeFiles/tensorbench.dir/source/tools/prof.cpp.o CMakeFiles/tensorbench.dir/source/tools/log.cpp.o CMakeFiles/tensorbench.dir/source/tools/class_tic_toc.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v1.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v2.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v3.cpp.o  -o tensorbench  -Wl,-rpath,/home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/OpenBLAS/lib:/usr/lib/gcc/x86_64-linux-gnu/9:/home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/h5pp/fmt/lib:/home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tb-deps-install/h5pp/hdf5/lib -stdlib=libstdc++ tb-deps-install/OpenBLAS/lib/libopenblas.so.0.3 /usr/lib/gcc/x86_64-linux-gnu/9/libgfortran.so /usr/lib/gcc/x86_64-linux-gnu/9/libquadmath.so -lstdc++fs tb-deps-install/h5pp/spdlog/lib/libspdlog.a tb-deps-install/h5pp/fmt/lib/libfmt.so.6.2.1 -Wl,--as-needed tb-deps-install/h5pp/hdf5/lib/libhdf5_hl.so.200.0.0 tb-deps-install/h5pp/hdf5/lib/libhdf5.so.200.0.0 -ldl /usr/lib/llvm-10/lib/libomp.so /usr/lib/x86_64-linux-gnu/libpthread.so -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lrt -ldl
+
+
+
+Console output:
+
+/home/david/GitProjects/tensorbench/cmake-build-release-clang-10-shared-openblas-omp/tensorbench
+[2020-07-16 15:38:33][tensorbench][ debug  ] Log verbosity level: 0
+[2020-07-16 15:38:33][tensorbench][ trace  ] Enabled timestamp
+[2020-07-16 15:38:33][tensorbench][  info  ] Using Eigen Tensor with 8 threads
+[2020-07-16 15:38:33][tensorbench][  info  ] Using Eigen  with 8 threads
+[2020-07-16 15:38:33][tensorbench][  info  ] Using OpenMP with 8 threads
+[2020-07-16 15:38:33][tensorbench][  info  ] OpenBLAS 0.3.9 compiled with parallel mode 1 for target HASWELL with config OpenBLAS 0.3.9 NO_AFFINITY HASWELL MAX_THREADS=8 | multithread threshold 4 | running with 8 threads
+[2020-07-16 15:38:33][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.2248 s
+[2020-07-16 15:38:33][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.1895 s
+[2020-07-16 15:38:34][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.1912 s
+[2020-07-16 15:38:34][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.1944 s
+[2020-07-16 15:38:34][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.1909 s
+[2020-07-16 15:38:34][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.1852 s
+[2020-07-16 15:38:34][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.2102 s
+[2020-07-16 15:38:35][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.2023 s
+[2020-07-16 15:38:35][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.1927 s
+[2020-07-16 15:38:35][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.1920 s
+[2020-07-16 15:38:35][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | total time 1.9732 s
+[2020-07-16 15:38:35][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.1799 s
+[2020-07-16 15:38:35][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.2061 s
+[2020-07-16 15:38:36][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.1836 s
+[2020-07-16 15:38:36][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.1939 s
+[2020-07-16 15:38:36][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.1830 s
+[2020-07-16 15:38:36][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.2044 s
+[2020-07-16 15:38:36][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.2013 s
+[2020-07-16 15:38:37][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.1938 s
+[2020-07-16 15:38:37][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.2169 s
+[2020-07-16 15:38:37][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.1794 s
+[2020-07-16 15:38:37][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | total time 1.9423 s
+[2020-07-16 15:38:37][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.1677 s
+[2020-07-16 15:38:37][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.1737 s
+[2020-07-16 15:38:37][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.1663 s
+[2020-07-16 15:38:38][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.1705 s
+[2020-07-16 15:38:38][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.1643 s
+[2020-07-16 15:38:38][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.1556 s
+[2020-07-16 15:38:38][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.1655 s
+[2020-07-16 15:38:38][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.1585 s
+[2020-07-16 15:38:38][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.1694 s
+[2020-07-16 15:38:39][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.1551 s
+[2020-07-16 15:38:39][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | total time 1.6465 s
+[2020-07-16 15:38:39][tensorbench][  info  ] total time 5.5688 s
+
+Process finished with exit code 0

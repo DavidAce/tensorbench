@@ -1,0 +1,68 @@
+CMake options:
+    -DTB_ENABLE_MKL=ON
+    -DTB_ENABLE_LTO=OFF
+    -DTB_ENABLE_OPENMP=ON
+    -DTB_ENABLE_ASAN:BOOL=OFF
+    -DTB_EIGEN3_BLAS:BOOL=ON
+    -DTB_DOWNLOAD_METHOD=fetch
+    -DTB_PRINT_INFO=ON
+    -DBUILD_SHARED_LIBS:BOOL=ON
+    -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+
+
+
+Build messages:
+
+    Building CXX object CMakeFiles/tensorbench.dir/source/main.cpp.o
+    /usr/bin/g++-10  -DEIGEN_USE_LAPACKE_STRICT -DEIGEN_USE_MKL_ALL -DEIGEN_USE_THREADS -DFMT_LOCALE -DFMT_SHARED -DH5PP_DOWNLOAD_METHOD=fetch -DH5_BUILT_AS_DYNAMIC_LIB -DMKL_AVAILABLE -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -I/home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/gitversion -I/home/david/GitProjects/tensorbench/source -isystem /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/tb-deps-install/Eigen3/include/eigen3 -isystem /opt/intel/mkl/include -isystem /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/tb-deps-install/h5pp/include -isystem /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/tb-deps-install/h5pp/spdlog/include -isystem /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/tb-deps-install/h5pp/fmt/include -isystem /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/tb-deps-install/h5pp/hdf5/include  -march=native -mtune=native -O3 -DNDEBUG -fPIE   -Wall -g -mfma -m64 -fopenmp -std=c++17 -Winvalid-pch -include /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/CMakeFiles/tensorbench.dir/cmake_pch.hxx -o CMakeFiles/tensorbench.dir/source/main.cpp.o -c /home/david/GitProjects/tensorbench/source/main.cpp
+    Linking CXX executable tensorbench
+    /home/david/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/202.6397.12/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/tensorbench.dir/link.txt --verbose=1
+    /usr/bin/g++-10  -march=native -mtune=native -O3 -DNDEBUG  -fuse-ld=gold  CMakeFiles/tensorbench.dir/source/main.cpp.o CMakeFiles/tensorbench.dir/source/tools/prof.cpp.o CMakeFiles/tensorbench.dir/source/tools/log.cpp.o CMakeFiles/tensorbench.dir/source/tools/class_tic_toc.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v1.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v2.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v3.cpp.o  -o tensorbench  -Wl,-rpath,/usr/lib/gcc/x86_64-linux-gnu/9:/home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/tb-deps-install/h5pp/fmt/lib:/home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/tb-deps-install/h5pp/hdf5/lib -Wl,--no-as-needed /opt/intel/mkl/lib/intel64/libmkl_blas95_lp64.a /opt/intel/mkl/lib/intel64/libmkl_lapack95_lp64.a -Wl,--start-group /opt/intel/mkl/lib/intel64/libmkl_gf_lp64.so /opt/intel/mkl/lib/intel64/libmkl_gnu_thread.so /opt/intel/mkl/lib/intel64/libmkl_core.so -Wl,--end-group -lm /usr/lib/gcc/x86_64-linux-gnu/9/libgfortran.so /usr/lib/gcc/x86_64-linux-gnu/9/libquadmath.so -lstdc++fs tb-deps-install/h5pp/spdlog/lib/libspdlog.a tb-deps-install/h5pp/fmt/lib/libfmt.so.6.2.1 -Wl,--as-needed tb-deps-install/h5pp/hdf5/lib/libhdf5_hl.so.200.0.0 tb-deps-install/h5pp/hdf5/lib/libhdf5.so.200.0.0 -ldl /usr/lib/gcc/x86_64-linux-gnu/10/libgomp.so /usr/lib/x86_64-linux-gnu/libpthread.so -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lrt -ldl
+
+
+
+Console output:
+
+/home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-mkl-omp/tensorbench
+[2020-07-16 15:41:07][tensorbench][ debug  ] Log verbosity level: 0
+[2020-07-16 15:41:07][tensorbench][ trace  ] Enabled timestamp
+[2020-07-16 15:41:07][tensorbench][  info  ] Using Eigen Tensor with 8 threads
+[2020-07-16 15:41:07][tensorbench][  info  ] Using Eigen  with 8 threads
+[2020-07-16 15:41:07][tensorbench][  info  ] Using OpenMP with 8 threads
+[2020-07-16 15:41:07][tensorbench][  info  ] Using Intel MKL with 4 threads
+[2020-07-16 15:41:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.2117 s
+[2020-07-16 15:41:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.1747 s
+[2020-07-16 15:41:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.1838 s
+[2020-07-16 15:41:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.2003 s
+[2020-07-16 15:41:08][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.1857 s
+[2020-07-16 15:41:08][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.1818 s
+[2020-07-16 15:41:08][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.1857 s
+[2020-07-16 15:41:08][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.1848 s
+[2020-07-16 15:41:08][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.1865 s
+[2020-07-16 15:41:08][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.1877 s
+[2020-07-16 15:41:08][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | total time 1.8829 s
+[2020-07-16 15:41:09][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.1741 s
+[2020-07-16 15:41:09][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.2087 s
+[2020-07-16 15:41:09][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.1731 s
+[2020-07-16 15:41:09][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.1930 s
+[2020-07-16 15:41:09][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.1813 s
+[2020-07-16 15:41:10][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.1827 s
+[2020-07-16 15:41:10][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.1887 s
+[2020-07-16 15:41:10][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.1854 s
+[2020-07-16 15:41:10][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.1723 s
+[2020-07-16 15:41:10][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.2168 s
+[2020-07-16 15:41:10][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | total time 1.8762 s
+[2020-07-16 15:41:10][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.1577 s
+[2020-07-16 15:41:11][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.1672 s
+[2020-07-16 15:41:11][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.1661 s
+[2020-07-16 15:41:11][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.1641 s
+[2020-07-16 15:41:11][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.1573 s
+[2020-07-16 15:41:11][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.1762 s
+[2020-07-16 15:41:11][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.1537 s
+[2020-07-16 15:41:12][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.1649 s
+[2020-07-16 15:41:12][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.1756 s
+[2020-07-16 15:41:12][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.1647 s
+[2020-07-16 15:41:12][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | total time 1.6475 s
+[2020-07-16 15:41:12][tensorbench][  info  ] total time 5.4114 s
+
+Process finished with exit code 0

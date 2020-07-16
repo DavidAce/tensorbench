@@ -1,0 +1,67 @@
+CMake options:
+    -DTB_ENABLE_MKL=OFF
+    -DTB_ENABLE_LTO=OFF
+    -DTB_ENABLE_OPENMP=ON
+    -DTB_ENABLE_ASAN:BOOL=OFF
+    -DTB_EIGEN3_BLAS:BOOL=OFF
+    -DTB_DOWNLOAD_METHOD=fetch
+    -DTB_PRINT_INFO=ON
+    -DBUILD_SHARED_LIBS:BOOL=ON
+    -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+
+
+
+Build messages:
+
+    Building CXX object CMakeFiles/tensorbench.dir/source/main.cpp.o
+    /usr/bin/g++-10  -DEIGEN_USE_THREADS -DFMT_LOCALE -DFMT_SHARED -DSPDLOG_COMPILED_LIB -DSPDLOG_FMT_EXTERNAL -I/home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-noblas-omp/gitversion -I/home/david/GitProjects/tensorbench/source -isystem /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-noblas-omp/tb-deps-install/Eigen3/include/eigen3 -isystem /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-noblas-omp/tb-deps-install/h5pp/spdlog/include -isystem /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-noblas-omp/tb-deps-install/h5pp/fmt/include  -march=native -mtune=native -O3 -DNDEBUG -fPIE   -Wall -g -mfma -fopenmp -std=c++17 -Winvalid-pch -include /home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-noblas-omp/CMakeFiles/tensorbench.dir/cmake_pch.hxx -o CMakeFiles/tensorbench.dir/source/main.cpp.o -c /home/david/GitProjects/tensorbench/source/main.cpp
+    Linking CXX executable tensorbench
+    /home/david/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/202.6397.12/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/tensorbench.dir/link.txt --verbose=1
+    /usr/bin/g++-10  -march=native -mtune=native -O3 -DNDEBUG  -fuse-ld=gold  CMakeFiles/tensorbench.dir/source/main.cpp.o CMakeFiles/tensorbench.dir/source/tools/prof.cpp.o CMakeFiles/tensorbench.dir/source/tools/log.cpp.o CMakeFiles/tensorbench.dir/source/tools/class_tic_toc.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v1.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v2.cpp.o CMakeFiles/tensorbench.dir/source/contract/hamiltonian_squared_dot_psi_v3.cpp.o  -o tensorbench  -Wl,-rpath,/home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-noblas-omp/tb-deps-install/h5pp/fmt/lib tb-deps-install/h5pp/spdlog/lib/libspdlog.a tb-deps-install/h5pp/fmt/lib/libfmt.so.6.2.1 -Wl,--as-needed /usr/lib/gcc/x86_64-linux-gnu/10/libgomp.so /usr/lib/x86_64-linux-gnu/libpthread.so -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lrt -ldl
+
+
+
+Console output:
+
+/home/david/GitProjects/tensorbench/cmake-build-release-gcc-10-shared-noblas-omp/tensorbench
+[2020-07-16 15:56:36][tensorbench][ debug  ] Log verbosity level: 0
+[2020-07-16 15:56:36][tensorbench][ trace  ] Enabled timestamp
+[2020-07-16 15:56:36][tensorbench][  info  ] Using Eigen Tensor with 8 threads
+[2020-07-16 15:56:36][tensorbench][  info  ] Using Eigen  with 8 threads
+[2020-07-16 15:56:36][tensorbench][  info  ] Using OpenMP with 8 threads
+[2020-07-16 15:56:36][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.2164 s
+[2020-07-16 15:56:36][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.1850 s
+[2020-07-16 15:56:36][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.2096 s
+[2020-07-16 15:56:37][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.1882 s
+[2020-07-16 15:56:37][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.2332 s
+[2020-07-16 15:56:37][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.1823 s
+[2020-07-16 15:56:37][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.1821 s
+[2020-07-16 15:56:37][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.2049 s
+[2020-07-16 15:56:38][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.2340 s
+[2020-07-16 15:56:38][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.2016 s
+[2020-07-16 15:56:38][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {32, 64, 64} | total time 2.0373 s
+[2020-07-16 15:56:38][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.1913 s
+[2020-07-16 15:56:38][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.2062 s
+[2020-07-16 15:56:38][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.1956 s
+[2020-07-16 15:56:39][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.2123 s
+[2020-07-16 15:56:39][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.2157 s
+[2020-07-16 15:56:39][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.2352 s
+[2020-07-16 15:56:39][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.1840 s
+[2020-07-16 15:56:39][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.2053 s
+[2020-07-16 15:56:40][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.1926 s
+[2020-07-16 15:56:40][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.1858 s
+[2020-07-16 15:56:40][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {32, 64, 64} | total time 2.0241 s
+[2020-07-16 15:56:40][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 0/10 |  time 0.1551 s
+[2020-07-16 15:56:40][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 1/10 |  time 0.1671 s
+[2020-07-16 15:56:40][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 2/10 |  time 0.1590 s
+[2020-07-16 15:56:40][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 3/10 |  time 0.1969 s
+[2020-07-16 15:56:41][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 4/10 |  time 0.1517 s
+[2020-07-16 15:56:41][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 5/10 |  time 0.1806 s
+[2020-07-16 15:56:41][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 6/10 |  time 0.1515 s
+[2020-07-16 15:56:41][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 7/10 |  time 0.1640 s
+[2020-07-16 15:56:41][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 8/10 |  time 0.1753 s
+[2020-07-16 15:56:41][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | iter 9/10 |  time 0.1652 s
+[2020-07-16 15:56:41][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {32, 64, 64} | total time 1.6663 s
+[2020-07-16 15:56:41][tensorbench][  info  ] total time 5.7339 s
+
+Process finished with exit code 0
