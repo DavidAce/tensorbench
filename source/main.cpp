@@ -21,7 +21,7 @@ int main() {
     tools::prof::init_profiling();
     size_t logLevel = 0;
     tools::log      = tools::Logger::setLogger("tensorbench", logLevel);
-    int num_threads = 8;// static_cast<int>(std::thread::hardware_concurrency());
+    int num_threads = 8; //static_cast<int>(std::thread::hardware_concurrency());
     Textra::omp::setNumThreads(num_threads);
 // Set the number of threads to be used
 #ifdef _OPENMP
@@ -50,15 +50,6 @@ int main() {
     long mpod  = 5;
     int  iters = 10;
 
-    // 256 16 16 (8 = 4+4) --> A/B
-    // 64 8 8 (6 = 3+3) --> A/B
-    // 64 32 32 (6 < 5 + 5) --> A/B
-    // 32 32 32 (5 < 5 + 5) --  A == B == C
-    // 16 32 32 (4 < 5 + 5) --  C
-    // 32 16 32 (5 < 4 + 5) --  A
-    // 32 32 16 (5 < 4 + 5) --  B
-
-    // Conclusion: Take A/B when spin > std::max(chiL,chiR)
     using cplx   = std::complex<double>;
     using real   = double;
     using Scalar = cplx;
