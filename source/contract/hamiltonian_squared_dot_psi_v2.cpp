@@ -8,7 +8,7 @@ Eigen::Tensor<Scalar,3> contract::hamiltonian_squared_dot_psi_v2(const Eigen::Te
     tools::prof::t_ham_sq_psi_v2->tic();
     Eigen::DSizes<long,3> dsizes = psi_in.dimensions();
     Eigen::Tensor<Scalar,3> ham_sq_psi(dsizes);
-    Eigen::Tensor<Scalar,3> psi_shuffled = Eigen::TensorMap<const Eigen::Tensor<const Scalar,3>>(psi_in.data(), dsizes).shuffle(Textra::array3{2,0,1});
+    Eigen::Tensor<Scalar,3> psi_shuffled = psi_in.shuffle(Textra::array3{2,0,1});
     ham_sq_psi.device(*Textra::omp::dev) =
         psi_shuffled
             .contract(envR, Textra::idx({0}, {0}))
