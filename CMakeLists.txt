@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
+set(CMAKE_CUDA_STANDARD 14)
 project(tensorbench
         VERSION 0.0.1
         DESCRIPTION "Benchmarks for tensor operations"
@@ -238,6 +239,8 @@ if(TB_ENABLE_CUDA)
     target_include_directories(tb-cuda PRIVATE source)
     target_compile_definitions(tb-cuda INTERFACE EIGEN_USE_GPU)
     target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_14)
+    set_target_properties(tb-cuda PROPERTY CUDA_STANDARD 14)
+    set_target_properties(tb-cuda PROPERTY CUDA_STANDARD_REQUIRED ON)
     target_link_libraries(tb-cuda PRIVATE project-settings)
     set(CMAKE_CUDA_STANDARD 14)
     target_link_libraries(${PROJECT_NAME} PRIVATE tb-cuda)
