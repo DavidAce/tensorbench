@@ -23,6 +23,7 @@ Usage            : $PROGNAME [-option | --option ] <=argument>
    | --enable-mkl               : Enable Intel MKL
    | --enable-lto               : Enable Link Time Optimization
    | --enable-asan              : Enable runtime sanitizers, i.e. -fsanitize=address
+   | --enable-cuda              : Enable CUDA
 -t | --target [=args]           : Select build target [ CMakeTemplate | all-tests | test-<name> ]  (default = none)
    | --enable-tests             : Enable CTest tests
    | --prefer-conda             : Prefer libraries from anaconda
@@ -78,6 +79,7 @@ enable_openmp="OFF"
 enable_mkl="OFF"
 enable_lto="OFF"
 enable_asan="OFF"
+enable_cuda="OFF"
 make_threads=8
 prefer_conda="OFF"
 verbose="OFF"
@@ -107,6 +109,7 @@ do
        --enable-mkl)                enable_mkl="ON"                 ; echo " * Intel MKL               : ON"      ; shift   ;;
        --enable-lto)                enable_lto="ON"                 ; echo " * Link Time Optimization  : ON"      ; shift   ;;
        --enable-asan)               enable_asan="ON"                ; echo " * Runtime sanitizers      : ON"      ; shift   ;;
+       --enable-cuda)               enable_cuda="ON"                ; echo " * nVidia CUDA             : ON"      ; shift   ;;
        --no-modules)                no_modules="ON"                 ; echo " * Disable module load     : ON"      ; shift   ;;
        --prefer-conda)              prefer_conda="ON"               ; echo " * Prefer anaconda libs    : ON"      ; shift   ;;
     -v|--verbose)                   verbose="ON"                    ; echo " * Verbose makefiles       : ON"      ; shift   ;;
@@ -276,6 +279,7 @@ cat << EOF >&2
           -DTB_ENABLE_MKL=$enable_mkl
           -DTB_ENABLE_LTO=$enable_lto
           -DTB_ENABLE_ASAN=$enable_asan \
+          -DTB_ENABLE_CUDA=$enable_cuda \
           $extra_flags
            -G $generator
            ../../
@@ -298,6 +302,7 @@ if [ -z "$dry_run" ] ;then
           -DTB_ENABLE_MKL=$enable_mkl \
           -DTB_ENABLE_LTO=$enable_lto \
           -DTB_ENABLE_ASAN=$enable_asan \
+          -DTB_ENABLE_CUDA=$enable_cuda \
           $extra_flags \
            -G "$generator" \
            ../../

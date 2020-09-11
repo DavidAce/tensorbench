@@ -20,7 +20,7 @@ option(TB_BUILD_EXAMPLES           "Build examples"                             
 option(TB_PRINT_INFO               "Print information during cmake configure"                     OFF)
 option(TB_DEPS_IN_SUBDIR           "Install dependencies into CMAKE_INSTALL_PREFIX/<libname>"     ON)
 option(TB_ENABLE_ASAN              "Enable runtime address sanitizer -fsanitize=address"          OFF)
-option(TB_ENABLE_CUDA              "Enable runtime address sanitizer -fsanitize=address"          ON)
+option(TB_ENABLE_CUDA              "Enable runtime address sanitizer -fsanitize=address"          OFF)
 
 
 # Make an "enum" for valid download methods
@@ -114,7 +114,9 @@ endif()
 ##############################
 ###  Enable c++17 support  ###
 ##############################
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+#target_compile_features(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:cxx_std_17>)
+#target_compile_features(project-settings INTERFACE $<$<COMPILE_LANGUAGE:CXX>: -std=c++17>)
+target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
 
 
 #######################################################
@@ -131,11 +133,11 @@ CheckCXXOptional()
 ##################################################
 # -fsanitize=leak -fsanitize=undefined -fsanitize=alignment  -fsanitize=leak -fsanitize=undefined -fsanitize=alignment
 target_compile_options(project-settings INTERFACE $<$<COMPILE_LANGUAGE:CXX>:-Wall>)
+target_compile_options(project-settings INTERFACE $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
 target_compile_options(project-settings INTERFACE $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:-g  -mfma>)
 target_compile_options(project-settings INTERFACE $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>: -Wpedantic -Wextra -Wconversion>)
 target_compile_options(project-settings INTERFACE $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:>)
 target_compile_options(project-settings INTERFACE $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:MINSIZEREL>>:>)
-target_compile_features(project-settings INTERFACE cxx_std_17)
 
 
 
@@ -218,6 +220,21 @@ target_link_libraries(project-settings INTERFACE  ${CONAN_TARGETS} ${FOUND_TARGE
 if(NOT TARGET openmp::openmp)
     target_compile_options(project-settings INTERFACE -Wno-unknown-pragmas)
 endif()
+
+
+if(TB_ENABLE_CUDA)
+    enable_language(CUDA)
+    add_library(tb-cuda OBJECT source/contract/hamiltonian_squared_dot_psi_cuda.cu)
+    target_include_directories(tb-cuda PRIVATE source)
+    target_compile_definitions(tb-cuda INTERFACE EIGEN_USE_GPU)
+    target_compile_features(tb-cuda PRIVATE cxx_std_14)
+    set_target_properties(tb-cuda PROPERTY CUDA_STANDARD 14)
+    set_target_properties(tb-cuda PROPERTY CUDA_STANDARD_REQUIRED ON)
+    target_link_libraries(${PROJECT_NAME} PRIVATE tb-cuda)
+    #    target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-arch=sm_75>)
+endif()
+
+
 target_link_libraries(project-settings INTERFACE -Wl,--whole-archive pthread -Wl,--no-whole-archive -lrt -ldl )
 target_link_libraries(${PROJECT_NAME} PRIVATE project-settings )  # Link everything to main project
 
@@ -231,22 +248,6 @@ if(COMMAND target_precompile_headers)
     target_precompile_headers(${PROJECT_NAME} PRIVATE <unsupported/Eigen/CXX11/Tensor>)
     target_precompile_headers(${PROJECT_NAME} PRIVATE <vector> <array> <complex> <map> <optional> <iostream> <iomanip> <memory>)
 endif()
-
-
-if(TB_ENABLE_CUDA)
-    enable_language(CUDA)
-    add_library(tb-cuda OBJECT source/contract/hamiltonian_squared_dot_psi_cuda.cu)
-    target_include_directories(tb-cuda PRIVATE source)
-    target_compile_definitions(tb-cuda INTERFACE EIGEN_USE_GPU)
-    target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_14)
-    set_target_properties(tb-cuda PROPERTY CUDA_STANDARD 14)
-    set_target_properties(tb-cuda PROPERTY CUDA_STANDARD_REQUIRED ON)
-    target_link_libraries(tb-cuda PRIVATE project-settings)
-    set(CMAKE_CUDA_STANDARD 14)
-    target_link_libraries(${PROJECT_NAME} PRIVATE tb-cuda)
-    #    target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-arch=sm_75>)
-endif()
-
 
 
 # Print summary of CMake configuration
