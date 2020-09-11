@@ -19,6 +19,7 @@ option(TB_BUILD_EXAMPLES           "Build examples"                             
 option(TB_PRINT_INFO               "Print information during cmake configure"                     OFF)
 option(TB_DEPS_IN_SUBDIR           "Install dependencies into CMAKE_INSTALL_PREFIX/<libname>"     ON)
 option(TB_ENABLE_ASAN              "Enable runtime address sanitizer -fsanitize=address"          OFF)
+option(TB_ENABLE_CUDA              "Enable runtime address sanitizer -fsanitize=address"          ON)
 
 
 # Make an "enum" for valid download methods
@@ -231,17 +232,16 @@ if(COMMAND target_precompile_headers)
 endif()
 
 
-
-# Uninstall target
-if(NOT TARGET uninstall)
-    configure_file(
-            ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules/TBUninstall.cmake.in
-            ${CMAKE_CURRENT_BINARY_DIR}/TBUninstall.cmake
-            IMMEDIATE @ONLY)
-
-    add_custom_target(uninstall
-            COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/TBUninstall.cmake)
+if(TB_ENABLE_CUDA)
+    enable_language(CUDA)
+    add_library(tb-cuda OBJECT source/contract/hamiltonian_squared_dot_psi_cuda.cu)
+    target_include_directories(tb-cuda PRIVATE source)
+    target_compile_definitions(tb-cuda INTERFACE HAS_CUDA)
+    target_link_libraries(tb-cuda PRIVATE project-settings)
+    target_link_libraries(${PROJECT_NAME} PRIVATE tb-cuda)
+    #    target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-arch=sm_75>)
 endif()
+
 
 
 # Print summary of CMake configuration
@@ -272,6 +272,16 @@ message("=======================================================================
 message("")
 
 
+# Uninstall target
+if(NOT TARGET uninstall)
+    configure_file(
+            ${CMAKE_CURRENT_SOURCE_DIR}/cmake-modules/TBUninstall.cmake.in
+            ${CMAKE_CURRENT_BINARY_DIR}/TBUninstall.cmake
+            IMMEDIATE @ONLY)
+
+    add_custom_target(uninstall
+            COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/TBUninstall.cmake)
+endif()
 
 #############################
 ## UNIT TEST

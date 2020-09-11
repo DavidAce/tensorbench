@@ -21,7 +21,7 @@ int main() {
     tools::prof::init_profiling();
     size_t logLevel = 0;
     tools::log      = tools::Logger::setLogger("tensorbench", logLevel);
-    int num_threads = 8; //static_cast<int>(std::thread::hardware_concurrency());
+    int num_threads = 1; //static_cast<int>(std::thread::hardware_concurrency());
     Textra::omp::setNumThreads(num_threads);
 // Set the number of threads to be used
 #ifdef _OPENMP
@@ -44,11 +44,11 @@ int main() {
     #endif
 #endif
 
-    long chiL  = 64;
-    long chiR  = 64;
-    long spin  = 32;
+    long chiL  = 512;
+    long chiR  = 256;
+    long spin  = 2;
     long mpod  = 5;
-    int  iters = 10;
+    int  iters = 3;
 
     using cplx   = std::complex<double>;
     using real   = double;
