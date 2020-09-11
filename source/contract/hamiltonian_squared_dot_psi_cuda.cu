@@ -1,6 +1,6 @@
 
 
-#if !defined(EIGEN_USE_GPU)
+#if defined(EIGEN_USE_GPU)
 #include <contract/contract.h>
 #include <complex>
 #include <tools/prof.h>
