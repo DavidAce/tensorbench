@@ -1,10 +1,16 @@
+
+
+#if !defined(EIGEN_USE_GPU)
 #include <contract/contract.h>
 #include <complex>
 #include <tools/prof.h>
 #include <tools/class_tic_toc.h>
 
 template<typename Scalar>
-Eigen::Tensor<Scalar,3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Tensor<Scalar,3> & psi_in, const Eigen::Tensor<Scalar,4> & mpo, const Eigen::Tensor<Scalar,4> & envL, const Eigen::Tensor<Scalar,4> & envR){
+Eigen::Tensor<Scalar,3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<Scalar,3> & psi_in, const Eigen::Tensor<Scalar,4> & mpo, const Eigen::Tensor<Scalar,4> & envL, const Eigen::Tensor<Scalar,4> & envR){
+    // https://svn.larosterna.com/oss/thirdparty/eigen/unsupported/test/cxx11_tensor_reduction_cuda.cu
+    Eigen::CudaStreamDevice stream;
+    Eigen::GpuDevice        gpudev(&stream);
     tools::prof::t_ham_sq_psi_v3->tic();
     Eigen::DSizes<long,3> dsizes = psi_in.dimensions();
     Eigen::Tensor<Scalar,3> ham_sq_psi(dsizes);
@@ -24,5 +30,6 @@ Eigen::Tensor<Scalar,3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Te
 using cplx = std::complex<double>;
 using real = double;
 
-template Eigen::Tensor<cplx,3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Tensor<cplx,3> & psi_in, const Eigen::Tensor<cplx,4> & mpo, const Eigen::Tensor<cplx,4> & envL, const Eigen::Tensor<cplx,4> & envR);
-template Eigen::Tensor<real,3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Tensor<real,3> & psi_in, const Eigen::Tensor<real,4> & mpo, const Eigen::Tensor<real,4> & envL, const Eigen::Tensor<real,4> & envR);
+template Eigen::Tensor<cplx,3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<cplx,3> & psi_in, const Eigen::Tensor<cplx,4> & mpo, const Eigen::Tensor<cplx,4> & envL, const Eigen::Tensor<cplx,4> & envR);
+template Eigen::Tensor<real,3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<real,3> & psi_in, const Eigen::Tensor<real,4> & mpo, const Eigen::Tensor<real,4> & envL, const Eigen::Tensor<real,4> & envR);
+#endif
