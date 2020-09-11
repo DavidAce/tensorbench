@@ -56,6 +56,7 @@ PARSED_OPTIONS=$(getopt -n "$0"   -o ha:b:cl:df:g:G:j:st:v \
                 enable-mkl\
                 enable-lto\
                 enable-asan\
+                enable-cuda\
                 no-modules\
                 prefer-conda\
                 verbose\
