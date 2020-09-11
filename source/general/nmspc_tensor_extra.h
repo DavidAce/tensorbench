@@ -27,7 +27,7 @@ namespace Textra {
     template <typename Scalar, long length>
     using idxlistpair = Eigen::array<Eigen::IndexPair<Scalar>,length>;
 
-    inline constexpr idxlistpair<long,0> idx(){
+    inline idxlistpair<long,0> idx(){
         Eigen::array<Eigen::IndexPair<long>,0> empty_index_list = {};
         return empty_index_list;
     }
