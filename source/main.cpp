@@ -44,8 +44,11 @@ int main(int argc, char *argv[]) {
             log->info("Parsing input argument: -{} {}", opt, optarg);
         switch(opt) {
             case 'n':
-#if !defined(_OPENMP) || !defined(EIGEN_USE_THREADS)
-                throw std::runtime_error("Threading option [-n:<num>] is invalid: OpenMP is not enabled\n Set flags _OPENMP and EIGEN_USE_THREADS");
+#if !defined(EIGEN_USE_THREADS)
+                throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define EIGEN_USE_THREADS");
+#endif
+#if !defined(_OPENMP)
+                throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define _OPENMP");
 #endif
                 num_threads = std::stoi(optarg, nullptr, 10);
                 if(num_threads <= 0) throw std::runtime_error(fmt::format("Invalid num threads: {}", optarg));
@@ -64,13 +67,14 @@ int main(int argc, char *argv[]) {
     tools::prof::init_profiling();
     tools::log = tools::Logger::setLogger("tensorbench", verbosity);
     Textra::omp::setNumThreads(num_threads);
-// Set the number of threads to be used
-#if defined(_OPENMP) && defined(EIGEN_USE_THREADS)
-    omp_set_num_threads(num_threads);
-    Eigen::setNbThreads(num_threads);
+    // Set the number of threads to be used
+
+#if defined(EIGEN_USE_THREADS)
     Textra::omp::setNumThreads(num_threads);
     tools::log->info("Using Eigen Tensor with {} threads", Textra::omp::tp->NumThreads());
-    tools::log->info("Using Eigen  with {} threads", Eigen::nbThreads());
+#endif
+#if defined(_OPENMP)
+    omp_set_num_threads(num_threads);
     tools::log->info("Using OpenMP with {} threads", omp_get_max_threads());
     #ifdef OPENBLAS_AVAILABLE
     openblas_set_num_threads(num_threads);
