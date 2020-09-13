@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
 
     using cplx   = std::complex<double>;
     using real   = double;
-    using Scalar = cplx;
+    using Scalar = real;
     Eigen::Tensor<Scalar, 4> envL(chiL, chiL, mpod, mpod);
     Eigen::Tensor<Scalar, 4> envR(chiR, chiR, mpod, mpod);
     Eigen::Tensor<Scalar, 4> mpo(mpod, mpod, spin, spin);

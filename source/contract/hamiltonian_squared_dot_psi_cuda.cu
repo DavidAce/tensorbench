@@ -1,105 +1,74 @@
 
 
 #if defined(EIGEN_USE_GPU)
-#include <contract/contract.h>
-#include <complex>
-#include <tools/prof.h>
-#include <tools/class_tic_toc.h>
+    #include <complex>
+    #include <contract/contract.h>
+    #include <tools/class_tic_toc.h>
+    #include <tools/prof.h>
 
+template<typename Scalar>
+Eigen::Tensor<Scalar, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<Scalar, 3> &psi_in, const Eigen::Tensor<Scalar, 4> &mpo,
+                                                                    const Eigen::Tensor<Scalar, 4> &envL, const Eigen::Tensor<Scalar, 4> &envR) {
+    // https://svn.larosterna.com/oss/thirdparty/eigen/unsupported/test/cxx11_tensor_reduction_cuda.cu
+    tools::prof::t_ham_sq_psi_cuda->tic();
+    Eigen::DSizes<long, 3>   dsizes = psi_in.dimensions();
+    Eigen::Tensor<Scalar, 3> ham_sq_psi(dsizes);
+    Eigen::Tensor<Scalar, 3> psi_shuffled = psi_in.shuffle(Textra::array3{1, 0, 2});
 
-using Eigen::Tensor;
-typedef Tensor<float, 1>::DimensionPair DimPair;
-
-template<int DataLayout>
-void test_cuda_contraction(int m_size, int k_size, int n_size)
-{
-    std::cout << "Testing for (" << m_size << "," << k_size << "," << n_size << ")" << std::endl;
-    // with these dimensions, the output has 300 * 140 elements, which is
-    // more than 30 * 1024, which is the number of threads in blocks on
-    // a 15 SM GK110 GPU
-    Tensor<float, 2, DataLayout> t_left(m_size, k_size);
-    Tensor<float, 2, DataLayout> t_right(k_size, n_size);
-    Tensor<float, 2, DataLayout> t_result(m_size, n_size);
-    Tensor<float, 2, DataLayout> t_result_gpu(m_size, n_size);
-    Eigen::array<DimPair, 1> dims(DimPair(1, 0));
-
-    t_left.setRandom();
-    t_right.setRandom();
-
-    std::size_t t_left_bytes = t_left.size()  * sizeof(float);
-    std::size_t t_right_bytes = t_right.size() * sizeof(float);
-    std::size_t t_result_bytes = t_result.size() * sizeof(float);
-
-    float* d_t_left;
-    float* d_t_right;
-    float* d_t_result;
-
-    cudaMalloc((void**)(&d_t_left), t_left_bytes);
-    cudaMalloc((void**)(&d_t_right), t_right_bytes);
-    cudaMalloc((void**)(&d_t_result), t_result_bytes);
-
-    cudaMemcpy(d_t_left, t_left.data(), t_left_bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_t_right, t_right.data(), t_right_bytes, cudaMemcpyHostToDevice);
-
+    // Setup cuda
     Eigen::CudaStreamDevice stream;
-    Eigen::GpuDevice gpu_device(&stream);
+    Eigen::GpuDevice        gpudev(&stream);
 
-    Eigen::TensorMap<Eigen::Tensor<float, 2, DataLayout> >
-        gpu_t_left(d_t_left, Eigen::array<int, 2>(m_size, k_size));
-    Eigen::TensorMap<Eigen::Tensor<float, 2, DataLayout> >
-        gpu_t_right(d_t_right, Eigen::array<int, 2>(k_size, n_size));
-    Eigen::TensorMap<Eigen::Tensor<float, 2, DataLayout> >
-        gpu_t_result(d_t_result, Eigen::array<int, 2>(m_size, n_size));
+    Scalar *    d_ham_sq_psi;
+    Scalar *    d_psi_shuffled;
+    Scalar *    d_mpo;
+    Scalar *    d_envL;
+    Scalar *    d_envR;
+    std::size_t d_ham_sq_psi_bytes   = ham_sq_psi.size() * sizeof(Scalar);
+    std::size_t d_psi_shuffled_bytes = psi_shuffled.size() * sizeof(Scalar);
+    std::size_t d_mpo_bytes          = mpo.size() * sizeof(Scalar);
+    std::size_t d_envL_bytes         = envL.size() * sizeof(Scalar);
+    std::size_t d_envR_bytes         = envR.size() * sizeof(Scalar);
 
+    cudaMalloc((void **) (&d_ham_sq_psi), d_ham_sq_psi_bytes);
+    cudaMalloc((void **) (&d_psi_shuffled), d_psi_shuffled_bytes);
+    cudaMalloc((void **) (&d_mpo), d_mpo_bytes);
+    cudaMalloc((void **) (&d_envL), d_envL_bytes);
+    cudaMalloc((void **) (&d_envR), d_envR_bytes);
 
-    gpu_t_result.device(gpu_device) = gpu_t_left.contract(gpu_t_right, dims);
-    t_result = t_left.contract(t_right, dims);
+    cudaMemcpy(d_ham_sq_psi, ham_sq_psi.data(), d_ham_sq_psi_bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_psi_shuffled, psi_shuffled.data(), d_psi_shuffled_bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_mpo, mpo.data(), d_mpo_bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_envL, envL.data(), d_envL_bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_envR, envR.data(), d_envR_bytes, cudaMemcpyHostToDevice);
 
-    cudaMemcpy(t_result_gpu.data(), d_t_result, t_result_bytes, cudaMemcpyDeviceToHost);
-    for (DenseIndex i = 0; i < t_result.size(); i++) {
-        if (fabs(t_result(i) - t_result_gpu(i)) < 1e-4f) {
-            continue;
-        }
-        if (Eigen::internal::isApprox(t_result(i), t_result_gpu(i), 1e-4f)) {
-            continue;
-        }
-        std::cout << "mismatch detected at index " << i << ": " << t_result(i)
-                  << " vs " <<  t_result_gpu(i) << std::endl;
-        assert(false);
-    }
+    Eigen::TensorMap<Eigen::Tensor<Scalar, 3> > gpu_ham_sq_psi(d_ham_sq_psi, dsizes);
+    Eigen::TensorMap<Eigen::Tensor<Scalar, 3> > gpu_psi_shuffled(d_psi_shuffled, dsizes);
+    Eigen::TensorMap<Eigen::Tensor<Scalar, 4> > gpu_mpo(d_mpo, mpo.dimensions());
+    Eigen::TensorMap<Eigen::Tensor<Scalar, 4> > gpu_envL(d_envL, envL.dimensions());
+    Eigen::TensorMap<Eigen::Tensor<Scalar, 4> > gpu_envR(d_envR, envR.dimensions());
 
-    cudaFree((void*)d_t_left);
-    cudaFree((void*)d_t_right);
-    cudaFree((void*)d_t_result);
+    gpu_ham_sq_psi.device(gpudev) = gpu_psi_shuffled.contract(gpu_envL, Textra::idx(Textra::array1{0}, Textra::array1{0}))
+                                        .contract(gpu_mpo, Textra::idx(Textra::array2{0, 3}, Textra::array2{2, 0}))
+                                        .contract(gpu_mpo, Textra::idx(Textra::array2{4, 2}, Textra::array2{2, 0}))
+                                        .contract(gpu_envR, Textra::idx(Textra::array3{0, 2, 3}, Textra::array3{0, 2, 3}))
+                                        .shuffle(Textra::array3{1, 0, 2});
+
+    cudaMemcpy(ham_sq_psi.data(), d_ham_sq_psi, d_ham_sq_psi_bytes, cudaMemcpyDeviceToHost);
+    cudaFree((void *) d_psi_shuffled_bytes);
+    cudaFree((void *) d_mpo_bytes);
+    cudaFree((void *) d_envL_bytes);
+    cudaFree((void *) d_envR_bytes);
+
+    tools::prof::t_ham_sq_psi_cuda->toc();
+    return ham_sq_psi;
 }
 
+using cplx = std::complex<double>;
+using real = double;
 
-
-
-//template<typename Scalar>
-//Eigen::Tensor<Scalar,3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<Scalar,3> & psi_in, const Eigen::Tensor<Scalar,4> & mpo, const Eigen::Tensor<Scalar,4> & envL, const Eigen::Tensor<Scalar,4> & envR){
-//    // https://svn.larosterna.com/oss/thirdparty/eigen/unsupported/test/cxx11_tensor_reduction_cuda.cu
-//    Eigen::CudaStreamDevice stream;
-//    Eigen::GpuDevice        gpudev(&stream);
-//    tools::prof::t_ham_sq_psi_cuda->tic();
-//    Eigen::DSizes<long,3> dsizes = psi_in.dimensions();
-//    Eigen::Tensor<Scalar,3> ham_sq_psi(dsizes);
-//    Eigen::Tensor<Scalar,3> psi_shuffled = psi_in.shuffle(Textra::array3{1, 0, 2});
-//    ham_sq_psi.device(gpudev) =
-//        psi_shuffled
-//            .contract(envL , Textra::idx({0}, {0}))
-//            .contract(mpo  , Textra::idx({0, 3}, {2, 0}))
-//            .contract(mpo  , Textra::idx({4, 2}, {2, 0}))
-//            .contract(envR, Textra::idx({0, 2, 3}, {0, 2, 3}))
-//            .shuffle(Textra::array3{1, 0, 2});
-//    tools::prof::t_ham_sq_psi_cuda->toc();
-//    return ham_sq_psi;
-//
-//}
-//
-//using cplx = std::complex<double>;
-//using real = double;
-//
-//template Eigen::Tensor<cplx,3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<cplx,3> & psi_in, const Eigen::Tensor<cplx,4> & mpo, const Eigen::Tensor<cplx,4> & envL, const Eigen::Tensor<cplx,4> & envR);
-//template Eigen::Tensor<real,3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<real,3> & psi_in, const Eigen::Tensor<real,4> & mpo, const Eigen::Tensor<real,4> & envL, const Eigen::Tensor<real,4> & envR);
+//template Eigen::Tensor<cplx, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<cplx, 3> &psi_in, const Eigen::Tensor<cplx, 4> &mpo,
+//                                                                           const Eigen::Tensor<cplx, 4> &envL, const Eigen::Tensor<cplx, 4> &envR);
+template Eigen::Tensor<real, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<real, 3> &psi_in, const Eigen::Tensor<real, 4> &mpo,
+                                                                           const Eigen::Tensor<real, 4> &envL, const Eigen::Tensor<real, 4> &envR);
 #endif
