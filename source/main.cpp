@@ -20,7 +20,7 @@
 
 void print_usage() {
     std::cout <<
-              R"(
+        R"(
 ==========  cpp_merger  ============
 Usage                       : ./cpp_merger [-option <value>].
 -h                          : Help. Shows this text.
@@ -28,7 +28,6 @@ Usage                       : ./cpp_merger [-option <value>].
 -v <level>                  : Enables trace-level verbosity
 )";
 }
-
 
 int main(int argc, char *argv[]) {
     // Here we use getopt to parse CLI input
@@ -45,6 +44,9 @@ int main(int argc, char *argv[]) {
             log->info("Parsing input argument: -{} {}", opt, optarg);
         switch(opt) {
             case 'n':
+#if !defined(_OPENMP)
+                throw std::runtime_error("Threading option " - n " is invalid: OpenMP is not enabled");
+#endif
                 num_threads = std::stoi(optarg, nullptr, 10);
                 if(num_threads <= 0) throw std::runtime_error(fmt::format("Invalid num threads: {}", optarg));
                 else
@@ -60,7 +62,7 @@ int main(int argc, char *argv[]) {
     }
 
     tools::prof::init_profiling();
-    tools::log      = tools::Logger::setLogger("tensorbench", verbosity);
+    tools::log = tools::Logger::setLogger("tensorbench", verbosity);
     Textra::omp::setNumThreads(num_threads);
 // Set the number of threads to be used
 #if defined(_OPENMP) && defined(EIGEN_USE_THREADS)

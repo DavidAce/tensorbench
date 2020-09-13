@@ -279,8 +279,8 @@ cat << EOF >&2
           -DTB_ENABLE_OPENMP=$enable_openmp
           -DTB_ENABLE_MKL=$enable_mkl
           -DTB_ENABLE_LTO=$enable_lto
-          -DTB_ENABLE_ASAN=$enable_asan \
-          -DTB_ENABLE_CUDA=$enable_cuda \
+          -DTB_ENABLE_ASAN=$enable_asan
+          -DTB_ENABLE_CUDA=$enable_cuda
           $extra_flags
            -G $generator
            ../../
