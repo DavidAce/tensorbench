@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
         switch(opt) {
             case 'n':
 #if !defined(_OPENMP) || !defined(EIGEN_USE_THREADS)
-                throw std::runtime_error("Threading option " -n " is invalid: OpenMP is not enabled\n Set flags _OPENMP and EIGEN_USE_THREADS");
+                throw std::runtime_error("Threading option [-n:<num>] is invalid: OpenMP is not enabled\n Set flags _OPENMP and EIGEN_USE_THREADS");
 #endif
                 num_threads = std::stoi(optarg, nullptr, 10);
                 if(num_threads <= 0) throw std::runtime_error(fmt::format("Invalid num threads: {}", optarg));
