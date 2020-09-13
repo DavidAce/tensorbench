@@ -33,20 +33,20 @@ namespace Textra {
     }
 
 
-//    template<std::size_t N>
-//    idxlistpair<Eigen::Index,N> idx (const Eigen::Index (&list1)[N], const Eigen::Index (&list2)[N]){
-//        if constexpr (N == 0) {
-//            Eigen::array<Eigen::IndexPair<long>, 0> empty_index_list = {};
-//            return empty_index_list;
-//        }
-//        //Use numpy-style indexing for contraction. Each list contains a list of indices to be contracted for the respective
-//        //tensors. This function zips them together into pairs as used in Eigen::Tensor module. This does not sort the indices in decreasing order.
-//        Eigen::array<Eigen::IndexPair<Eigen::Index>,N> pairlistOut;
-//        for(size_t i = 0; i < N; i++){
-//            pairlistOut[i] = Eigen::IndexPair<Eigen::Index>{list1[i], list2[i]};
-//        }
-//        return pairlistOut;
-//    }
+    template<std::size_t N>
+    idxlistpair<Eigen::Index,N> idx (const Eigen::Index (&list1)[N], const Eigen::Index (&list2)[N]){
+        if constexpr (N == 0) {
+            Eigen::array<Eigen::IndexPair<long>, 0> empty_index_list = {};
+            return empty_index_list;
+        }
+        //Use numpy-style indexing for contraction. Each list contains a list of indices to be contracted for the respective
+        //tensors. This function zips them together into pairs as used in Eigen::Tensor module. This does not sort the indices in decreasing order.
+        Eigen::array<Eigen::IndexPair<Eigen::Index>,N> pairlistOut;
+        for(size_t i = 0; i < N; i++){
+            pairlistOut[i] = Eigen::IndexPair<Eigen::Index>{list1[i], list2[i]};
+        }
+        return pairlistOut;
+    }
 
     template<auto N>
     constexpr idxlistpair<Eigen::Index,N> idx (const Eigen::array<Eigen::Index,N> & list1, const Eigen::array<Eigen::Index,N> & list2){

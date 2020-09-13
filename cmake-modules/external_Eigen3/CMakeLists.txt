@@ -4,16 +4,16 @@ project(external-eigen3)
 include(ExternalProject)
 
 ExternalProject_Add(external_eigen3
-        URL  https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
-        URL_MD5 "9e30f67e8531477de4117506fe44669b"
-        PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/Eigen_3.3.7.patch
+#        URL  https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
+#        URL_MD5 "9e30f67e8531477de4117506fe44669b"
+#        PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/Eigen_3.3.7.patch
 
-#        GIT_REPOSITORY https://gitlab.com/libeigen/eigen
-#        GIT_TAG master
-#        GIT_PROGRESS TRUE
-#        GIT_SHALLOW TRUE
+        GIT_REPOSITORY https://gitlab.com/libeigen/eigen
+        GIT_TAG master
+        GIT_PROGRESS TRUE
+        GIT_SHALLOW TRUE
 
-        LOG_PATCH TRUE
+#        LOG_PATCH TRUE
         PREFIX      ${CMAKE_BINARY_DIR}
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
         BUILD_ALWAYS TRUE

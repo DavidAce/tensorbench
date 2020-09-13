@@ -16,7 +16,7 @@ Eigen::Tensor<Scalar, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen:
     Eigen::Tensor<Scalar, 3> psi_shuffled = psi_in.shuffle(Textra::array3{1, 0, 2});
 
     // Setup cuda
-    Eigen::CudaStreamDevice stream;
+    Eigen::GpuStreamDevice stream;
     Eigen::GpuDevice        gpudev(&stream);
 
     Scalar *    d_ham_sq_psi;

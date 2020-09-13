@@ -1,0 +1,121 @@
+    long chiL  = 512;
+    long chiR  = 256;
+    long spin  = 2;
+    long mpod  = 5;
+    int  iters = 3;
+    using Scalar = std::complex<double>;
+
+
+# 1 thread, march=haswell
+[2020-09-13 17:39:04][tensorbench][  info  ] Parsing input argument: -n 1
+[2020-09-13 17:39:10][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 0/3 |  time 5.4242 s
+[2020-09-13 17:39:15][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 1/3 |  time 5.4179 s
+[2020-09-13 17:39:21][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 2/3 |  time 5.4464 s
+[2020-09-13 17:39:21][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | total time 16.2886 s
+[2020-09-13 17:39:29][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 0/3 |  time 8.3359 s
+[2020-09-13 17:39:37][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 1/3 |  time 8.3013 s
+[2020-09-13 17:39:46][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 2/3 |  time 8.2815 s
+[2020-09-13 17:39:46][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | total time 24.9187 s
+[2020-09-13 17:39:48][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 0/3 |  time 2.5590 s
+[2020-09-13 17:39:51][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 1/3 |  time 2.5725 s
+[2020-09-13 17:39:53][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 2/3 |  time 2.5681 s
+[2020-09-13 17:39:53][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | total time 7.6996 s
+[2020-09-13 17:39:53][tensorbench][  info  ] total time 48.9075 s
+
+# 2 threads march=native (haswell made no difference)
+[2020-09-13 18:22:57][tensorbench][  info  ] Parsing input argument: -n 2
+[2020-09-13 18:22:57][tensorbench][  info  ] Using Eigen Tensor with 2 threads
+[2020-09-13 18:22:57][tensorbench][  info  ] Using OpenMP with 2 threads
+[2020-09-13 18:22:57][tensorbench][  info  ] Starting benchmark
+[2020-09-13 18:23:01][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 0/3 |  time 3.0559 s
+[2020-09-13 18:23:04][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 1/3 |  time 3.0838 s
+[2020-09-13 18:23:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 2/3 |  time 3.0017 s
+[2020-09-13 18:23:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | total time 9.1414 s
+[2020-09-13 18:23:11][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 0/3 |  time 4.5339 s
+[2020-09-13 18:23:16][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 1/3 |  time 4.5069 s
+[2020-09-13 18:23:20][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 2/3 |  time 4.5097 s
+[2020-09-13 18:23:20][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | total time 13.5504 s
+[2020-09-13 18:23:22][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 0/3 |  time 1.5806 s
+[2020-09-13 18:23:23][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 1/3 |  time 1.5626 s
+[2020-09-13 18:23:25][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 2/3 |  time 1.5601 s
+[2020-09-13 18:23:25][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | total time 4.7032 s
+[2020-09-13 18:23:25][tensorbench][  info  ] total time 27.3967 s
+
+
+# 4 threads march=native
+[2020-09-13 18:24:05][tensorbench][  info  ] Parsing input argument: -n 4
+[2020-09-13 18:24:05][tensorbench][  info  ] Using Eigen Tensor with 4 threads
+[2020-09-13 18:24:05][tensorbench][  info  ] Using OpenMP with 4 threads
+[2020-09-13 18:24:05][tensorbench][  info  ] Starting benchmark
+[2020-09-13 18:24:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 0/3 |  time 1.6042 s
+[2020-09-13 18:24:09][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 1/3 |  time 1.5841 s
+[2020-09-13 18:24:10][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 2/3 |  time 1.6090 s
+[2020-09-13 18:24:10][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | total time 4.7973 s
+[2020-09-13 18:24:13][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 0/3 |  time 2.3853 s
+[2020-09-13 18:24:15][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 1/3 |  time 2.3346 s
+[2020-09-13 18:24:17][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 2/3 |  time 2.3406 s
+[2020-09-13 18:24:17][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | total time 7.0605 s
+[2020-09-13 18:24:18][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.8691 s
+[2020-09-13 18:24:19][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.8738 s
+[2020-09-13 18:24:20][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.8840 s
+[2020-09-13 18:24:20][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | total time 2.6268 s
+[2020-09-13 18:24:20][tensorbench][  info  ] total time 14.4861 s
+
+# 8 threads march=native
+[2020-09-13 18:24:59][tensorbench][  info  ] Parsing input argument: -n 8
+[2020-09-13 18:24:59][tensorbench][  info  ] Using Eigen Tensor with 8 threads
+[2020-09-13 18:24:59][tensorbench][  info  ] Using OpenMP with 8 threads
+[2020-09-13 18:24:59][tensorbench][  info  ] Starting benchmark
+[2020-09-13 18:25:00][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.8632 s
+[2020-09-13 18:25:01][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.8565 s
+[2020-09-13 18:25:02][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.8425 s
+[2020-09-13 18:25:02][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | total time 2.5621 s
+[2020-09-13 18:25:03][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 0/3 |  time 1.2337 s
+[2020-09-13 18:25:04][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 1/3 |  time 1.2513 s
+[2020-09-13 18:25:05][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 2/3 |  time 1.2154 s
+[2020-09-13 18:25:05][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | total time 3.7004 s
+[2020-09-13 18:25:06][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.4920 s
+[2020-09-13 18:25:06][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.5024 s
+[2020-09-13 18:25:07][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.5257 s
+[2020-09-13 18:25:07][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | total time 1.5201 s
+[2020-09-13 18:25:07][tensorbench][  info  ] total time 7.7843 s
+
+
+# 16 threads march=native
+[2020-09-13 18:25:37][tensorbench][  info  ] Parsing input argument: -n 16
+[2020-09-13 18:25:37][tensorbench][  info  ] Using Eigen Tensor with 16 threads
+[2020-09-13 18:25:37][tensorbench][  info  ] Using OpenMP with 16 threads
+[2020-09-13 18:25:37][tensorbench][  info  ] Starting benchmark
+[2020-09-13 18:25:38][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.5869 s
+[2020-09-13 18:25:39][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.4831 s
+[2020-09-13 18:25:39][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.4731 s
+[2020-09-13 18:25:39][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | total time 1.5431 s
+[2020-09-13 18:25:40][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.6492 s
+[2020-09-13 18:25:40][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.6777 s
+[2020-09-13 18:25:41][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.6450 s
+[2020-09-13 18:25:41][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | total time 1.9720 s
+[2020-09-13 18:25:41][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.3035 s
+[2020-09-13 18:25:42][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.2966 s
+[2020-09-13 18:25:42][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.3144 s
+[2020-09-13 18:25:42][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | total time 0.9145 s
+[2020-09-13 18:25:42][tensorbench][  info  ] total time 4.4309 s
+
+
+# 32 threads march=native
+[2020-09-13 18:26:06][tensorbench][  info  ] Parsing input argument: -n 32
+[2020-09-13 18:26:06][tensorbench][  info  ] Using Eigen Tensor with 32 threads
+[2020-09-13 18:26:06][tensorbench][  info  ] Using OpenMP with 32 threads
+[2020-09-13 18:26:06][tensorbench][  info  ] Starting benchmark
+[2020-09-13 18:26:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.4056 s
+[2020-09-13 18:26:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.3762 s
+[2020-09-13 18:26:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.3582 s
+[2020-09-13 18:26:07][tensorbench][  info  ] H²|Ψ> version 1 | psi dimensions {2, 512, 256} | total time 1.1400 s
+[2020-09-13 18:26:08][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.4764 s
+[2020-09-13 18:26:08][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.4156 s
+[2020-09-13 18:26:09][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.4175 s
+[2020-09-13 18:26:09][tensorbench][  info  ] H²|Ψ> version 2 | psi dimensions {2, 512, 256} | total time 1.3096 s
+[2020-09-13 18:26:09][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 0/3 |  time 0.2350 s
+[2020-09-13 18:26:09][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 1/3 |  time 0.2184 s
+[2020-09-13 18:26:09][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | iter 2/3 |  time 0.2162 s
+[2020-09-13 18:26:09][tensorbench][  info  ] H²|Ψ> version 3 | psi dimensions {2, 512, 256} | total time 0.6696 s
+[2020-09-13 18:26:09][tensorbench][  info  ] total time 3.1207 s
