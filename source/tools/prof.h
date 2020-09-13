@@ -9,6 +9,7 @@ namespace tools::prof{
     inline std::unique_ptr<class_tic_toc> t_ham_sq_psi_v1;
     inline std::unique_ptr<class_tic_toc> t_ham_sq_psi_v2;
     inline std::unique_ptr<class_tic_toc> t_ham_sq_psi_v3;
+    inline std::unique_ptr<class_tic_toc> t_ham_sq_psi_cuda;
 
 
 

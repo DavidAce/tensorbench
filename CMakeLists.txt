@@ -19,7 +19,7 @@ option(TB_BUILD_EXAMPLES           "Build examples"                             
 option(TB_PRINT_INFO               "Print information during cmake configure"                     OFF)
 option(TB_DEPS_IN_SUBDIR           "Install dependencies into CMAKE_INSTALL_PREFIX/<libname>"     ON)
 option(TB_ENABLE_ASAN              "Enable runtime address sanitizer -fsanitize=address"          OFF)
-option(TB_ENABLE_CUDA              "Enable runtime address sanitizer -fsanitize=address"          OFF)
+option(TB_ENABLE_CUDA              "GPU parallelization with nVidia CUDA"                         OFF)
 
 
 # Make an "enum" for valid download methods
