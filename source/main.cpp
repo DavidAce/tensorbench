@@ -44,8 +44,8 @@ int main(int argc, char *argv[]) {
             log->info("Parsing input argument: -{} {}", opt, optarg);
         switch(opt) {
             case 'n':
-#if !defined(_OPENMP)
-                throw std::runtime_error("Threading option " - n " is invalid: OpenMP is not enabled");
+#if !defined(_OPENMP) || !defined(EIGEN_USE_THREADS)
+                throw std::runtime_error("Threading option " -n " is invalid: OpenMP is not enabled\n Set flags _OPENMP and EIGEN_USE_THREADS");
 #endif
                 num_threads = std::stoi(optarg, nullptr, 10);
                 if(num_threads <= 0) throw std::runtime_error(fmt::format("Invalid num threads: {}", optarg));
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
     mpo.setRandom();
     psi.setRandom();
     tools::prof::t_total->tic();
-
+    tools::log->info("Starting benchmark");
     for(int iter = 0; iter < iters; iter++) {
         auto psi_out = contract::hamiltonian_squared_dot_psi_v1(psi, mpo, envL, envR);
         tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_v1->get_name(), psi_out.dimensions(), iter, iters,
