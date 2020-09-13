@@ -10,7 +10,9 @@ if(TB_DOWNLOAD_METHOD MATCHES "conan")
     ###  libiomp5 might help for shared linking.                               ###
     ##############################################################################
     find_package(OpenMP REQUIRED) # Uses TB's own find module
-
+    if(TARGET openmp::openmp)
+        list(APPEND FOUND_TARGETS openmp::openmp)
+    endif()
 
     ##################################################################
     ### Install conan-modules/conanfile.txt dependencies          ###
@@ -42,7 +44,7 @@ if(TB_DOWNLOAD_METHOD MATCHES "conan")
             conan
             HINTS ${CONAN_PREFIX} $ENV{CONAN_PREFIX} ${CONDA_PREFIX} $ENV{CONDA_PREFIX}
             PATHS $ENV{HOME}/anaconda3  $ENV{HOME}/miniconda3 $ENV{HOME}/anaconda $ENV{HOME}/miniconda $ENV{HOME}/.conda
-            PATH_SUFFIXES bin envs/tb/bin
+            PATH_SUFFIXES bin envs/tb/bin  envs/dmrg/bin
     )
     if(NOT CONAN_COMMAND)
         message(FATAL_ERROR "Could not find conan program executable")
@@ -82,47 +84,88 @@ if(TB_DOWNLOAD_METHOD MATCHES "conan")
             BUILD missing
     )
 
+    if(TARGET CONAN_PKG:Eigen3)
+        set(eigen_target CONAN_PKG::Eigen3)
+    elseif(TARGET CONAN_PKG::eigen)
+        set(eigen_target CONAN_PKG::eigen)
+    endif()
 
 
-    if(TARGET CONAN_PKG::Eigen3)
+    if(TARGET ${eigen_target})
         if(TARGET openmp::openmp)
-            target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_THREADS)
+            target_compile_definitions    (${eigen_target} INTERFACE -DEIGEN_USE_THREADS)
         endif()
         if(TB_EIGEN3_BLAS)
             set(EIGEN3_USING_BLAS ON)
             if(TARGET mkl::mkl)
                 message(STATUS "Eigen3 will use MKL")
-                set(EIGEN3_USING_BLAS ON)
-                target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_MKL_ALL)
-                target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_LAPACKE_STRICT)
-                target_link_libraries         (CONAN_PKG::Eigen3 INTERFACE mkl::mkl)
-            elseif (TARGET CONAN_PKG::openblas)
+                target_compile_definitions    (${eigen_target} INTERFACE -DEIGEN_USE_MKL_ALL)
+                target_compile_definitions    (${eigen_target} INTERFACE -DEIGEN_USE_LAPACKE_STRICT)
+                target_link_libraries         (${eigen_target} INTERFACE mkl::mkl)
+            elseif(TARGET blas::blas)
                 message(STATUS "Eigen3 will use OpenBLAS")
-                set(EIGEN3_USING_BLAS ON)
-                target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_BLAS)
-                target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_LAPACKE_STRICT)
-                target_link_libraries         (CONAN_PKG::Eigen3 INTERFACE  CONAN_PKG::openblas)
+                target_compile_definitions    (${eigen_target} INTERFACE -DEIGEN_USE_BLAS)
+                target_compile_definitions    (${eigen_target} INTERFACE -DEIGEN_USE_LAPACKE_STRICT)
+                target_link_libraries         (${eigen_target} INTERFACE CONAN_PKG::openblas)
             endif()
         endif()
-        cmake_host_system_information(RESULT _host_name   QUERY HOSTNAME)
+
+        # AVX2 aligns 32 bytes (AVX512 aligns 64 bytes).
+        # When running on Tetralith, with march=native, there can be alignment mismatch
+        # in ceres which results in a segfault on free memory.
+        # Something like "double free or corruption ..."
+        #   * EIGEN_MAX_ALIGN_BYTES=16 works on Tetralith
+        cmake_host_system_information(RESULT _host_name  QUERY HOSTNAME)
         if(_host_name MATCHES "tetralith|triolith")
-            # AVX aligns 32 bytes (AVX512 aligns 64 bytes).
-            # When running on Tetralith, with march=native, there can be alignment mismatch
-            # in ceres which results in a segfault on free memory.
-            # Something like "double free or corruption ..."
-            #   * EIGEN_MAX_ALIGN_BYTES=16 works on Tetralith
             message(STATUS "Applying special Eigen compile definitions for Tetralith: EIGEN_MAX_ALIGN_BYTES=16")
-            target_compile_definitions(CONAN_PKG::Eigen3INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=0) # May work to fix CERES segfaults!!!
-            target_compile_definitions(CONAN_PKG::Eigen3 INTERFACE EIGEN_MAX_ALIGN_BYTES=16)
+            target_compile_definitions(${eigen_target} INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=0) # May work to fix CERES segfaults!!!
+            target_compile_definitions(${eigen_target} INTERFACE EIGEN_MAX_ALIGN_BYTES=16)
         else()
-#            message(STATUS "Applying special Eigen compile definitions for general machines: EIGEN_MAX_ALIGN_BYTES=16")
-#            target_compile_definitions(CONAN_PKG::Eigen3 INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=1) # May work to fix CERES segfaults!!!
-#            target_compile_definitions(CONAN_PKG::Eigen3 INTERFACE EIGEN_MAX_ALIGN_BYTES=32)
+            #            message(STATUS "Applying special Eigen compile definitions for general machines")
+            #            target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=1) # May work to fix CERES segfaults!!!
+            #            target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_MAX_ALIGN_BYTES=32)
         endif()
 
     endif()
 
-    if(TARGET openmp::openmp)
-        list(APPEND FOUND_TARGETS openmp::openmp)
-    endif()
+
+#    if(TARGET CONAN_PKG::Eigen3)
+#        if(TARGET openmp::openmp)
+#            target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_THREADS)
+#        endif()
+#        if(TB_EIGEN3_BLAS)
+#            set(EIGEN3_USING_BLAS ON)
+#            if(TARGET mkl::mkl)
+#                message(STATUS "Eigen3 will use MKL")
+#                set(EIGEN3_USING_BLAS ON)
+#                target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_MKL_ALL)
+#                target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_LAPACKE_STRICT)
+#                target_link_libraries         (CONAN_PKG::Eigen3 INTERFACE mkl::mkl)
+#            elseif (TARGET CONAN_PKG::openblas)
+#                message(STATUS "Eigen3 will use OpenBLAS")
+#                set(EIGEN3_USING_BLAS ON)
+#                target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_BLAS)
+#                target_compile_definitions    (CONAN_PKG::Eigen3 INTERFACE -DEIGEN_USE_LAPACKE_STRICT)
+#                target_link_libraries         (CONAN_PKG::Eigen3 INTERFACE  CONAN_PKG::openblas)
+#            endif()
+#        endif()
+#        cmake_host_system_information(RESULT _host_name   QUERY HOSTNAME)
+#        if(_host_name MATCHES "tetralith|triolith")
+#            # AVX aligns 32 bytes (AVX512 aligns 64 bytes).
+#            # When running on Tetralith, with march=native, there can be alignment mismatch
+#            # in ceres which results in a segfault on free memory.
+#            # Something like "double free or corruption ..."
+#            #   * EIGEN_MAX_ALIGN_BYTES=16 works on Tetralith
+#            message(STATUS "Applying special Eigen compile definitions for Tetralith: EIGEN_MAX_ALIGN_BYTES=16")
+#            target_compile_definitions(CONAN_PKG::Eigen3INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=0) # May work to fix CERES segfaults!!!
+#            target_compile_definitions(CONAN_PKG::Eigen3 INTERFACE EIGEN_MAX_ALIGN_BYTES=16)
+#        else()
+##            message(STATUS "Applying special Eigen compile definitions for general machines: EIGEN_MAX_ALIGN_BYTES=16")
+##            target_compile_definitions(CONAN_PKG::Eigen3 INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=1) # May work to fix CERES segfaults!!!
+##            target_compile_definitions(CONAN_PKG::Eigen3 INTERFACE EIGEN_MAX_ALIGN_BYTES=32)
+#        endif()
+#
+#    endif()
+
+
 endif()
