@@ -9,11 +9,13 @@ ExternalProject_Add(external_eigen3
 #        PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/Eigen_3.3.7.patch
 
         GIT_REPOSITORY https://gitlab.com/libeigen/eigen
-        GIT_TAG master
+        GIT_TAG "65e400896bd5d6e62263d8262f6c7e1644f83298"
         GIT_PROGRESS TRUE
         GIT_SHALLOW TRUE
+        PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/Eigen_3.3.90_gpu_contraction.patch
 
-#        LOG_PATCH TRUE
+
+        LOG_PATCH TRUE
         PREFIX      ${CMAKE_BINARY_DIR}
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
         BUILD_ALWAYS TRUE
