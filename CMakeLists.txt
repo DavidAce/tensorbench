@@ -91,7 +91,6 @@ add_executable(${PROJECT_NAME}
         source/contract/hamiltonian_squared_dot_psi_v1.cpp
         source/contract/hamiltonian_squared_dot_psi_v2.cpp
         source/contract/hamiltonian_squared_dot_psi_v3.cpp
-
         )
 target_include_directories(${PROJECT_NAME} PRIVATE source)
 
@@ -220,31 +219,38 @@ if(NOT TARGET openmp::openmp)
     target_compile_options(project-settings INTERFACE -Wno-unknown-pragmas)
 endif()
 
+target_link_libraries(project-settings INTERFACE -Wl,--whole-archive pthread -Wl,--no-whole-archive -lrt -ldl )
+target_link_libraries(${PROJECT_NAME} PRIVATE project-settings )  # Link everything to main project
+
 
 if(TB_ENABLE_CUDA)
     enable_language(CUDA)
     add_library(tb-cuda OBJECT source/contract/hamiltonian_squared_dot_psi_cuda.cu)
     target_include_directories(tb-cuda PRIVATE source)
-    target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
-    target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-std=c++17>)
+    target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -std=c++17>)
+    target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -std=c++17>)
     target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcompiler=-std=c++17 >)
     target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: --expt-relaxed-constexpr>)
-    target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored>)
+    target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler>)
+    target_compile_options(tb-cuda PUBLIC $<$<COMPILE_LANGUAGE:CUDA>: -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored>)
 
     target_link_libraries(tb-cuda PRIVATE project-settings)
-    target_compile_definitions(project-settings INTERFACE EIGEN_USE_GPU)
-    target_compile_definitions(tb-cuda INTERFACE EIGEN_USE_GPU)
+#    target_compile_definitions(project-settings INTERFACE EIGEN_USE_GPU)
+    target_compile_definitions(tb-cuda PUBLIC EIGEN_USE_GPU)
+    target_compile_definitions(tb-cuda PUBLIC EIGEN_MALLOC_ALREADY_ALIGNED=0) # May work to fix CERES segfaults!!!
+    target_compile_definitions(tb-cuda PUBLIC EIGEN_MAX_ALIGN_BYTES=16)
     set_target_properties(tb-cuda PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    set_target_properties(tb-cuda PROPERTIES CUDA_PTX_COMPILATION ON)
+    set_target_properties(tb-cuda PROPERTIES CUDA_PTX_COMPILATION OFF)
     set_target_properties(tb-cuda PROPERTIES CUDA_ARCHITECTURES 75)
+    set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_ARCHITECTURES 75)
+    target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -std=c++17>)
+    target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -std=c++17>)
+#    set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_PTX_COMPILATION OFF)
     target_link_libraries(${PROJECT_NAME} PRIVATE tb-cuda)
     #    target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-arch=sm_75>)
 endif()
 
-
-target_link_libraries(project-settings INTERFACE -Wl,--whole-archive pthread -Wl,--no-whole-archive -lrt -ldl )
-target_link_libraries(${PROJECT_NAME} PRIVATE project-settings )  # Link everything to main project
 
 # Speed up with precompiled headers
 if(COMMAND target_precompile_headers)

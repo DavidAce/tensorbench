@@ -24,7 +24,12 @@ void print_usage() {
 ==========  cpp_merger  ============
 Usage                       : ./cpp_merger [-option <value>].
 -h                          : Help. Shows this text.
+-i <iterations>             : Sets number of iterations
 -n <num threads>            : Sets number of threads for OpenMP operations
+-L <chiL>                   : Sets the left bond dimension
+-R <chiR>                   : Sets the right bond dimension
+-D <spin dim>               : Sets the aggregate spin dimension
+-M <mpo dim>                : Sets the mpo dimension
 -v <level>                  : Enables trace-level verbosity
 )";
 }
@@ -36,13 +41,23 @@ int main(int argc, char *argv[]) {
     auto   log         = tools::Logger::setLogger("tensorbench", 2);
     size_t verbosity   = 2;
     int    num_threads = 1; // static_cast<int>(std::thread::hardware_concurrency());
+    long chiL  = 512;
+    long chiR  = 256;
+    long spin  = 2;
+    long mpod  = 5;
+    int  iters = 3;
     while(true) {
-        char opt = static_cast<char>(getopt(argc, argv, "hn:v:"));
+        char opt = static_cast<char>(getopt(argc, argv, "hL:R:D:M:i:n:v:"));
         if(opt == EOF) break;
         if(optarg == nullptr) log->info("Parsing input argument: -{}", opt);
         else
             log->info("Parsing input argument: -{} {}", opt, optarg);
         switch(opt) {
+            case 'L': chiL = std::strtol(optarg, nullptr, 10); continue;
+            case 'R': chiR = std::strtol(optarg, nullptr, 10); continue;
+            case 'D': spin = std::strtol(optarg, nullptr, 10); continue;
+            case 'M': mpod = std::strtol(optarg, nullptr, 10); continue;
+            case 'i': iters = std::strtol(optarg, nullptr, 10); continue;
             case 'n':
 #if !defined(EIGEN_USE_THREADS)
                 throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define EIGEN_USE_THREADS");
@@ -89,12 +104,6 @@ int main(int argc, char *argv[]) {
     #endif
 #endif
 
-    long chiL  = 512;
-    long chiR  = 256;
-    long spin  = 2;
-    long mpod  = 5;
-    int  iters = 3;
-
     using cplx   = std::complex<double>;
     using real   = double;
     using Scalar = real;
@@ -133,12 +142,13 @@ int main(int argc, char *argv[]) {
                      tools::prof::t_ham_sq_psi_v3->get_measured_time());
 
 #if defined(EIGEN_USE_GPU)
+//    Eigen::Tensor<Scalar,3> psi_out(psi.dimensions());
     for(int iter = 0; iter < iters; iter++) {
         auto psi_out = contract::hamiltonian_squared_dot_psi_cuda(psi, mpo, envL, envR);
-        tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_cuda->get_name(), psi_out.dimensions(), iter, iters,
+        tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(), psi_out.dimensions(), iter, iters,
                          tools::prof::t_ham_sq_psi_cuda->get_last_time_interval());
     }
-    tools::log->info("{} | psi dimensions {} | total time {:.4f} s", tools::prof::t_ham_sq_psi_cuda->get_name(), psi.dimensions(),
+    tools::log->info("{} | psi dimensions {} | total time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(), psi.dimensions(),
                      tools::prof::t_ham_sq_psi_cuda->get_measured_time());
 #endif
     tools::prof::t_total->toc();

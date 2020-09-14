@@ -7,10 +7,11 @@
 void tools::prof::init_profiling(){
     if(t_total != nullptr) return;
 /* clang-format off */
-    t_total                = std::make_unique<class_tic_toc>(true, 5, "Total Time");
-    t_ham_sq_psi_v1        = std::make_unique<class_tic_toc>(true, 5, "H²|Ψ> version 1");
-    t_ham_sq_psi_v2        = std::make_unique<class_tic_toc>(true, 5, "H²|Ψ> version 2");
-    t_ham_sq_psi_v3        = std::make_unique<class_tic_toc>(true, 5, "H²|Ψ> version 3");
+    t_total                = std::make_unique<class_tic_toc>(true, 7, "Total Time");
+    t_ham_sq_psi_v1        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version 1");
+    t_ham_sq_psi_v2        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version 2");
+    t_ham_sq_psi_v3        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version 3");
+    t_ham_sq_psi_cuda      = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version c");
 
 }
 
