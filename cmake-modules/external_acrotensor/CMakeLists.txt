@@ -1,27 +1,18 @@
 cmake_minimum_required(VERSION 3.12)
 cmake_policy(SET CMP0074 NEW)
-project(external-eigen3)
+project(external-acrotensor)
 include(ExternalProject)
-
-ExternalProject_Add(external_eigen3
-#        URL  https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
-#        URL_MD5 "9e30f67e8531477de4117506fe44669b"
-#        PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/Eigen_3.3.7.patch
-
-        GIT_REPOSITORY https://gitlab.com/libeigen/eigen
-        GIT_TAG 65e400896bd5d6e62263d8262f6c7e1644f83298
+ExternalProject_Add(external_acrotensor
+        GIT_REPOSITORY https://github.com/DavidAce/acrotensor.git
+        GIT_TAG 4754589aa5554e063eaea0b7cd1408698497df81
         GIT_PROGRESS TRUE
-        #GIT_SHALLOW TRUE
-#        PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/Eigen_3.3.90_gpu_contraction.patch
 
-
-        LOG_PATCH TRUE
         PREFIX      ${CMAKE_BINARY_DIR}
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
         BUILD_ALWAYS TRUE
         CMAKE_ARGS
         # CMake flags
-        -DCMAKE_POLICY_DEFAULT_CMP0074=${CMAKE_POLICY_DEFAULT_CMP0074}
+        -DCMAKE_POLICY_DEFAULT_CMP0074=NEW
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
@@ -45,6 +36,6 @@ ExternalProject_Add(external_eigen3
         -DCMAKE_INSTALL_MESSAGE=${CMAKE_INSTALL_MESSAGE}
         -DCMAKE_GENERATOR=${CMAKE_GENERATOR}
         -DCMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}
-        # Eigen flags
-        -DEIGEN_TEST_CXX11:BOOL=ON
+        # acrotensor flags
+        -DACROTENSOR_ENABLE_CUDA:BOOL=${ACROTENSOR_ENABLE_CUDA}
         )

@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include <array>
 #include <general/nmspc_tensor_omp.h>
 #include <general/nmspc_sfinae.h>
 #include <Eigen/Core>
@@ -160,11 +161,16 @@ namespace Textra {
 //    //Matrix to tensor conversions//
 //    //****************************//
 
-
-    //Detects if Derived is a plain object, like "MatrixXd" or similar.
-    //std::decay removes pointer or ref qualifiers if present
+    // Detects if Derived is a plain object, like "MatrixXd" or similar.
+    // std::decay removes pointer or ref qualifiers if present
     template<typename Derived>
-    using is_plainObject  = std::is_base_of<Eigen::PlainObjectBase<std::decay_t<Derived> >, std::decay_t<Derived> > ;
+    using is_plainObject = std::is_base_of<Eigen::PlainObjectBase<std::decay_t<Derived>>, std::decay_t<Derived>>;
+    template<typename Derived>
+    using is_matrixObject = std::is_base_of<Eigen::MatrixBase<std::decay_t<Derived>>, std::decay_t<Derived>>;
+    template<typename Derived>
+    using is_arrayObject = std::is_base_of<Eigen::ArrayBase<std::decay_t<Derived>>, std::decay_t<Derived>>;
+
+
 
     template<typename Derived,auto rank>
     constexpr Eigen::Tensor<typename Derived::Scalar, rank> Matrix_to_Tensor(const Eigen::EigenBase<Derived> &matrix, const Eigen::array<long,rank> &dims){
@@ -187,11 +193,10 @@ namespace Textra {
     //Helpful overload
     template<typename Derived, auto rank>
     constexpr Eigen::Tensor<typename Derived::Scalar, rank> Matrix_to_Tensor(const Eigen::EigenBase<Derived> &matrix, const Eigen::DSizes<long,rank> &dims) {
-        Eigen::array<long,rank> dim_array = dims;
-        std::copy(std::begin(dims), std::end(dims), std::begin(dim_array));
+        Eigen::array<long,rank> dim_array;
+        for(long i = 0; i < rank; i++ ) dim_array[i] = dims[i];
         return Matrix_to_Tensor(matrix, dim_array);
     }
-
 
 
 
@@ -276,14 +281,66 @@ namespace Textra {
 
 
 
+    //************************//
+    // change storage layout //
+    //************************//
+    template<typename Derived>
+    auto to_RowMajor(const Eigen::TensorBase<Derived, Eigen::ReadOnlyAccessors> &tensor) {
+        if constexpr(Eigen::RowMajor == static_cast<Eigen::StorageOptions>(Derived::Layout))
+            return tensor;
+        else {
+            std::array<Eigen::Index,Derived::NumIndices> neworder;
+//            std::iota(std::begin(neworder), std::end(neworder), 0);
+            for(long i = 0; i < Derived::NumIndices; i++ ) neworder[i] = i;
+            std::reverse(neworder.data(), neworder.data() + neworder.size());
+            return Eigen::Tensor<typename Derived::Scalar, Derived::NumIndices, Eigen::RowMajor>(tensor.swap_layout().shuffle(neworder));
+        }
+    }
+
+    template<typename Derived>
+    auto to_ColMajor(const Eigen::TensorBase<Derived, Eigen::ReadOnlyAccessors> &tensor) {
+        if constexpr(Eigen::ColMajor == static_cast<Eigen::StorageOptions>(Derived::Layout))
+            return tensor;
+        else {
+            std::array<Eigen::Index,Derived::NumIndices> neworder;
+//            std::iota(std::begin(neworder), std::end(neworder), 0);
+            for(long i = 0; i < Derived::NumIndices; i++ ) neworder[i] = i;
+
+            std::reverse(neworder.data(), neworder.data() + neworder.size());
+            return Eigen::Tensor<typename Derived::Scalar, Derived::NumIndices, Eigen::ColMajor>(tensor.swap_layout().shuffle(neworder));
+        }
+    }
+
+    template<typename Derived>
+    auto to_RowMajor(const Eigen::DenseBase<Derived> &dense) {
+        if constexpr(Derived::IsRowMajor) { return dense; }
+        if constexpr(is_matrixObject<Derived>::value) {
+            return Eigen::Matrix<typename Derived::Scalar, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime, Eigen::RowMajor>(dense);
+        } else if constexpr(is_arrayObject<Derived>::value) {
+            return Eigen::Array<typename Derived::Scalar, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime, Eigen::RowMajor>(dense);
+        }
+        throw std::runtime_error("Wrong dense type?? Report this bug!");
+    }
+
+    template<typename Derived>
+    auto to_ColMajor(const Eigen::DenseBase<Derived> &dense) {
+        if constexpr(not Derived::IsRowMajor) { return dense; }
+        if constexpr(is_matrixObject<Derived>::value) {
+            return Eigen::Matrix<typename Derived::Scalar, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime, Eigen::ColMajor>(dense);
+        } else if constexpr(is_arrayObject<Derived>::value) {
+            return Eigen::Array<typename Derived::Scalar, Derived::RowsAtCompileTime, Derived::ColsAtCompileTime, Eigen::ColMajor>(dense);
+        }
+        throw std::runtime_error("Wrong dense type?? Report this bug!");
+    }
 
     //************************//
     // change storage layout //
     //************************//
     template<typename Scalar,auto rank>
     Eigen::Tensor<Scalar,rank, Eigen::RowMajor> to_RowMajor(const Eigen::Tensor<Scalar,rank, Eigen::ColMajor> tensor){
-        std::array<long,rank> neworder;
-        std::iota(std::begin(neworder), std::end(neworder), 0);
+        std::array<Eigen::Index,rank> neworder;
+//        std::iota(std::begin(neworder), std::end(neworder), 0);
+        for(long i = 0; i < rank; i++ ) neworder[i] = i;
         std::reverse(neworder.data(), neworder.data()+neworder.size());
         return tensor.swap_layout().shuffle(neworder);
     }
@@ -298,8 +355,9 @@ namespace Textra {
 
     template<typename Scalar,auto rank>
     Eigen::Tensor<Scalar,rank, Eigen::ColMajor> to_ColMajor(const Eigen::Tensor<Scalar,rank, Eigen::RowMajor> tensor){
-        std::array<long,rank> neworder;
-        std::iota(std::begin(neworder), std::end(neworder), 0);
+        std::array<Eigen::Index,rank> neworder;
+//        std::iota(std::begin(neworder), std::end(neworder), 0);
+        for(long i = 0; i < rank; i++ ) neworder[i] = i;
         std::reverse(neworder.data(), neworder.data()+neworder.size());
         return tensor.swap_layout().shuffle(neworder);
     }

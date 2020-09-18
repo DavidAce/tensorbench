@@ -18,6 +18,11 @@
     #include <mkl_service.h>
 #endif
 
+#if __has_include(<cuda.h>)
+    #include <cuda.h>
+    #include <cuda_runtime_api.h>
+#endif
+
 void print_usage() {
     std::cout <<
         R"(
@@ -41,9 +46,9 @@ int main(int argc, char *argv[]) {
     auto   log         = tools::Logger::setLogger("tensorbench", 2);
     size_t verbosity   = 2;
     int    num_threads = 1; // static_cast<int>(std::thread::hardware_concurrency());
-    long chiL  = 512;
+    long chiL  = 256;
     long chiR  = 256;
-    long spin  = 2;
+    long spin  = 4;
     long mpod  = 5;
     int  iters = 3;
     while(true) {
@@ -103,10 +108,18 @@ int main(int argc, char *argv[]) {
     mkl_verbose(1);
     #endif
 #endif
+#if __has_include(<cuda.h>)
+    tools::log->info("Initializing CUDA");
+    auto init_result = cudaSetDevice(0);
+//    auto init_result = cuInit(0);
+    if(init_result != 0) throw std::runtime_error("cuInit returned " + std::to_string(init_result));
+#endif
+
 
     using cplx   = std::complex<double>;
-    using real   = double;
-    using Scalar = real;
+    using fp32   = float;
+    using fp64   = double;
+    using Scalar = fp64;
     Eigen::Tensor<Scalar, 4> envL(chiL, chiL, mpod, mpod);
     Eigen::Tensor<Scalar, 4> envR(chiR, chiR, mpod, mpod);
     Eigen::Tensor<Scalar, 4> mpo(mpod, mpod, spin, spin);
@@ -117,12 +130,13 @@ int main(int argc, char *argv[]) {
     psi.setRandom();
     tools::prof::t_total->tic();
     tools::log->info("Starting benchmark");
+#if defined(TB_CPU)
     for(int iter = 0; iter < iters; iter++) {
         auto psi_out = contract::hamiltonian_squared_dot_psi_v1(psi, mpo, envL, envR);
         tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_v1->get_name(), psi_out.dimensions(), iter, iters,
                          tools::prof::t_ham_sq_psi_v1->get_last_time_interval());
     }
-    tools::log->info("{} | psi dimensions {} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v1->get_name(), psi.dimensions(),
+    tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v1->get_name(),
                      tools::prof::t_ham_sq_psi_v1->get_measured_time());
 
     for(int iter = 0; iter < iters; iter++) {
@@ -130,7 +144,7 @@ int main(int argc, char *argv[]) {
         tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_v2->get_name(), psi_out.dimensions(), iter, iters,
                          tools::prof::t_ham_sq_psi_v2->get_last_time_interval());
     }
-    tools::log->info("{} | psi dimensions {} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v2->get_name(), psi.dimensions(),
+    tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v2->get_name(),
                      tools::prof::t_ham_sq_psi_v2->get_measured_time());
 
     for(int iter = 0; iter < iters; iter++) {
@@ -138,19 +152,43 @@ int main(int argc, char *argv[]) {
         tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_v3->get_name(), psi_out.dimensions(), iter, iters,
                          tools::prof::t_ham_sq_psi_v3->get_last_time_interval());
     }
-    tools::log->info("{} | psi dimensions {} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v3->get_name(), psi.dimensions(),
+    tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v3->get_name(),
                      tools::prof::t_ham_sq_psi_v3->get_measured_time());
-
-#if defined(EIGEN_USE_GPU)
-//    Eigen::Tensor<Scalar,3> psi_out(psi.dimensions());
-    for(int iter = 0; iter < iters; iter++) {
-        auto psi_out = contract::hamiltonian_squared_dot_psi_cuda(psi, mpo, envL, envR);
-        tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(), psi_out.dimensions(), iter, iters,
-                         tools::prof::t_ham_sq_psi_cuda->get_last_time_interval());
-    }
-    tools::log->info("{} | psi dimensions {} | total time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(), psi.dimensions(),
-                     tools::prof::t_ham_sq_psi_cuda->get_measured_time());
 #endif
+
+#if defined(TB_CUDA)
+//    for(int iter = 0; iter < iters; iter++) {
+//        auto psi_out = contract::hamiltonian_squared_dot_psi_cuda(psi, mpo, envL, envR);
+//        tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(), psi_out.dimensions(), iter, iters,
+//                         tools::prof::t_ham_sq_psi_cuda->get_last_time_interval());
+//    }
+//    tools::log->info("{} | total time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(),
+//                     tools::prof::t_ham_sq_psi_cuda->get_measured_time());
+#endif
+
+
+#if defined(TB_ACRO)
+    for(int iter = 0; iter < iters; iter++) {
+        auto psi_out = contract::hamiltonian_squared_dot_psi_acro(psi, mpo, envL, envR);
+        tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_acro->get_name(), psi_out.dimensions(), iter, iters,
+                         tools::prof::t_ham_sq_psi_acro->get_last_time_interval());
+    }
+    tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_acro->get_name(),
+                     tools::prof::t_ham_sq_psi_acro->get_measured_time());
+#endif
+
+
+#if defined(TB_CUTE)
+    for(int iter = 0; iter < iters; iter++) {
+        auto psi_out = contract::hamiltonian_squared_dot_psi_cute(psi, mpo, envL, envR);
+        tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_cute->get_name(), psi_out.dimensions(), iter, iters,
+                         tools::prof::t_ham_sq_psi_cute->get_last_time_interval());
+    }
+    tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_cute->get_name(),
+                     tools::prof::t_ham_sq_psi_cute->get_measured_time());
+#endif
+
+
     tools::prof::t_total->toc();
     tools::log->info("total time {:.4f} s", tools::prof::t_total->get_measured_time());
 }

@@ -1,9 +1,10 @@
 
 
-#if defined(EIGEN_USE_GPU)
+#if defined(TB_CUDA) && defined(EIGEN_USE_GPU)
 //    #include <complex>
     #include <contract/contract.h>
     #include <tools/class_tic_toc.h>
+    #include <tools/log.h>
     #include <tools/prof.h>
     #include <unsupported/Eigen/CXX11/src/Tensor/TensorGpuHipCudaDefines.h>
 
@@ -77,21 +78,22 @@ Eigen::Tensor<Scalar, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen:
 #else
     Eigen::CudaStreamDevice stream;
 #endif
-    Eigen::GpuDevice        gpudev(&stream);
+    Eigen::GpuDevice        gpudev(&stream,8);
+
     Scalar *    d_ham_sq_psi;
     Scalar *    d_psi_shuffled;
     Scalar *    d_mpo;
     Scalar *    d_envL;
     Scalar *    d_envR;
-    std::size_t d_ham_sq_psi_bytes   = ham_sq_psi.size() * sizeof(Scalar);
-    std::size_t d_psi_shuffled_bytes = psi_shuffled.size() * sizeof(Scalar);
+    std::size_t d_ham_sq_psi_bytes   = psi_in.size() * sizeof(Scalar);
+    std::size_t d_psi_shuffled_bytes = psi_in.size() * sizeof(Scalar);
     std::size_t d_mpo_bytes          = mpo.size() * sizeof(Scalar);
     std::size_t d_envL_bytes         = envL.size() * sizeof(Scalar);
     std::size_t d_envR_bytes         = envR.size() * sizeof(Scalar);
 
 
 
-
+    cudaDeviceSetCacheConfig(cudaFuncCachePreferShared);
     cudaMalloc((void **) (&d_ham_sq_psi), d_ham_sq_psi_bytes);
     cudaMalloc((void **) (&d_psi_shuffled), d_psi_shuffled_bytes);
     cudaMalloc((void **) (&d_mpo), d_mpo_bytes);
@@ -110,9 +112,9 @@ Eigen::Tensor<Scalar, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen:
     Eigen::TensorMap<Eigen::Tensor<Scalar, 4> > gpu_envR(d_envR, envR.dimensions());
 
     gpu_ham_sq_psi.device(gpudev) = gpu_psi_shuffled.contract(gpu_envL, Textra::idx(Textra::array1{0}, Textra::array1{0}))
-                                        .contract(gpu_mpo, Textra::idx(Textra::array2{0, 3}, Textra::array2{2, 0}))
-                                        .contract(gpu_mpo, Textra::idx(Textra::array2{4, 2}, Textra::array2{2, 0}))
-                                        .contract(gpu_envR, Textra::idx(Textra::array3{0, 2, 3}, Textra::array3{0, 2, 3}))
+                                        .contract(gpu_mpo,              Textra::idx(Textra::array2{0, 3}, Textra::array2{2, 0}))
+                                        .contract(gpu_mpo,              Textra::idx(Textra::array2{4, 2}, Textra::array2{2, 0}))
+                                        .contract(gpu_envR,             Textra::idx(Textra::array3{0, 2, 3}, Textra::array3{0, 2, 3}))
                                         .shuffle(Textra::array3{1, 0, 2});
 
     cudaMemcpy(ham_sq_psi.data(), d_ham_sq_psi, d_ham_sq_psi_bytes,cudaMemcpyDeviceToHost);
@@ -122,15 +124,42 @@ Eigen::Tensor<Scalar, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen:
     cudaFree((void *) d_envL);
     cudaFree((void *) d_envR);
 
+    Eigen::Tensor<Scalar, 3> ham_sq_psi_cpu(dsizes);
+    ham_sq_psi_cpu.device(*Textra::omp::dev) =
+        psi_shuffled
+            .contract(envL , Textra::idx(Textra::array1{0}, Textra::array1{0}))
+            .contract(mpo  , Textra::idx(Textra::array2{0, 3}, Textra::array2{2, 0}))
+            .contract(mpo  , Textra::idx(Textra::array2{4, 2}, Textra::array2{2, 0}))
+            .contract(envR,  Textra::idx(Textra::array3{0, 2, 3}, Textra::array3{0, 2, 3}))
+            .shuffle(Textra::array3{1, 0, 2});
+
+    for (size_t i = 0; i < ham_sq_psi_cpu.size(); i++) {
+        if (std::abs(ham_sq_psi_cpu(i) - ham_sq_psi(i)) > 1e-4) {
+            tools::log->error("Tensor mismatch > 1e-2 at index {:5}: cpu {:20.16f} != gpu {20.16f}",i,ham_sq_psi_cpu(i) ,ham_sq_psi(i));
+//            throw std::runtime_error("Tensor mismatch > 1e-4 at index "+ std::to_string(i)
+//                                     + " " + std::to_string(ham_sq_psi_cpu(i)) + " " + std::to_string(ham_sq_psi(i)));
+        }
+//        if (not Eigen::internal::isApprox(ham_sq_psi_cpu(i),  ham_sq_psi(i), 1e-4)) {
+//            tools::log->error("Tensor mismatch > 1e-4 at index {:5}: {:.8f} != {.8f}",i,ham_sq_psi_cpu(i) ,ham_sq_psi(i));
+//            throw std::runtime_error("Tensor approx mismatch > 1e-4 at index "+ std::to_string(i)
+//                                     + " " + std::to_string(ham_sq_psi_cpu(i)) + " " + std::to_string(ham_sq_psi(i)));
+//        }
+
+    }
     tools::prof::t_ham_sq_psi_cuda->toc();
+
+
     return ham_sq_psi;
 }
 
 using cplx = std::complex<double>;
-using real = double;
+using fp32 = float;
+using fp64 = double;
 
 //template Eigen::Tensor<cplx, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<cplx, 3> &psi_in, const Eigen::Tensor<cplx, 4> &mpo,
 //                                                                           const Eigen::Tensor<cplx, 4> &envL, const Eigen::Tensor<cplx, 4> &envR);
-template Eigen::Tensor<real, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<real, 3> &psi_in, const Eigen::Tensor<real, 4> &mpo,
-                                                                           const Eigen::Tensor<real, 4> &envL, const Eigen::Tensor<real, 4> &envR);
+template Eigen::Tensor<fp32, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<fp32, 3> &psi_in, const Eigen::Tensor<fp32, 4> &mpo,
+                                                                           const Eigen::Tensor<fp32, 4> &envL, const Eigen::Tensor<fp32, 4> &envR);
+//template Eigen::Tensor<fp64, 3> contract::hamiltonian_squared_dot_psi_cuda(const Eigen::Tensor<fp64, 3> &psi_in, const Eigen::Tensor<fp64, 4> &mpo,
+//                                                                           const Eigen::Tensor<fp64, 4> &envL, const Eigen::Tensor<fp64, 4> &envR);
 #endif

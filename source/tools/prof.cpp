@@ -6,13 +6,13 @@
 #include <sstream>
 void tools::prof::init_profiling(){
     if(t_total != nullptr) return;
-/* clang-format off */
     t_total                = std::make_unique<class_tic_toc>(true, 7, "Total Time");
-    t_ham_sq_psi_v1        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version 1");
-    t_ham_sq_psi_v2        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version 2");
-    t_ham_sq_psi_v3        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version 3");
-    t_ham_sq_psi_cuda      = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version c");
-
+    t_ham_sq_psi_v1        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu1");
+    t_ham_sq_psi_v2        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu2");
+    t_ham_sq_psi_v3        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu3");
+    t_ham_sq_psi_cuda      = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cuda");
+    t_ham_sq_psi_acro      = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version acro");
+    t_ham_sq_psi_cute      = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cute");
 }
 
 

@@ -1,3 +1,5 @@
+#if defined(TB_CPU)
+
 #include <contract/contract.h>
 #include <complex>
 #include <tools/prof.h>
@@ -22,7 +24,13 @@ Eigen::Tensor<Scalar,3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Te
 }
 
 using cplx = std::complex<double>;
-using real = double;
+using fp32 = float;
+using fp64 = double;
 
-//template Eigen::Tensor<cplx,3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Tensor<cplx,3> & psi_in, const Eigen::Tensor<cplx,4> & mpo, const Eigen::Tensor<cplx,4> & envL, const Eigen::Tensor<cplx,4> & envR);
-template Eigen::Tensor<real,3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Tensor<real,3> & psi_in, const Eigen::Tensor<real,4> & mpo, const Eigen::Tensor<real,4> & envL, const Eigen::Tensor<real,4> & envR);
+template Eigen::Tensor<cplx, 3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Tensor<cplx, 3> &psi_in, const Eigen::Tensor<cplx, 4> &mpo,
+                                                                         const Eigen::Tensor<cplx, 4> &envL, const Eigen::Tensor<cplx, 4> &envR);
+template Eigen::Tensor<fp32, 3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Tensor<fp32, 3> &psi_in, const Eigen::Tensor<fp32, 4> &mpo,
+                                                                         const Eigen::Tensor<fp32, 4> &envL, const Eigen::Tensor<fp32, 4> &envR);
+template Eigen::Tensor<fp64, 3> contract::hamiltonian_squared_dot_psi_v3(const Eigen::Tensor<fp64, 3> &psi_in, const Eigen::Tensor<fp64, 4> &mpo,
+                                                                         const Eigen::Tensor<fp64, 4> &envL, const Eigen::Tensor<fp64, 4> &envR);
+#endif

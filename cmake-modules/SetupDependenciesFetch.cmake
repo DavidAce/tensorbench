@@ -27,6 +27,7 @@ if(TB_DOWNLOAD_METHOD MATCHES "find|fetch")
     include(cmake-modules/Fetch_Eigen3.cmake)                       # Eigen3 numerical library (needed by ceres and h5pp)
     include(cmake-modules/Fetch_fmt.cmake)                          # Formatting library
     include(cmake-modules/Fetch_spdlog.cmake)                       # Logging library
+    include(cmake-modules/Fetch_acrotensor.cmake)                       # Logging library
 #    include(cmake-modules/Fetch_h5pp.cmake)                         # h5pp for writing to file binary in format
 #    include(cmake-modules/Fetch_arpack-ng.cmake)                    # Iterative Eigenvalue solver for a few eigenvalues/eigenvectors using Arnoldi method.
 #    include(cmake-modules/Fetch_arpack++.cmake)                     # C++ frontend for arpack-ng
@@ -43,6 +44,9 @@ if(TB_DOWNLOAD_METHOD MATCHES "find|fetch")
     endif()
     if(TARGET spdlog::spdlog)
         list(APPEND FOUND_TARGETS spdlog::spdlog)
+    endif()
+    if(TARGET acrotensor::acrotensor)
+        list(APPEND FOUND_TARGETS acrotensor::acrotensor)
     endif()
     if(TARGET openmp::openmp)
         list(APPEND FOUND_TARGETS openmp::openmp)
