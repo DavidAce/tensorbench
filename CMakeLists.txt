@@ -91,13 +91,8 @@ add_executable(${PROJECT_NAME}
         source/tools/prof.cpp
         source/tools/log.cpp
         source/tools/class_tic_toc.cpp
-        source/contract/hamiltonian_squared_dot_psi_v1.cpp
-        source/contract/hamiltonian_squared_dot_psi_v2.cpp
-        source/contract/hamiltonian_squared_dot_psi_v3.cpp
-#        source/contract/hamiltonian_squared_dot_psi_acro.cu
-        )
+        source/storage/results.cpp source/storage/results.h)
 target_include_directories(${PROJECT_NAME} PRIVATE source)
-
 add_library(project-settings INTERFACE)
 ##################################################################
 ###  Force cmake to find .a library suffixes on static builds  ###
@@ -227,9 +222,22 @@ target_link_libraries(project-settings INTERFACE -Wl,--whole-archive pthread -Wl
 target_link_libraries(${PROJECT_NAME} PRIVATE project-settings )  # Link everything to main project
 
 
+if(TB_ENABLE_CPU)
+    add_library(tb-cpu OBJECT
+            source/contract/hamiltonian_squared_dot_psi_v1.cpp
+            source/contract/hamiltonian_squared_dot_psi_v2.cpp
+            source/contract/hamiltonian_squared_dot_psi_v3.cpp)
+    target_include_directories(tb-cpu PRIVATE source)
+    target_compile_definitions(tb-cpu PUBLIC TB_CPU)
+    target_compile_options(tb-cpu PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
+    target_link_libraries(tb-cpu PRIVATE project-settings)
+    target_link_libraries(${PROJECT_NAME} PRIVATE tb-cpu)
+endif()
+
+
 if(TB_ENABLE_CUDA)
     enable_language(CUDA)
-    add_library(tb-cuda OBJECT source/contract/hamiltonian_squared_dot_psi_cuda.cu source/contract/hamiltonian_squared_dot_psi_acro.cu)
+    add_library(tb-cuda OBJECT source/contract/hamiltonian_squared_dot_psi_cuda.cu)
     target_include_directories(tb-cuda PRIVATE source)
     target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -std=c++17>)
     target_compile_options(tb-cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -std=c++17>)
@@ -278,6 +286,7 @@ if(TB_ENABLE_CUTE)
     target_compile_options(tb-cute PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -forward-unknown-to-host-compiler>)
     target_compile_options(tb-cute PUBLIC $<$<COMPILE_LANGUAGE:CUDA>: -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored>)
     target_compile_definitions(tb-cute PUBLIC TB_CUTE)
+    target_link_libraries(tb-cute INTERFACE cuda cutensor)
     target_link_libraries(tb-cute PRIVATE project-settings)
     set_target_properties(tb-cute PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
     set_target_properties(tb-cute PROPERTIES CUDA_PTX_COMPILATION OFF)
@@ -301,6 +310,25 @@ if(COMMAND target_precompile_headers)
     target_precompile_headers(${PROJECT_NAME} PRIVATE <Eigen/Core>)
     target_precompile_headers(${PROJECT_NAME} PRIVATE <unsupported/Eigen/CXX11/Tensor>)
     target_precompile_headers(${PROJECT_NAME} PRIVATE <vector> <array> <complex> <map> <optional> <iostream> <iomanip> <memory>)
+#
+#    if (TARGET tb-cpu)
+#        target_precompile_headers(tb-cpu PRIVATE <spdlog/spdlog.h>)
+#        target_precompile_headers(tb-cpu PRIVATE <fmt/core.h> <fmt/format.h> <fmt/ostream.h> <fmt/ranges.h>)
+#        target_precompile_headers(tb-cpu PRIVATE <general/nmspc_tensor_extra.h>)
+#        target_precompile_headers(tb-cpu PRIVATE <Eigen/Dense>)
+#        target_precompile_headers(tb-cpu PRIVATE <Eigen/Core>)
+#        target_precompile_headers(tb-cpu PRIVATE <unsupported/Eigen/CXX11/Tensor>)
+#        target_precompile_headers(tb-cpu PRIVATE <vector> <array> <complex> <map> <optional> <iostream> <iomanip> <memory>)
+#    endif()
+#    if (TARGET tb-cuda)
+#        target_precompile_headers(tb-cuda REUSE_FROM ${PROJECT_NAME})
+#    endif()
+#    if (TARGET tb-acro)
+#        target_precompile_headers(tb-acro REUSE_FROM ${PROJECT_NAME})
+#    endif()
+#    if (TARGET tb-cute)
+#        target_precompile_headers(tb-cute REUSE_FROM ${PROJECT_NAME})
+#    endif()
 endif()
 
 
@@ -309,6 +337,9 @@ if (TB_PRINT_INFO)
     include(cmake-modules/PrintTargetInfo.cmake)
     include(cmake-modules/getExpandedTarget.cmake)
     expand_target_all_targets(project-settings TB_TARGETS_EXPANDED)
+    if(TB_ENABLE_CPU)
+        list(APPEND TB_TARGETS_EXPANDED tb-cpu)
+    endif()
     if(TB_ENABLE_CUDA)
         list(APPEND TB_TARGETS_EXPANDED tb-cuda)
     endif()

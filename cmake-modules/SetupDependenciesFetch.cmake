@@ -25,10 +25,13 @@ if(TB_DOWNLOAD_METHOD MATCHES "find|fetch")
     include(cmake-modules/SetupMKL.cmake)                           # MKL - Intel's math Kernel Library, use the BLAS implementation in Eigen and Arpack. Includes lapack.
     include(cmake-modules/Fetch_OpenBLAS.cmake)                     # If MKL is not on openblas will be used instead. Includes lapack.
     include(cmake-modules/Fetch_Eigen3.cmake)                       # Eigen3 numerical library (needed by ceres and h5pp)
-    include(cmake-modules/Fetch_fmt.cmake)                          # Formatting library
-    include(cmake-modules/Fetch_spdlog.cmake)                       # Logging library
-    include(cmake-modules/Fetch_acrotensor.cmake)                       # Logging library
-#    include(cmake-modules/Fetch_h5pp.cmake)                         # h5pp for writing to file binary in format
+    include(cmake-modules/Fetch_h5pp.cmake)                         # h5pp for writing to file binary in format
+
+    #    include(cmake-modules/Fetch_fmt.cmake)                          # Formatting library
+#    include(cmake-modules/Fetch_spdlog.cmake)                       # Logging library
+    if(TB_ENABLE_ACRO)
+        include(cmake-modules/Fetch_acrotensor.cmake)               # Acrotensor CPU/GPU tensor contraction library
+    endif()
 #    include(cmake-modules/Fetch_arpack-ng.cmake)                    # Iterative Eigenvalue solver for a few eigenvalues/eigenvectors using Arnoldi method.
 #    include(cmake-modules/Fetch_arpack++.cmake)                     # C++ frontend for arpack-ng
 #    include(cmake-modules/Fetch_gflags.cmake)                       # Google Flags library needed by ceres-solver
@@ -41,6 +44,9 @@ if(TB_DOWNLOAD_METHOD MATCHES "find|fetch")
     ##################################################################
     if(TARGET Eigen3::Eigen)
         list(APPEND FOUND_TARGETS Eigen3::Eigen)
+    endif()
+    if(TARGET h5pp::h5pp)
+        list(APPEND FOUND_TARGETS  h5pp::h5pp)
     endif()
     if(TARGET spdlog::spdlog)
         list(APPEND FOUND_TARGETS spdlog::spdlog)
@@ -91,9 +97,9 @@ if(TB_DOWNLOAD_METHOD MATCHES "find|fetch")
             target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=0) # May work to fix CERES segfaults!!!
             target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_MAX_ALIGN_BYTES=16)
         else()
-#            message(STATUS "Applying special Eigen compile definitions for general machines")
-#            target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=1) # May work to fix CERES segfaults!!!
-#            target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_MAX_ALIGN_BYTES=32)
+            message(STATUS "Applying special Eigen compile definitions for general machines")
+            target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_MALLOC_ALREADY_ALIGNED=0) # May work to fix CERES segfaults!!!
+            target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_MAX_ALIGN_BYTES=16)
         endif()
 
     endif()

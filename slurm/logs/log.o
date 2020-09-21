@@ -1,0 +1,21 @@
+[2020-09-19 16:50:34][tensorbench][  info  ] Parsing input argument: -n 8
+[2020-09-19 16:50:34][tensorbench][  info  ] Parsing input argument: -L 512
+[2020-09-19 16:50:34][tensorbench][  info  ] Parsing input argument: -R 512
+[2020-09-19 16:50:34][tensorbench][  info  ] Parsing input argument: -D 4
+[2020-09-19 16:50:34][tensorbench][  info  ] Parsing input argument: -M 5
+[2020-09-19 16:50:34][tensorbench][  info  ] Using Eigen Tensor with 8 threads
+[2020-09-19 16:50:34][tensorbench][  info  ] Using OpenMP with 8 threads
+[2020-09-19 16:50:34][tensorbench][  info  ] Initializing CUDA
+[2020-09-19 16:50:34][tensorbench][  info  ] Starting benchmark
+Include headers and define data types
+Define modes and extents
+Allocate, initialize and transfer tensors
+Initialize cuTENSOR and tensor descriptors
+Query best alignment requirement for our pointers
+Initialize contraction descriptor
+Initialize settings to find algorithm
+Query recommended workspace size and allocate it
+Create plan for contraction
+Execute contraction from plan
+Successful completion
+[2020-09-19 16:50:42][tensorbench][  info  ] H²|Ψ> version cute | psi dimensions {4, 512, 512} | iter 0/3 |  time 7.7193 s

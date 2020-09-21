@@ -23,7 +23,10 @@ Usage            : $PROGNAME [-option | --option ] <=argument>
    | --enable-mkl               : Enable Intel MKL
    | --enable-lto               : Enable Link Time Optimization
    | --enable-asan              : Enable runtime sanitizers, i.e. -fsanitize=address
+   | --enable-cpu               : Enable CPU benchmark
    | --enable-cuda              : Enable CUDA
+   | --enable-acro              : Enable AcroTensor
+   | --enable-cute              : Enable CUTENSOR
 -t | --target [=args]           : Select build target [ CMakeTemplate | all-tests | test-<name> ]  (default = none)
    | --enable-tests             : Enable CTest tests
    | --prefer-conda             : Prefer libraries from anaconda
@@ -56,7 +59,10 @@ PARSED_OPTIONS=$(getopt -n "$0"   -o ha:b:cl:df:g:G:j:st:v \
                 enable-mkl\
                 enable-lto\
                 enable-asan\
+                enable-cpu\
                 enable-cuda\
+                enable-acro\
+                enable-cute\
                 no-modules\
                 prefer-conda\
                 verbose\
@@ -80,7 +86,10 @@ enable_openmp="OFF"
 enable_mkl="OFF"
 enable_lto="OFF"
 enable_asan="OFF"
+enable_cpu="OFF"
 enable_cuda="OFF"
+enable_acro="OFF"
+enable_cute="OFF"
 make_threads=8
 prefer_conda="OFF"
 verbose="OFF"
@@ -110,7 +119,10 @@ do
        --enable-mkl)                enable_mkl="ON"                 ; echo " * Intel MKL               : ON"      ; shift   ;;
        --enable-lto)                enable_lto="ON"                 ; echo " * Link Time Optimization  : ON"      ; shift   ;;
        --enable-asan)               enable_asan="ON"                ; echo " * Runtime sanitizers      : ON"      ; shift   ;;
-       --enable-cuda)               enable_cuda="ON"                ; echo " * nVidia CUDA             : ON"      ; shift   ;;
+       --enable-cpu)                enable_cpu="ON"                 ; echo " * Eigen uses CPU          : ON"      ; shift   ;;
+       --enable-cuda)               enable_cuda="ON"                ; echo " * Eigen uses CUDA         : ON"      ; shift   ;;
+       --enable-acro)               enable_acro="ON"                ; echo " * AcroTensor GPU          : ON"      ; shift   ;;
+       --enable-cute)               enable_cute="ON"                ; echo " * CUTENSOR                : ON"      ; shift   ;;
        --no-modules)                no_modules="ON"                 ; echo " * Disable module load     : ON"      ; shift   ;;
        --prefer-conda)              prefer_conda="ON"               ; echo " * Prefer anaconda libs    : ON"      ; shift   ;;
     -v|--verbose)                   verbose="ON"                    ; echo " * Verbose makefiles       : ON"      ; shift   ;;
@@ -280,7 +292,10 @@ cat << EOF >&2
           -DTB_ENABLE_MKL=$enable_mkl
           -DTB_ENABLE_LTO=$enable_lto
           -DTB_ENABLE_ASAN=$enable_asan
+          -DTB_ENABLE_CPU=$enable_cpu
           -DTB_ENABLE_CUDA=$enable_cuda
+          -DTB_ENABLE_ACRO=$enable_acro
+          -DTB_ENABLE_CUTE=$enable_cute
           $extra_flags
            -G $generator
            ../../
@@ -303,7 +318,10 @@ if [ -z "$dry_run" ] ;then
           -DTB_ENABLE_MKL=$enable_mkl \
           -DTB_ENABLE_LTO=$enable_lto \
           -DTB_ENABLE_ASAN=$enable_asan \
+          -DTB_ENABLE_CPU=$enable_cpu \
           -DTB_ENABLE_CUDA=$enable_cuda \
+          -DTB_ENABLE_ACRO=$enable_acro \
+          -DTB_ENABLE_CUTE=$enable_cute \
           $extra_flags \
            -G "$generator" \
            ../../
