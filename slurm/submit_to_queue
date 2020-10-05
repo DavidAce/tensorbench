@@ -2,20 +2,20 @@
 # Submit this file to slurm with "sbatch submit_to_queue"
 
 #SBATCH --job-name=tensorbench          # Job name for this simulation, to display on the queue
-#SBATCH --time=0-00:10:00               # Maximum duration of this job. Slurm kills the job after this time
+#SBATCH --time=0-02:00:00               # Maximum duration of this job. Slurm kills the job after this time
 #SBATCH --nodes=1                       # Minimum nodes required for this job. Normally > 1 is only used for MPI jobs
 #SBATCH --ntasks=1                      # Number of processes to launch.
-#SBATCH --cpus-per-task=1               # Each process is single-threaded
-#SBATCH --mem-per-cpu=4000              # Amount of RAM memory (in megabytes) required for each process
+#SBATCH --cpus-per-task=64              # Each process is single-threaded
+#SBATCH --mem-per-cpu=1G               # Amount of RAM memory (in megabytes) required for each process
 #SBATCH --cluster=kraken		# Only kraken has gpu-enabled nodes
 #SBATCH --nodelist=kakariko
-#SBATCH --partition=all                 # Partition (queue) to select, e.g. 'all','dedicated','gpu','core32'...
+#SBATCH --partition=gpu                 # Partition (queue) to select, e.g. 'all','dedicated','gpu','core32'...
 #SBATCH --qos=gpu
 #SBATCH --gres=gpu:1			# Select 1 "generic resource" (gres) of type gpu
 #SBATCH --output=logs/log.o             # Relative path to log file for normal console output
 #SBATCH --error=logs/log.e              # Relative path to log file specifically for error output
-
+#SBATCH --exclusive
 
 
 module load CUDA
-srun  ../build/Release/tensorbench -n 8 -L 512 -R 512 -D 4 -M 5
+srun ../build/Release/tensorbench -n 1 -n 2 -n 4 -n 8 -n 16 -n 32 -B 16 -B 32 -B 64 -B 128 -B 192 -B 256 -B 320 -B 384 -B 448 -B 512 -B 640 -B 768 -B 896 -B 1024  -D 4 -M 5 -i 6

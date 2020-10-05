@@ -127,22 +127,78 @@ int main(int argc, char *argv[]) {
     using fp64   = double;
     using Scalar = fp64;
 
-    h5pp::File tbdb("tbdb.h5", h5pp::FilePermission::READWRITE);
+    h5pp::File tbdb("tbdb.h5", h5pp::FilePermission::REPLACE);
     tb_results::register_table_type();
     tools::prof::t_total->tic();
     tools::log->info("Starting benchmark");
 
-    for(auto&num_threads : v_threads)
-        for(auto chi : v_chi)
-            for(auto chiL : v_chiL)
-                for(auto chiR : v_chiR)
-                    for(auto mpod : v_mpod)
-                        for(auto spin : v_spin) {
+    for(auto chi : v_chi)
+        for(auto chiL : v_chiL)
+            for(auto chiR : v_chiR)
+                for(auto mpod : v_mpod)
+                    for(auto spin : v_spin) {
+                        if(chiL == -1) chiL = chi;
+                        if(chiR == -1) chiR = chi;
+                        Eigen::Tensor<Scalar, 4> envL(chiL, chiL, mpod, mpod);
+                        Eigen::Tensor<Scalar, 4> envR(chiR, chiR, mpod, mpod);
+                        Eigen::Tensor<Scalar, 4> mpo(mpod, mpod, spin, spin);
+                        Eigen::Tensor<Scalar, 3> psi(spin, chiL, chiR);
+                        envL.setRandom();
+                        envR.setRandom();
+                        mpo.setRandom();
+                        psi.setRandom();
+                        std::string tb_basename = fmt::format("chiL_{}_chiR_{}/mpod_{}/spin_{}", chiL, chiR, mpod, spin);
+                        tools::log->info("Starting benchmark mode: {}", tb_basename);
+                        tools::prof::reset_profiling();
+#if defined(TB_CUDA)
+                        std::vector<tb_results::table> tb_cuda;
+                        tbdb.createTable(tb_results::h5_type, tb_basename + "/cuda", "TensorBenchmark CUDA", 5, 3);
+                        for(int iter = 0; iter < iters; iter++) {
+                            auto psi_out = contract::hamiltonian_squared_dot_psi_cuda(psi, mpo, envL, envR);
+                            tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(),
+                                             psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_cuda->get_last_time_interval());
+                            tb_cuda.emplace_back("cuda", iter, num_threads, chiL, chiR, mpod, spin, tools::prof::t_ham_sq_psi_cuda->get_last_time_interval(),
+                                                 tools::prof::t_ham_sq_psi_cuda->get_measured_time())
+                        }
+                        tools::log->info("{} | total time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(),
+                                         tools::prof::t_ham_sq_psi_cuda->get_measured_time());
+                        tbdb.appendTableRecords(tb_cuda, tb_basename + "/cuda");
+#endif
+
+#if defined(TB_ACRO)
+                        std::vector<tb_results::table> tb_acro;
+                        tbdb.createTable(tb_results::h5_type, tb_basename + "/acro", "TensorBenchmark AcroTensor", 5, 3);
+                        for(int iter = 0; iter < iters; iter++) {
+                            auto psi_out = contract::hamiltonian_squared_dot_psi_acro(psi, mpo, envL, envR);
+                            tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_acro->get_name(),
+                                             psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_acro->get_last_time_interval());
+                            tb_acro.emplace_back("acro", iter, num_threads, chiL, chiR, mpod, spin, tools::prof::t_ham_sq_psi_acro->get_last_time_interval(),
+                                                 tools::prof::t_ham_sq_psi_acro->get_measured_time());
+                        }
+                        tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_acro->get_name(),
+                                         tools::prof::t_ham_sq_psi_acro->get_measured_time());
+                        tbdb.appendTableRecords(tb_acro, tb_basename + "/acro");
+#endif
+
+#if defined(TB_CUTE)
+                        std::vector<tb_results::table> tb_cute;
+                        tbdb.createTable(tb_results::h5_type, tb_basename + "/cute", "cutensor", 5, 3);
+                        for(int iter = 0; iter < iters; iter++) {
+                            auto psi_out = contract::hamiltonian_squared_dot_psi_cute(psi, mpo, envL, envR);
+                            tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_cute->get_name(),
+                                             psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_cute->get_last_time_interval());
+                            tb_cute.emplace_back("cute", iter, 1, chiL, chiR, mpod, spin, tools::prof::t_ham_sq_psi_cute->get_last_time_interval(),
+                                                 tools::prof::t_ham_sq_psi_cute->get_measured_time());
+                        }
+
+                        tools::log->info("{} | total time {:.4f} s ", tools::prof::t_ham_sq_psi_cute->get_name(),
+                                         tools::prof::t_ham_sq_psi_cute->get_measured_time());
+                        tbdb.appendTableRecords(tb_cute, tb_basename + "/cute");
+#endif
+
+                        for(auto num_threads : v_threads) {
                             if(num_threads <= 0) throw std::runtime_error(fmt::format("Invalid num threads: {}", optarg));
-                            if(chiL == -1) chiL = chi;
-                            if(chiR == -1) chiR = chi;
-
-
+                            tools::prof::reset_profiling();
 #if defined(EIGEN_USE_THREADS)
                             Textra::omp::setNumThreads(num_threads);
                             tools::log->info("Using Eigen Tensor with {} threads", Textra::omp::tp->NumThreads());
@@ -164,21 +220,10 @@ int main(int argc, char *argv[]) {
                             mkl_verbose(1);
     #endif
 #endif
-                            Eigen::Tensor<Scalar, 4> envL(chiL, chiL, mpod, mpod);
-                            Eigen::Tensor<Scalar, 4> envR(chiR, chiR, mpod, mpod);
-                            Eigen::Tensor<Scalar, 4> mpo(mpod, mpod, spin, spin);
-                            Eigen::Tensor<Scalar, 3> psi(spin, chiL, chiR);
-                            envL.setRandom();
-                            envR.setRandom();
-                            mpo.setRandom();
-                            psi.setRandom();
-                            std::string tb_basename = fmt::format("threads_{}/chiL_{}_chiR_{}/mpod_{}/spin_{}", num_threads, chiL, chiR, mpod, spin);
-                            tools::log->info("Starting benchmark mode: {}", tb_basename);
-                            tools::prof::reset_profiling();
 
 #if defined(TB_CPU)
                             std::vector<tb_results::table> tb_cpu1;
-                            tbdb.createTable(tb_results::h5_type, tb_basename + "/cpu1", "TensorBenchmark Cpu version 1", 5, 3);
+                            tbdb.createTable(tb_results::h5_type, fmt::format("{}/cpu_v1_{}",tb_basename,num_threads), "TensorBenchmark Cpu version 1", 5, 3);
                             for(int iter = 0; iter < iters; iter++) {
                                 auto psi_out = contract::hamiltonian_squared_dot_psi_v1(psi, mpo, envL, envR);
                                 tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_v1->get_name(),
@@ -188,10 +233,10 @@ int main(int argc, char *argv[]) {
                             }
                             tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v1->get_name(),
                                              tools::prof::t_ham_sq_psi_v1->get_measured_time());
-                            tbdb.appendTableRecords(tb_cpu1, tb_basename + "/cpu1");
+                            tbdb.appendTableRecords(tb_cpu1,fmt::format("{}/cpu_v1_{}",tb_basename,num_threads));
 
                             std::vector<tb_results::table> tb_cpu2;
-                            tbdb.createTable(tb_results::h5_type, tb_basename + "/cpu2", "TensorBenchmark Cpu version 2", 5, 3);
+                            tbdb.createTable(tb_results::h5_type, fmt::format("{}/cpu_v2_{}",tb_basename,num_threads), "TensorBenchmark Cpu version 2", 5, 3);
                             for(int iter = 0; iter < iters; iter++) {
                                 auto psi_out = contract::hamiltonian_squared_dot_psi_v2(psi, mpo, envL, envR);
                                 tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_v2->get_name(),
@@ -201,10 +246,10 @@ int main(int argc, char *argv[]) {
                             }
                             tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v2->get_name(),
                                              tools::prof::t_ham_sq_psi_v2->get_measured_time());
-                            tbdb.appendTableRecords(tb_cpu2, tb_basename + "/cpu2");
+                            tbdb.appendTableRecords(tb_cpu2, fmt::format("{}/cpu_v2_{}",tb_basename,num_threads));
 
                             std::vector<tb_results::table> tb_cpu3;
-                            tbdb.createTable(tb_results::h5_type, tb_basename + "/cpu3", "TensorBenchmark Cpu version 3", 5, 3);
+                            tbdb.createTable(tb_results::h5_type, fmt::format("{}/cpu_v3_{}",tb_basename,num_threads), "TensorBenchmark Cpu version 3", 5, 3);
                             for(int iter = 0; iter < iters; iter++) {
                                 auto psi_out = contract::hamiltonian_squared_dot_psi_v3(psi, mpo, envL, envR);
                                 tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_v3->get_name(),
@@ -214,58 +259,10 @@ int main(int argc, char *argv[]) {
                             }
                             tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v3->get_name(),
                                              tools::prof::t_ham_sq_psi_v3->get_measured_time());
-                            tbdb.appendTableRecords(tb_cpu3, tb_basename + "/cpu3");
-#endif
-
-#if defined(TB_CUDA)
-                            std::vector<tb_results::table> tb_cuda;
-                            tbdb.createTable(tb_results::h5_type, tb_basename + "/cuda", "TensorBenchmark CUDA", 5, 3);
-                            for(int iter = 0; iter < iters; iter++) {
-                                auto psi_out = contract::hamiltonian_squared_dot_psi_cuda(psi, mpo, envL, envR);
-                                tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(),
-                                                 psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_cuda->get_last_time_interval());
-                                tb_cuda.emplace_back("cuda", iter, num_threads, chiL, chiR, mpod, spin,
-                                                     tools::prof::t_ham_sq_psi_cuda->get_last_time_interval(),
-                                                     tools::prof::t_ham_sq_psi_cuda->get_measured_time())
-                            }
-                            tools::log->info("{} | total time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(),
-                                             tools::prof::t_ham_sq_psi_cuda->get_measured_time());
-                            tbdb.appendTableRecords(tb_cuda, tb_basename + "/cuda");
-#endif
-
-#if defined(TB_ACRO)
-                            std::vector<tb_results::table> tb_acro;
-                            tbdb.createTable(tb_results::h5_type, tb_basename + "/acro", "TensorBenchmark AcroTensor", 5, 3);
-                            for(int iter = 0; iter < iters; iter++) {
-                                auto psi_out = contract::hamiltonian_squared_dot_psi_acro(psi, mpo, envL, envR);
-                                tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_acro->get_name(),
-                                                 psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_acro->get_last_time_interval());
-                                tb_acro.emplace_back("acro", iter, num_threads, chiL, chiR, mpod, spin,
-                                                     tools::prof::t_ham_sq_psi_acro->get_last_time_interval(),
-                                                     tools::prof::t_ham_sq_psi_acro->get_measured_time());
-                            }
-                            tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_acro->get_name(),
-                                             tools::prof::t_ham_sq_psi_acro->get_measured_time());
-                            tbdb.appendTableRecords(tb_acro, tb_basename + "/acro");
-#endif
-
-#if defined(TB_CUTE)
-                            std::vector<tb_results::table> tb_cute;
-                            tbdb.createTable(tb_results::h5_type, tb_basename + "/cute", "TensorBenchmark CUTENSOR", 5, 3);
-                            for(int iter = 0; iter < iters; iter++) {
-                                auto psi_out = contract::hamiltonian_squared_dot_psi_cute(psi, mpo, envL, envR);
-                                tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_cute->get_name(),
-                                                 psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_cute->get_last_time_interval());
-                                tb_cute.emplace_back("cute", iter, num_threads, chiL, chiR, mpod, spin,
-                                                     tools::prof::t_ham_sq_psi_cute->get_last_time_interval(),
-                                                     tools::prof::t_ham_sq_psi_cute->get_measured_time());
-                            }
-
-                            tools::log->info("{} | total time {:.4f} s ", tools::prof::t_ham_sq_psi_cute->get_name(),
-                                             tools::prof::t_ham_sq_psi_cute->get_measured_time());
-                            tbdb.appendTableRecords(tb_cute, tb_basename + "/cute");
+                            tbdb.appendTableRecords(tb_cpu3, fmt::format("{}/cpu_v3_{}",tb_basename,num_threads));
 #endif
                         }
+                    }
 
     tools::prof::t_total->toc();
     tools::log->info("total time {:.4f} s", tools::prof::t_total->get_measured_time());

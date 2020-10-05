@@ -17,8 +17,8 @@ namespace Textra::omp {
     inline std::unique_ptr<Eigen::ThreadPool>       tp;
     inline std::unique_ptr<Eigen::ThreadPoolDevice> dev;
     inline void                                     setNumThreads(int num_threads) {
-        if(not tp) tp = std::make_unique<Eigen::ThreadPool>(num_threads);
-        if(not dev and tp) dev = std::make_unique<Eigen::ThreadPoolDevice>(tp.get(), num_threads);
+        tp = std::make_unique<Eigen::ThreadPool>(num_threads);
+        dev = std::make_unique<Eigen::ThreadPoolDevice>(tp.get(), num_threads);
     }
 #else
     inline std::unique_ptr<Eigen::DefaultDevice> dev = std::make_unique<Eigen::DefaultDevice>() ;
