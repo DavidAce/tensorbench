@@ -11,15 +11,17 @@ class tb_results{
         long   chiR     = 0;
         long   mpod     = 0;
         long   spin     = 0;
+        long   ops      = 0;
         double t_iter   = 0;
         double t_total  = 0;
-        table(std::string_view name_, int iter_, int threads_, long chiL_,long chiR_,long mpod_, long spin_, double t_iter_, double t_total_):
+        table(std::string_view name_, int iter_, int threads_, long chiL_,long chiR_,long mpod_, long spin_, long ops_, double t_iter_, double t_total_):
          iter(iter_),
          threads(threads_),
          chiL(chiL_),
          chiR(chiR_),
          mpod(mpod_),
          spin(spin_),
+         ops(ops_),
          t_iter(t_iter_),
          t_total(t_total_)
         {std::strcpy(name,name_.data());}
@@ -42,6 +44,7 @@ class tb_results{
         H5Tinsert(h5_type, "chiR", HOFFSET(table, chiR), H5T_NATIVE_LONG);
         H5Tinsert(h5_type, "mpod", HOFFSET(table, mpod), H5T_NATIVE_LONG);
         H5Tinsert(h5_type, "spin", HOFFSET(table, spin), H5T_NATIVE_LONG);
+        H5Tinsert(h5_type, "ops", HOFFSET(table,ops), H5T_NATIVE_LONG);
         H5Tinsert(h5_type, "t_iter", HOFFSET(table, t_iter), H5T_NATIVE_DOUBLE);
         H5Tinsert(h5_type, "t_total", HOFFSET(table, t_total), H5T_NATIVE_DOUBLE);
     }

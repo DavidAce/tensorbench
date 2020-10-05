@@ -33,6 +33,17 @@
                 exit(err);                                                              \
       }                                                                                 \
     }
+
+
+long get_ops_m(long chiL, long chiR, long d, long m) {
+    long step1   = chiL * chiL * chiR * m * m * d;
+    long step2_m = chiL * chiR * d * d * m * m * (d * m + 1);
+    long step3_m = chiL * chiR * d * d * m * m * (d * m + 1);
+    long step4   = chiL * chiR * d * m * (chiR * m * m * m + m * m + 1);
+    return step1 + step2_m + step3_m + step4;
+}
+
+
 template<typename Scalar>
 class Meta {
     private:
@@ -303,17 +314,17 @@ Eigen::Tensor<Scalar, 3> contract::hamiltonian_squared_dot_psi_cute(const Eigen:
 #endif
 
 
-    return ham_sq_psi;
+    return std::make_pair(ham_sq_psi,get_ops_m(dsizes[0],dsizes[1],dsizes[2],mpo.dimension(0)));
 }
 
 using cplx = std::complex<double>;
 using fp32 = float;
 using fp64 = double;
 
-// template Eigen::Tensor<cplx, 3> contract::hamiltonian_squared_dot_psi_cute(const Eigen::Tensor<cplx, 3> &psi_in, const Eigen::Tensor<cplx, 4> &mpo,
+// template contract::ResultType<cplx> contract::hamiltonian_squared_dot_psi_cute(const Eigen::Tensor<cplx, 3> &psi_in, const Eigen::Tensor<cplx, 4> &mpo,
 //                                                                           const Eigen::Tensor<cplx, 4> &envL, const Eigen::Tensor<cplx, 4> &envR);
-template Eigen::Tensor<fp32, 3> contract::hamiltonian_squared_dot_psi_cute(const Eigen::Tensor<fp32, 3> &psi_in, const Eigen::Tensor<fp32, 4> &mpo,
+template contract::ResultType<fp32> contract::hamiltonian_squared_dot_psi_cute(const Eigen::Tensor<fp32, 3> &psi_in, const Eigen::Tensor<fp32, 4> &mpo,
                                                                            const Eigen::Tensor<fp32, 4> &envL, const Eigen::Tensor<fp32, 4> &envR);
-template Eigen::Tensor<fp64, 3> contract::hamiltonian_squared_dot_psi_cute(const Eigen::Tensor<fp64, 3> &psi_in, const Eigen::Tensor<fp64, 4> &mpo,
+template contract::ResultType<fp64> contract::hamiltonian_squared_dot_psi_cute(const Eigen::Tensor<fp64, 3> &psi_in, const Eigen::Tensor<fp64, 4> &mpo,
                                                                            const Eigen::Tensor<fp64, 4> &envL, const Eigen::Tensor<fp64, 4> &envR);
 #endif

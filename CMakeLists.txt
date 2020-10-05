@@ -19,7 +19,9 @@ option(TB_BUILD_EXAMPLES           "Build examples"                             
 option(TB_PRINT_INFO               "Print information during cmake configure"                     OFF)
 option(TB_DEPS_IN_SUBDIR           "Install dependencies into CMAKE_INSTALL_PREFIX/<libname>"     ON)
 option(TB_ENABLE_ASAN              "Enable runtime address sanitizer -fsanitize=address"          OFF)
-option(TB_ENABLE_CPU               "Benchmark contractions on CPU"                                OFF)
+option(TB_ENABLE_CPU1              "Benchmark contractions on CPU mode 1"                         OFF)
+option(TB_ENABLE_CPU2              "Benchmark contractions on CPU mode 2"                         OFF)
+option(TB_ENABLE_CPU3              "Benchmark contractions on CPU mode 3"                         OFF)
 option(TB_ENABLE_CUDA              "Benchmark contractions on GPU with Eigen Tensor GPU routines" OFF)
 option(TB_ENABLE_ACRO              "Benchmark contractions on GPU with acrotensor"                OFF)
 option(TB_ENABLE_CUTE              "Benchmark contractions on GPU with CUTENSOR"                  OFF)
@@ -222,18 +224,30 @@ target_link_libraries(project-settings INTERFACE -Wl,--whole-archive pthread -Wl
 target_link_libraries(${PROJECT_NAME} PRIVATE project-settings )  # Link everything to main project
 
 
-if(TB_ENABLE_CPU)
-    add_library(tb-cpu OBJECT
-            source/contract/hamiltonian_squared_dot_psi_v1.cpp
-            source/contract/hamiltonian_squared_dot_psi_v2.cpp
-            source/contract/hamiltonian_squared_dot_psi_v3.cpp)
-    target_include_directories(tb-cpu PRIVATE source)
-    target_compile_definitions(tb-cpu PUBLIC TB_CPU)
-    target_compile_options(tb-cpu PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
-    target_link_libraries(tb-cpu PRIVATE project-settings)
-    target_link_libraries(${PROJECT_NAME} PRIVATE tb-cpu)
+if(TB_ENABLE_CPU1)
+    add_library(tb-cpu1 OBJECT source/contract/hamiltonian_squared_dot_psi_v1.cpp)
+    target_include_directories(tb-cpu1 PRIVATE source)
+    target_compile_definitions(tb-cpu1 PUBLIC TB_CPU1)
+    target_compile_options(tb-cpu1 PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
+    target_link_libraries(tb-cpu1 PRIVATE project-settings)
+    target_link_libraries(${PROJECT_NAME} PRIVATE tb-cpu1)
 endif()
-
+if(TB_ENABLE_CPU2)
+    add_library(tb-cpu2 OBJECT source/contract/hamiltonian_squared_dot_psi_v2.cpp)
+    target_include_directories(tb-cpu2 PRIVATE source)
+    target_compile_definitions(tb-cpu2 PUBLIC TB_CPU2)
+    target_compile_options(tb-cpu2 PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
+    target_link_libraries(tb-cpu2 PRIVATE project-settings)
+    target_link_libraries(${PROJECT_NAME} PRIVATE tb-cpu2)
+endif()
+if(TB_ENABLE_CPU3)
+    add_library(tb-cpu3 OBJECT source/contract/hamiltonian_squared_dot_psi_v3.cpp)
+    target_include_directories(tb-cpu3 PRIVATE source)
+    target_compile_definitions(tb-cpu3 PUBLIC TB_CPU3)
+    target_compile_options(tb-cpu3 PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
+    target_link_libraries(tb-cpu3 PRIVATE project-settings)
+    target_link_libraries(${PROJECT_NAME} PRIVATE tb-cpu3)
+endif()
 
 if(TB_ENABLE_CUDA)
     enable_language(CUDA)

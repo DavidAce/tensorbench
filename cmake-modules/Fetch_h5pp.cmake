@@ -1,12 +1,12 @@
 if(NOT TARGET h5pp::h5pp AND TB_DOWNLOAD_METHOD STREQUAL "find")
-    find_package(h5pp 1.8.0 QUIET NO_CMAKE_PACKAGE_REGISTRY)
+    find_package(h5pp 1.8.4 QUIET NO_CMAKE_PACKAGE_REGISTRY)
     if(h5pp_FOUND AND TARGET h5pp::h5pp)
         message(STATUS "Found h5pp")
     endif()
 endif()
 
 if(NOT TARGET h5pp::h5pp AND TB_DOWNLOAD_METHOD MATCHES "fetch")
-    find_package(h5pp  1.8.0
+    find_package(h5pp  1.8.4
             NO_CMAKE_PACKAGE_REGISTRY)
     if(h5pp_FOUND AND TARGET h5pp::h5pp)
         message(STATUS "Found h5pp")
