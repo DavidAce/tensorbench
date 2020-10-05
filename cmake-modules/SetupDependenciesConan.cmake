@@ -84,7 +84,7 @@ if(TB_DOWNLOAD_METHOD MATCHES "conan")
             BUILD missing
     )
 
-    if(TARGET CONAN_PKG:Eigen3)
+    if(TARGET CONAN_PKG::Eigen3)
         set(eigen_target CONAN_PKG::Eigen3)
     elseif(TARGET CONAN_PKG::eigen)
         set(eigen_target CONAN_PKG::eigen)
