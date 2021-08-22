@@ -21,6 +21,7 @@ Usage            : $PROGNAME [-option | --option ] <=argument>
 -s | --enable-shared            : Enable shared library linking (default is static)
    | --enable-openmp            : Enable OpenMP
    | --enable-mkl               : Enable Intel MKL
+   | --enable-openblas          : Enable OpenBLAS
    | --enable-lto               : Enable Link Time Optimization
    | --enable-asan              : Enable runtime sanitizers, i.e. -fsanitize=address
    | --enable-eigen1            : Enable Eigen1 CPU benchmark
@@ -60,6 +61,7 @@ PARSED_OPTIONS=$(getopt -n "$0"   -o ha:b:cl:df:g:G:j:st:v \
                 make-threads:\
                 enable-openmp\
                 enable-mkl\
+                enable-openblas\
                 enable-lto\
                 enable-asan\
                 enable-eigen1\
@@ -91,6 +93,7 @@ package_manager="find"
 enable_tests="OFF"
 enable_openmp="OFF"
 enable_mkl="OFF"
+enable_openblas="OFF"
 enable_lto="OFF"
 enable_asan="OFF"
 enable_eigen1="OFF"
@@ -128,6 +131,7 @@ do
     -t|--target)                    target=$2                       ; echo " * CMake Build target      : $2"      ; shift 2 ;;
        --enable-openmp)             enable_openmp="ON"              ; echo " * OpenMP                  : ON"      ; shift   ;;
        --enable-mkl)                enable_mkl="ON"                 ; echo " * Intel MKL               : ON"      ; shift   ;;
+       --enable-openblas)           enable_openblas="ON"            ; echo " * OpenBLAS                : ON"      ; shift   ;;
        --enable-lto)                enable_lto="ON"                 ; echo " * Link Time Optimization  : ON"      ; shift   ;;
        --enable-asan)               enable_asan="ON"                ; echo " * Runtime sanitizers      : ON"      ; shift   ;;
        --enable-eigen1)             enable_eigen1="ON"              ; echo " * Eigen1 uses CPU         : ON"      ; shift   ;;
@@ -305,6 +309,7 @@ cat << EOF >&2
           -DTB_ENABLE_TESTS:BOOL=$enable_tests
           -DTB_ENABLE_OPENMP=$enable_openmp
           -DTB_ENABLE_MKL=$enable_mkl
+          -DTB_ENABLE_OPENBLAS=$enable_openblas
           -DTB_ENABLE_LTO=$enable_lto
           -DTB_ENABLE_ASAN=$enable_asan
           -DTB_ENABLE_EIGEN1=$enable_eigen1
@@ -335,6 +340,7 @@ if [ -z "$dry_run" ] ;then
           -DTB_ENABLE_TESTS:BOOL=$enable_tests \
           -DTB_ENABLE_OPENMP=$enable_openmp \
           -DTB_ENABLE_MKL=$enable_mkl \
+          -DTB_ENABLE_OPENBLAS=$enable_openblas \
           -DTB_ENABLE_LTO=$enable_lto \
           -DTB_ENABLE_ASAN=$enable_asan \
           -DTB_ENABLE_EIGEN1=$enable_eigen1 \
