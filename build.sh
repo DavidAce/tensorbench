@@ -23,7 +23,9 @@ Usage            : $PROGNAME [-option | --option ] <=argument>
    | --enable-mkl               : Enable Intel MKL
    | --enable-lto               : Enable Link Time Optimization
    | --enable-asan              : Enable runtime sanitizers, i.e. -fsanitize=address
-   | --enable-cpu               : Enable CPU benchmark
+   | --enable-eigen1            : Enable Eigen1 CPU benchmark
+   | --enable-eigen2            : Enable Eigen2 CPU benchmark
+   | --enable-eigen3            : Enable Eigen3 CPU benchmark
    | --enable-cuda              : Enable CUDA
    | --enable-acro              : Enable AcroTensor
    | --enable-cute              : Enable CUTENSOR
@@ -60,7 +62,9 @@ PARSED_OPTIONS=$(getopt -n "$0"   -o ha:b:cl:df:g:G:j:st:v \
                 enable-mkl\
                 enable-lto\
                 enable-asan\
-                enable-cpu\
+                enable-eigen1\
+                enable-eigen2\
+                enable-eigen3\
                 enable-cuda\
                 enable-acro\
                 enable-cute\
@@ -89,7 +93,9 @@ enable_openmp="OFF"
 enable_mkl="OFF"
 enable_lto="OFF"
 enable_asan="OFF"
-enable_cpu="OFF"
+enable_eigen1="OFF"
+enable_eigen2="OFF"
+enable_eigen3="OFF"
 enable_cuda="OFF"
 enable_acro="OFF"
 enable_cute="OFF"
@@ -124,7 +130,9 @@ do
        --enable-mkl)                enable_mkl="ON"                 ; echo " * Intel MKL               : ON"      ; shift   ;;
        --enable-lto)                enable_lto="ON"                 ; echo " * Link Time Optimization  : ON"      ; shift   ;;
        --enable-asan)               enable_asan="ON"                ; echo " * Runtime sanitizers      : ON"      ; shift   ;;
-       --enable-cpu)                enable_cpu="ON"                 ; echo " * Eigen uses CPU          : ON"      ; shift   ;;
+       --enable-eigen1)             enable_eigen1="ON"              ; echo " * Eigen1 uses CPU         : ON"      ; shift   ;;
+       --enable-eigen2)             enable_eigen2="ON"              ; echo " * Eigen2 uses CPU         : ON"      ; shift   ;;
+       --enable-eigen3)             enable_eigen3="ON"              ; echo " * Eigen3 uses CPU         : ON"      ; shift   ;;
        --enable-cuda)               enable_cuda="ON"                ; echo " * Eigen uses CUDA         : ON"      ; shift   ;;
        --enable-acro)               enable_acro="ON"                ; echo " * AcroTensor GPU          : ON"      ; shift   ;;
        --enable-cute)               enable_cute="ON"                ; echo " * CUTENSOR                : ON"      ; shift   ;;
@@ -299,7 +307,9 @@ cat << EOF >&2
           -DTB_ENABLE_MKL=$enable_mkl
           -DTB_ENABLE_LTO=$enable_lto
           -DTB_ENABLE_ASAN=$enable_asan
-          -DTB_ENABLE_CPU=$enable_cpu
+          -DTB_ENABLE_EIGEN1=$enable_eigen1
+          -DTB_ENABLE_EIGEN2=$enable_eigen2
+          -DTB_ENABLE_EIGEN3=$enable_eigen3
           -DTB_ENABLE_CUDA=$enable_cuda
           -DTB_ENABLE_ACRO=$enable_acro
           -DTB_ENABLE_CUTE=$enable_cute
@@ -327,7 +337,9 @@ if [ -z "$dry_run" ] ;then
           -DTB_ENABLE_MKL=$enable_mkl \
           -DTB_ENABLE_LTO=$enable_lto \
           -DTB_ENABLE_ASAN=$enable_asan \
-          -DTB_ENABLE_CPU=$enable_cpu \
+          -DTB_ENABLE_EIGEN1=$enable_eigen1 \
+          -DTB_ENABLE_EIGEN2=$enable_eigen2 \
+          -DTB_ENABLE_EIGEN3=$enable_eigen3 \
           -DTB_ENABLE_CUDA=$enable_cuda \
           -DTB_ENABLE_ACRO=$enable_acro \
           -DTB_ENABLE_CUTE=$enable_cute \
