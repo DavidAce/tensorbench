@@ -3,13 +3,13 @@ import h5py
 from src.general.natural_sort import *
 
 
-
 def h5open(h5filenames, permission='r',chunk_cache_mem_size=1000*1024**2,driver=None,swmr=False):
     if len(h5filenames) == 1 or isinstance(h5filenames,str):
         try:
             return h5py.File(h5filenames, permission,swmr=swmr,rdcc_nbytes=chunk_cache_mem_size,rdcc_nslots=chunk_cache_mem_size,driver=driver)
         except Exception as err:
-            print('Could not open file!:', err)
+            print('Could not open file []', h5filenames, err)
+            exit(1)
 
     else:
         h5files = []
@@ -34,84 +34,115 @@ def h5close(h5files):
         exit(1)
 
 
-def h5py_dataset_iterator(g, prefix='', filter='',dep=1):
+def h5py_dataset_iterator(node, keypattern=None, dep=1):
     if dep == 0:
         return
-    key_sorted = sorted(g.keys(), key=natural_keys)
-    for key in key_sorted:
-        item = g[key]
-        path = '{}/{}'.format(prefix, key)
-        if key.startswith(tuple(filter)) and isinstance(item, h5py.Dataset): # test for dataset
-            yield (path, item)
-        elif isinstance(item, h5py.Group) and dep > 0: # test for group (go down)
-            yield from h5py_dataset_iterator(g=item, prefix=path, filter=filter,dep=dep-1)
-
-def h5py_group_iterator(g, prefix='', filter='',dep=1):
-    if dep == 0:
-        return
-    key_sorted = sorted(g.keys(), key=natural_keys)
-    for key in key_sorted:
-        item = g[key]
-        path = '{}/{}'.format(prefix, key)
-        if isinstance(filter,list) or isinstance(filter,dict):
-            if any(f in key for f in filter) and isinstance(item, h5py.Group):  # test for group
+    for key in sorted(node.keys(), key=natural_keys):
+        # node = node[key]
+        item = node[key]
+        path = item.name
+        if isinstance(item, h5py.Dataset):
+            if keypattern:
+                if isinstance(keypattern, str) and keypattern in path:
+                    yield (key, path, item)
+                elif isinstance(keypattern, list) or isinstance(keypattern, dict):
+                    if any(f in path for f in keypattern):
+                        yield (key, path, item)
+                elif keypattern and keypattern in path:
+                    yield (key, path, item)
+            else:
                 yield (key, path, item)
-            elif isinstance(g[key], h5py.Group) and dep > 0:  # test for group (go down)
-                yield from h5py_group_iterator(g=g[key], prefix=path, filter=filter, dep=dep - 1)
-        elif filter in key and isinstance(item, h5py.Group):
-            yield (key, path, item)
-        elif isinstance(item, h5py.Group) and dep > 0: # test for group (go down)
-            yield from h5py_group_iterator(g=item, prefix=path, filter=filter,dep=dep-1)
+        elif isinstance(item, h5py.Group) and dep > 0:  # test for group (go down)
+            yield from h5py_dataset_iterator(node=item, keypattern=keypattern, dep=dep - 1)
 
-
-def h5py_node_iterator(g, prefix='', filter='',  dep=1):
+def h5py_group_iterator(node, keypattern=None, dep=1):
     if dep == 0:
         return
-    key_sorted = sorted(g.keys(), key=natural_keys)
-    for key in key_sorted:
-        path = '{}/{}'.format(prefix, key)
-        if isinstance(filter,list) or isinstance(filter,dict):
-            if any(f in key for f in filter):
-                yield (key,path, g[key])
-            elif isinstance(g[key], h5py.Group) and dep > 0:  # test for group (go down)
-                yield from h5py_node_iterator(g=g[key], prefix=path, filter=filter, dep=dep - 1)
-        elif filter in key:
-            yield (key,path,g[key])
-        elif isinstance(g[key], h5py.Group) and dep > 0:  # test for group (go down)
-            yield from h5py_node_iterator(g=g[key], prefix=path, filter=filter,dep=dep-1)
+    for key in sorted(node.keys(), key=natural_keys):
+        item = node[key]
+        path = item.name
+        if isinstance(item,h5py.Group):
+            if keypattern:
+                if isinstance(keypattern, str) and keypattern in path:
+                    yield (key, path, item)
+                elif isinstance(keypattern, list) or isinstance(keypattern, dict):
+                    if any(f in path for f in keypattern):
+                        yield (key, path, item)
+                elif keypattern and keypattern in path:
+                    yield (key, path, item)
+            else:
+                yield (key, path, item)
+            if dep > 0: #(go to subgroup)
+                yield from h5py_group_iterator(node=item, keypattern=keypattern, dep=dep - 1)
 
-def h5py_node_finder(g, filter='', num=0, dep=1, includePath=True):
+def h5py_node_iterator(node, keypattern=None, dep=1, excludeKeys=None, nodeType=None):
+    if dep == 0:
+        return
+    for key in sorted(node.keys(), key=natural_keys):
+        item = node[key]
+        path = item.name
+        excluded =  False
+        if excludeKeys:
+            if isinstance(excludeKeys,list) or isinstance(keypattern, dict):
+                excluded = any(e in key for e in excludeKeys)
+            elif isinstance(excludeKeys,str):
+                excluded = excludeKeys in key
+
+        typeisok = isinstance(item,nodeType) if nodeType else True
+        if typeisok and not excluded:
+            if keypattern:
+                if isinstance(keypattern, str) and keypattern in key:
+                    yield (key, path, item)
+                elif isinstance(keypattern, list) or isinstance(keypattern, dict):
+                    if any(f in key for f in keypattern):
+                        yield (key, path, item)
+                elif keypattern and keypattern in key:
+                    yield (key, path, item)
+            else:
+                yield (key, path, item)
+        if isinstance(item, h5py.Group) and dep > 0 and not excluded:  # test for group (go down)
+            yield from h5py_node_iterator(node=item, keypattern=keypattern, dep=dep - 1, excludeKeys=excludeKeys)
+
+
+def h5py_node_finder(node, keypattern=None, num=None, dep=1, includePath=True, excludeKeys=None, nodeType=None):
     matches = []
-    for (key,path,node) in h5py_node_iterator(g,filter=filter,dep=dep):
-        matches.append((key,path,node))
-        if len(matches) >= num and num > 0:
+    for (key,path,node) in h5py_node_iterator(node=node, keypattern=keypattern, dep=dep,excludeKeys=excludeKeys, nodeType=nodeType):
+        if nodeType and not isinstance(node, nodeType):
+            continue
+        if excludeKeys:
+            if isinstance(excludeKeys, str) and excludeKeys in path:
+                continue
+            if isinstance(excludeKeys, list) and any(key in path for key in excludeKeys):
+                continue
+            if isinstance(excludeKeys, dict) and any(key in path for key in excludeKeys):
+                continue
+        if isinstance(num,int) and num > 0 and num <= len(matches):
             break
+        matches.append((key, path, node))
     if includePath:
         return matches
     else:
         return [x[2] for x in matches]
 
-def h5py_unique_finder(g, filter='',dep=1):
-    matches = h5py_node_finder(g=g,filter=filter,dep=dep)
+def h5py_unique_finder(node, keypattern=None, dep=1):
+    matches = h5py_node_finder(node=node, keypattern=keypattern, dep=dep)
     matches = [x[1].split("/")[-1] for x in matches]
     return list(sorted(set(matches)))
 
+def h5py_dataset_finder(node, keypattern=None, num=None, dep=1, includePath=True, excludeKeys=None):
+    return h5py_node_finder(node=node, keypattern=keypattern, num=num, dep=dep, includePath=includePath, excludeKeys=excludeKeys, nodeType=h5py.Dataset)
 
-def h5py_dataset_finder(g, filter='', num=0, dep=1,includePath=True):
-    matches = h5py_node_finder(g=g,filter=filter,num=num,dep=dep,includePath=includePath)
-    result = []
-    for match in matches:
-        result.append(match)
-    return result
+def h5py_group_finder(node, keypattern=None, num=None, dep=1, includePath=True, excludeKeys=None):
+    return h5py_node_finder(node=node, keypattern=keypattern, num=num, dep=dep, includePath=includePath, excludeKeys=excludeKeys, nodeType=h5py.Group)
 
-def load_component_cplx(hdf5_obj,path,filter_name='', type=np.complex128):
+def load_component_cplx(hdf5_obj, path, keypattern=None, type=np.complex128):
     key_sorted = sorted(hdf5_obj[path].keys(), key=natural_keys)
     ret_list = []
-    if filter_name=='':
+    if not keypattern:
         for key in key_sorted:
             ret_list.append(np.asarray(hdf5_obj[path][key].value.view(dtype=np.complex128)))
     else:
-        for key in filter(lambda list: filter_name in list, key_sorted):
+        for key in filter(lambda list: keypattern in list, key_sorted):
             ret_list.append(np.asarray(hdf5_obj[path][key].value.view(dtype=np.complex128)))
     return ret_list
 

@@ -2,12 +2,15 @@
 # To activate reading this file from CMakeLists.txt, enable the setting -DTB_DOWNLOAD_METHOD=conan
 
 [requires]
-h5pp/1.8.4@davidace/dev
-eigen/3.3.7
-openblas/0.3.10
+h5pp/1.9.0@davidace/dev
+eigen/3.4.0@
+xtensor/0.23.10@
+openblas/0.3.17@
 
 [generators]
 cmake
 
 [options]
 *:shared=False
+xtensor:xsimd=True
+xtensor:openmp=True

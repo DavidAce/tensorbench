@@ -1,18 +1,23 @@
 
 #include <contract/contract.h>
+#include <general/enums.h>
 #include <getopt.h>
+#include <gitversion.h>
 #include <storage/results.h>
 #include <thread>
+#include <tid/tid.h>
 #include <tools/class_tic_toc.h>
 #include <tools/log.h>
+#include <tools/num.h>
 #include <tools/prof.h>
+#include <tblis/util/thread.h>
 
-#ifdef OPENBLAS_AVAILABLE
-    #include <cblas.h>
-    #include <openblas_config.h>
+#if defined(TB_OPENBLAS)
+    #include <openblas/cblas.h>
+    #include <openblas/openblas_config.h>
 #endif
 
-#ifdef MKL_AVAILABLE
+#if defined(TB_MKL)
     #define MKL_Complex8 std::complex<float>
     #define MKL_Complex16 std::complex<double>
     #include <mkl.h>
@@ -41,13 +46,81 @@ Usage                       : ./cpp_merger [-option <value>].
 )";
 }
 
+template<typename T>
+struct tb_setup {
+    int                                      num_threads = 0;
+    size_t                                   iters;
+    std::string                              group;
+    Eigen::Tensor<T, 3>                      envL, envR, psi;
+    Eigen::Tensor<T, 4>                      mpo;
+    mutable std::vector<Eigen::Tensor<T, 3>> psi_check;
+};
+
+// Get current date/time, format is YYYY-MM-DD.HH:mm:ss
+std::string currentDateTime() {
+    time_t    now     = time(nullptr);
+    struct tm tstruct = {};
+    char      buf[80];
+    tstruct = *localtime(&now);
+    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+    // for more information about date/time format
+    strftime(buf, sizeof(buf), "%F", &tstruct);
+    return buf;
+}
+
+template<typename T, tb_mode mode>
+void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
+    auto t_run = tid::get("run").tic_token();
+    long chiL  = tsp.psi.dimension(1);
+    long chiR  = tsp.psi.dimension(2);
+    long mpod  = tsp.mpo.dimension(0);
+    long spin  = tsp.psi.dimension(0);
+    tools::log->info("Running benchmark {} | iters {}", enum2sv(mode), tsp.iters);
+    std::vector<double>            t_vec;
+    std::vector<tb_results::table> tb;
+    Eigen::Tensor<T, 3>            psi_out;
+    long                           ops = 0;
+
+    tdb.createTable(tb_results::h5_type, fmt::format("{}/{}_{}", tsp.group, enum2sv(mode), tsp.num_threads), fmt::format("TensorBenchmark {}", enum2sv(mode)),
+                    5, 3);
+    tsp.psi_check.resize(tsp.iters);
+    for(size_t iter = 0; iter < tsp.iters; iter++) {
+        auto t_prod = tid::get(enum2sv(mode)).tic_token();
+        if constexpr(mode == tb_mode::eigen1) std::tie(psi_out, ops) = contract::tensor_product_eigen1(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
+        if constexpr(mode == tb_mode::eigen2) std::tie(psi_out, ops) = contract::tensor_product_eigen2(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
+        if constexpr(mode == tb_mode::eigen3) std::tie(psi_out, ops) = contract::tensor_product_eigen3(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
+        if constexpr(mode == tb_mode::cute) std::tie(psi_out, ops) = contract::tensor_product_cute(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
+        if constexpr(mode == tb_mode::acro) throw std::runtime_error("not implemented?");
+        if constexpr(mode == tb_mode::xtensor) std::tie(psi_out, ops) = contract::tensor_product_xtensor(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
+        if constexpr(mode == tb_mode::tblis) std::tie(psi_out, ops) = contract::tensor_product_tblis(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
+        t_prod.toc();
+        tools::log->info("{} | psi dimensions {} | mpo {} | iter {}/{} |  time {:8.4f} s | GOp {:<8.4f} | GOp/s {:<.4f}", tt.get_name(), psi_out.dimensions(),
+                         mpod, iter + 1, tsp.iters, tt.get_last_time_interval(), ops / 1e9, ops / 1e9 / tt.get_last_time_interval());
+
+        if(tsp.psi_check[iter].size() == 0) tsp.psi_check[iter] = psi_out;
+        else {
+            auto   psi_out_vec = tenx::VectorMap(psi_out);
+            auto   psi_chk_vec = tenx::VectorMap(tsp.psi_check[iter]);
+            double overlap     = psi_out_vec.normalized().dot(psi_chk_vec.normalized());
+            bool   approx      = psi_out_vec.isApprox(psi_chk_vec);
+            if(overlap < 0.999 or not approx) tools::log->error("Mismatch | overlap {:.16f} | approx {}", overlap, approx);
+        }
+
+        tb.emplace_back(enum2sv(mode), iter, tsp.num_threads, chiL, chiR, mpod, spin, ops, tt.get_last_time_interval(), tt.get_measured_time());
+        t_vec.emplace_back(tt.get_last_time_interval());
+    }
+    tools::log->info("{} | total time {:.4f} s | avg time {:.4f} | stdev {:.4f}", tt.get_name(), tt.get_measured_time(), num::mean(t_vec), num::stdev(t_vec));
+    tdb.appendTableRecords(tb, fmt::format("{}/{}_{}", tsp.group, enum2sv(mode), tsp.num_threads));
+}
+
 int main(int argc, char *argv[]) {
     // Here we use getopt to parse CLI input
     // Note that CLI input always override config-file values
     // wherever they are found (config file, h5 file)
+    auto              t_tot     = tid::get("tb").tic_token();
     auto              log       = tools::Logger::setLogger("tensorbench", 2);
     size_t            verbosity = 2;
-    int               iters     = 3;
+    size_t            iters     = 3;
     std::vector<int>  v_threads;
     std::vector<long> v_chi;
     std::vector<long> v_chiL;
@@ -76,7 +149,7 @@ int main(int argc, char *argv[]) {
                 continue;
             case 'D': v_spin.push_back(std::strtol(optarg, nullptr, 10)); continue;
             case 'M': v_mpod.push_back(std::strtol(optarg, nullptr, 10)); continue;
-            case 'i': iters = std::strtol(optarg, nullptr, 10); continue;
+            case 'i': iters = std::stoul(optarg, nullptr, 10); continue;
             case 'n':
 #if !defined(EIGEN_USE_THREADS)
                 throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define EIGEN_USE_THREADS");
@@ -100,6 +173,8 @@ int main(int argc, char *argv[]) {
         v_chi  = {256};
         v_chiL = {-1};
         v_chiR = {-1};
+    } else if(v_chi.empty() and (not v_chiL.empty() or not v_chiR.empty())) {
+        v_chi = {-1};
     } else if(not v_chi.empty()) {
         v_chiL = {-1};
         v_chiR = {-1};
@@ -127,10 +202,30 @@ int main(int argc, char *argv[]) {
     using fp64   = double;
     using Scalar = fp64;
 
-    h5pp::File tbdb("tbdb.h5", h5pp::FilePermission::REPLACE);
+    h5pp::File tbdb(fmt::format("../output/tbdb-{}.h5", currentDateTime()), h5pp::FilePermission::REPLACE);
     tb_results::register_table_type();
+
+    tbdb.writeAttribute(GIT::BRANCH, "git_branch", "/");
+    tbdb.writeAttribute(GIT::COMMIT_HASH, "git_commit", "/");
+    tbdb.writeAttribute(GIT::REVISION, "git_revision", "/");
+
+#if defined(TB_EIGEN1) || defined(TB_EIGEN2) || defined(TB_EIGEN3)
+    tbdb.writeAttribute(fmt::format("Eigen {}.{}.{}", EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION), "eigen_version", "/");
+#endif
+#if defined(TB_OPENBLAS)
+    tbdb.writeAttribute(OPENBLAS_VERSION, "openblas_version", "/");
+#endif
+#if defined(TB_MKL)
+    tbdb.writeAttribute(fmt::format("Intel MKL {}", INTEL_MKL_VERSION), "intelmkl_version", "/");
+#endif
+
     tools::prof::t_total->tic();
     tools::log->info("Starting benchmark");
+    tools::log->info("chi : {}", v_chi);
+    tools::log->info("chiL: {}", v_chiL);
+    tools::log->info("chiR: {}", v_chiR);
+    tools::log->info("mpod: {}", v_mpod);
+    tools::log->info("spin: {}", v_spin);
 
     for(auto chi : v_chi)
         for(auto chiL : v_chiL)
@@ -139,75 +234,42 @@ int main(int argc, char *argv[]) {
                     for(auto spin : v_spin) {
                         if(chiL == -1) chiL = chi;
                         if(chiR == -1) chiR = chi;
-                        Eigen::Tensor<Scalar, 4> envL(chiL, chiL, mpod, mpod);
-                        Eigen::Tensor<Scalar, 4> envR(chiR, chiR, mpod, mpod);
-                        Eigen::Tensor<Scalar, 4> mpo(mpod, mpod, spin, spin);
-                        Eigen::Tensor<Scalar, 3> psi(spin, chiL, chiR);
-                        envL.setRandom();
-                        envR.setRandom();
-                        mpo.setRandom();
-                        psi.setRandom();
+                        tb_setup<Scalar> tbs;
+                        tbs.envL = Eigen::Tensor<Scalar, 3>(chiL, chiL, mpod);
+                        tbs.envR = Eigen::Tensor<Scalar, 3>(chiR, chiR, mpod);
+                        tbs.mpo  = Eigen::Tensor<Scalar, 4>(mpod, mpod, spin, spin);
+                        tbs.psi  = Eigen::Tensor<Scalar, 3>(spin, chiL, chiR);
 
-                        std::string tb_basename = fmt::format("chiL_{}_chiR_{}/mpod_{}/spin_{}", chiL, chiR, mpod, spin);
-                        tools::log->info("Starting benchmark mode: {}", tb_basename);
+                        tbs.envL.setRandom();
+                        tbs.envR.setRandom();
+                        tbs.mpo.setRandom();
+                        tbs.psi.setRandom();
+
+                        tbs.iters = iters;
+                        tbs.group = fmt::format("chiL_{}_chiR_{}_mpod_{}_spin_{}", chiL, chiR, mpod, spin);
+
+                        tools::log->info("Starting benchmark: {}", tbs.group);
                         tools::prof::reset_profiling();
-#if defined(TB_CUDA)
-                        std::vector<tb_results::table> tb_cuda;
-                        tbdb.createTable(tb_results::h5_type, tb_basename + "/cuda", "TensorBenchmark CUDA", 5, 3);
-                        for(int iter = 0; iter < iters; iter++) {
-                            auto [psi_out,ops] = contract::hamiltonian_squared_dot_psi_cuda(psi, mpo, envL, envR);
-                            tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(),
-                                             psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_cuda->get_last_time_interval());
-                            tb_cuda.emplace_back("cuda", iter, num_threads, chiL, chiR, mpod, spin,ops, tools::prof::t_ham_sq_psi_cuda->get_last_time_interval(),
-                                                 tools::prof::t_ham_sq_psi_cuda->get_measured_time())
-                        }
-                        tools::log->info("{} | total time {:.7f} s", tools::prof::t_ham_sq_psi_cuda->get_name(),
-                                         tools::prof::t_ham_sq_psi_cuda->get_measured_time());
-                        tbdb.appendTableRecords(tb_cuda, tb_basename + "/cuda");
-#endif
-
-#if defined(TB_ACRO)
-                        std::vector<tb_results::table> tb_acro;
-                        tbdb.createTable(tb_results::h5_type, tb_basename + "/acro", "TensorBenchmark AcroTensor", 5, 3);
-                        for(int iter = 0; iter < iters; iter++) {
-                            auto [psi_out,ops] = contract::hamiltonian_squared_dot_psi_acro(psi, mpo, envL, envR);
-                            tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_acro->get_name(),
-                                             psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_acro->get_last_time_interval());
-                            tb_acro.emplace_back("acro", iter, num_threads, chiL, chiR, mpod, spin,ops, tools::prof::t_ham_sq_psi_acro->get_last_time_interval(),
-                                                 tools::prof::t_ham_sq_psi_acro->get_measured_time());
-                        }
-                        tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_acro->get_name(),
-                                         tools::prof::t_ham_sq_psi_acro->get_measured_time());
-                        tbdb.appendTableRecords(tb_acro, tb_basename + "/acro");
-#endif
 
 #if defined(TB_CUTE)
-                        std::vector<tb_results::table> tb_cute;
-                        tbdb.createTable(tb_results::h5_type, tb_basename + "/cute", "cutensor", 5, 3);
-                        for(int iter = 0; iter < iters; iter++) {
-                           auto [psi_out,ops] = contract::hamiltonian_squared_dot_psi_cute(psi, mpo, envL, envR);
-                            tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:.4f} s", tools::prof::t_ham_sq_psi_cute->get_name(),
-                                             psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_cute->get_last_time_interval());
-                            tb_cute.emplace_back("cute", iter, 1, chiL, chiR, mpod, spin,ops, tools::prof::t_ham_sq_psi_cute->get_last_time_interval(),
-                                                 tools::prof::t_ham_sq_psi_cute->get_measured_time());
-                        }
-
-                        tools::log->info("{} | total time {:.4f} s ", tools::prof::t_ham_sq_psi_cute->get_name(),
-                                         tools::prof::t_ham_sq_psi_cute->get_measured_time());
-                        tbdb.appendTableRecords(tb_cute, tb_basename + "/cute");
+                        run_benchmark<Scalar, tb_mode::cute>(tbdb, tbs, *tools::prof::t_cute);
 #endif
 
                         for(auto num_threads : v_threads) {
                             if(num_threads <= 0) throw std::runtime_error(fmt::format("Invalid num threads: {}", optarg));
                             tools::prof::reset_profiling();
 #if defined(EIGEN_USE_THREADS)
-                            Textra::omp::setNumThreads(num_threads);
-                            tools::log->info("Using Eigen Tensor with {} threads", Textra::omp::tp->NumThreads());
+                            tenx::omp::setNumThreads(num_threads);
+                            tools::log->info("Using Eigen {}.{}.{} Tensor Module with {} threads", EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION,
+                                             EIGEN_MINOR_VERSION, tenx::omp::tp->NumThreads());
+#endif
+#if defined(TB_TBLIS)
+                            tblis_set_num_threads(num_threads);
 #endif
 #if defined(_OPENMP)
                             omp_set_num_threads(num_threads);
                             tools::log->info("Using OpenMP with {} threads", omp_get_max_threads());
-    #ifdef OPENBLAS_AVAILABLE
+    #if defined(TB_OPENBLAS)
                             openblas_set_num_threads(num_threads);
                             tools::log->info(
                                 "{} compiled with parallel mode {} for target {} with config {} | multithread threshold {} | running with {} threads",
@@ -215,80 +277,29 @@ int main(int argc, char *argv[]) {
                                 openblas_get_num_threads());
     #endif
 
-    #ifdef MKL_AVAILABLE
+    #if defined(TB_MKL)
                             mkl_set_num_threads(num_threads);
-                            tools::log->info("Using Intel MKL with {} threads", mkl_get_max_threads());
+                            tools::log->info("Using Intel MKL {} with {} threads", INTEL_MKL_VERSION, mkl_get_max_threads());
                             mkl_verbose(1);
     #endif
 #endif
+                            tbs.num_threads = num_threads;
 
-                            auto log2chiL = std::log2(chiL);
-                            auto log2chiR = std::log2(chiR);
-                            auto log2spin = std::log2(spin);
-                            std::string prediction;
-                            if(log2spin >= std::max(log2chiL, log2chiR)){
-                                if(log2chiL > log2chiR) prediction = "winner: cpu1";
-                                else prediction = "winner: cpu2";
-                            }else  prediction = "winner: cpu3";
-                            tools::log->info("Prediction: {}", prediction);
-
-
-#if defined(TB_CPU1)
-                            std::vector<tb_results::table> tb_cpu1;
-                            tbdb.createTable(tb_results::h5_type, fmt::format("{}/cpu_v1_m_{}",tb_basename,num_threads), "TensorBenchmark Cpu version 1", 5, 3);
-                            for(int iter = 0; iter < iters; iter++) {
-                                auto [psi_out,ops] = contract::hamiltonian_squared_dot_psi_v1(psi, mpo, envL, envR);
-                                tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:8.4f} s | GOp/s {:<.4f}", tools::prof::t_ham_sq_psi_v1->get_name(),
-                                                 psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_v1->get_last_time_interval(),ops/1e9/tools::prof::t_ham_sq_psi_v1->get_last_time_interval());
-                                tb_cpu1.emplace_back("cpu1", iter, num_threads, chiL, chiR, mpod, spin,ops, tools::prof::t_ham_sq_psi_v1->get_last_time_interval(),
-                                                     tools::prof::t_ham_sq_psi_v1->get_measured_time());
-                            }
-                            tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v1->get_name(),
-                                             tools::prof::t_ham_sq_psi_v1->get_measured_time());
-                            tbdb.appendTableRecords(tb_cpu1,fmt::format("{}/cpu_v1_m_{}",tb_basename,num_threads));
+#if defined(TB_EIGEN1)
+                            run_benchmark<Scalar, tb_mode::eigen1>(tbdb, tbs, *tools::prof::t_eigen1);
 #endif
-#if defined(TB_CPU2)
-
-                            std::vector<tb_results::table> tb_cpu2;
-                            tbdb.createTable(tb_results::h5_type, fmt::format("{}/cpu_v2_m_{}",tb_basename,num_threads), "TensorBenchmark Cpu version 2", 5, 3);
-                            for(int iter = 0; iter < iters; iter++) {
-                                auto [psi_out,ops] = contract::hamiltonian_squared_dot_psi_v2(psi, mpo, envL, envR);
-                                tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:8.4f} s | GOp/s {:<.4f}", tools::prof::t_ham_sq_psi_v2->get_name(),
-                                                 psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_v2->get_last_time_interval(),ops/1e9/tools::prof::t_ham_sq_psi_v2->get_last_time_interval());
-                                tb_cpu2.emplace_back("cpu2", iter, num_threads, chiL, chiR, mpod, spin,ops, tools::prof::t_ham_sq_psi_v2->get_last_time_interval(),
-                                                     tools::prof::t_ham_sq_psi_v2->get_measured_time());
-                            }
-                            tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v2->get_name(),
-                                             tools::prof::t_ham_sq_psi_v2->get_measured_time());
-                            tbdb.appendTableRecords(tb_cpu2, fmt::format("{}/cpu_v2_m_{}",tb_basename,num_threads));
+#if defined(TB_EIGEN2)
+                            run_benchmark<Scalar, tb_mode::eigen2>(tbdb, tbs, *tools::prof::t_eigen2);
 #endif
-#if defined(TB_CPU3)
-                            std::vector<tb_results::table> tb_cpu3_m;
-                            tbdb.createTable(tb_results::h5_type, fmt::format("{}/cpu_v3_m_{}",tb_basename,num_threads), "TensorBenchmark Cpu version 3", 5, 3);
-                            for(int iter = 0; iter < iters; iter++) {
-                                auto [psi_out,ops] = contract::hamiltonian_squared_dot_psi_v3(psi, mpo, envL, envR,"m");
-                                tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:8.4f} s | GOp/s {:<.4f}", tools::prof::t_ham_sq_psi_v3->get_name(),
-                                                 psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_v3->get_last_time_interval(),ops/1e9/tools::prof::t_ham_sq_psi_v3->get_last_time_interval());
-                                tb_cpu3_m.emplace_back("cpu3", iter, num_threads, chiL, chiR, mpod, spin,ops, tools::prof::t_ham_sq_psi_v3->get_last_time_interval(),
-                                                     tools::prof::t_ham_sq_psi_v3->get_measured_time());
-                            }
-                            tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v3->get_name(),
-                                             tools::prof::t_ham_sq_psi_v3->get_measured_time());
-                            tbdb.appendTableRecords(tb_cpu3_m, fmt::format("{}/cpu_v3_m_{}",tb_basename,num_threads));
+#if defined(TB_EIGEN3)
+                            run_benchmark<Scalar, tb_mode::eigen3>(tbdb, tbs, *tools::prof::t_eigen3);
 
-                            tools::prof::t_ham_sq_psi_v3->reset();
-                            std::vector<tb_results::table> tb_cpu3_d;
-                            tbdb.createTable(tb_results::h5_type, fmt::format("{}/cpu_v3_d_{}",tb_basename,num_threads), "TensorBenchmark Cpu version 3", 5, 3);
-                            for(int iter = 0; iter < iters; iter++) {
-                                auto [psi_out,ops] = contract::hamiltonian_squared_dot_psi_v3(psi, mpo, envL, envR,"d");
-                                tools::log->info("{} | psi dimensions {} | iter {}/{} |  time {:8.4f} s | GOp/s {:<.4f}", tools::prof::t_ham_sq_psi_v3->get_name(),
-                                                 psi_out.dimensions(), iter + 1, iters, tools::prof::t_ham_sq_psi_v3->get_last_time_interval(),ops/1e9/tools::prof::t_ham_sq_psi_v3->get_last_time_interval());
-                                tb_cpu3_d.emplace_back("cpu3", iter, num_threads, chiL, chiR, mpod, spin,ops, tools::prof::t_ham_sq_psi_v3->get_last_time_interval(),
-                                                     tools::prof::t_ham_sq_psi_v3->get_measured_time());
-                            }
-                            tools::log->info("{} | total time {:.4f} s", tools::prof::t_ham_sq_psi_v3->get_name(),
-                                             tools::prof::t_ham_sq_psi_v3->get_measured_time());
-                            tbdb.appendTableRecords(tb_cpu3_d, fmt::format("{}/cpu_v3_d_{}",tb_basename,num_threads));
+#endif
+#if defined(TB_TBLIS)
+                            run_benchmark<Scalar, tb_mode::tblis>(tbdb, tbs, *tools::prof::t_tblis);
+#endif
+#if defined(TB_XTENSOR)
+                            run_benchmark<Scalar, tb_mode::xtensor>(tbdb, tbs, *tools::prof::t_xtensor);
 #endif
                         }
                     }

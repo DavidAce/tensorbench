@@ -33,11 +33,9 @@ class tb_results{
         // Create a type for the char array from the template H5T_C_S1
         // The template describes a string with a single char.
         // Set the size with H5Tset_size, or h5pp::hdf5::setStringSize(...)
-        h5pp::hid::h5t h5t_string = H5Tcopy(H5T_C_S1);
-        H5Tset_size(h5t_string, 16);
-        // Optionally set the null terminator '\0'
-        H5Tset_strpad(h5t_string, H5T_STR_NULLTERM);
-        H5Tinsert(h5_type, "name", HOFFSET(table, name), h5t_string);
+        h5pp::hid::h5t h5t_custom_string = H5Tcopy(H5T_C_S1);
+        H5Tset_size(h5t_custom_string, 16);
+        H5Tinsert(h5_type, "name", HOFFSET(table, name), h5t_custom_string);
         H5Tinsert(h5_type, "iter", HOFFSET(table, iter), H5T_NATIVE_INT);
         H5Tinsert(h5_type, "threads", HOFFSET(table, threads), H5T_NATIVE_INT);
         H5Tinsert(h5_type, "chiL", HOFFSET(table, chiL), H5T_NATIVE_LONG);
