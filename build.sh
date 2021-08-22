@@ -10,7 +10,7 @@ Usage            : $PROGNAME [-option | --option ] <=argument>
 -b | --build-type [=arg]        : Build type: [ Release | RelWithDebInfo | Debug | Profile ]  (default = Release)
 -c | --clear-cmake              : Clear CMake files before build (delete ./build)
 -d | --dry-run                  : Dry run
-   | --download-method          : Download method for dependencies [ find | fetch | find-or-fetch | conan ] (default = find)
+   | --package-manager          : Package manager for dependencies [ find | cmake | find-or-cmake | conan ] (default = find)
 -f | --extra-flags [=arg]       : Extra CMake flags (defailt = none)
 -g | --compiler [=arg]          : Compiler        | GNU | Clang | Tau (default = "")
 -G | --generator [=arg]         : CMake generator  | many options... | (default = "CodeBlocks - Unix Makefiles")
@@ -27,13 +27,14 @@ Usage            : $PROGNAME [-option | --option ] <=argument>
    | --enable-cuda              : Enable CUDA
    | --enable-acro              : Enable AcroTensor
    | --enable-cute              : Enable CUTENSOR
+   | --enable-tblis             : Enable tblis
 -t | --target [=args]           : Select build target [ CMakeTemplate | all-tests | test-<name> ]  (default = none)
    | --enable-tests             : Enable CTest tests
    | --prefer-conda             : Prefer libraries from anaconda
    | --no-modules               : Disable use of "module load"
 -v | --verbose                  : Verbose makefiles
 EXAMPLE:
-./build.sh --arch native -b Release  --make-threads 8   --enable-shared  --with-openmp --with-eigen3  --download-method=find
+./build.sh --arch native -b Release  --make-threads 8   --enable-shared  --with-openmp --with-eigen3  --package-manager=find
 EOF
   exit 1
 }
@@ -50,7 +51,7 @@ PARSED_OPTIONS=$(getopt -n "$0"   -o ha:b:cl:df:g:G:j:st:v \
                 clear-libs:\
                 compiler:\
                 dry-run\
-                download-method:\
+                package-manager:\
                 enable-tests\
                 enable-shared\
                 gcc-toolchain:\
@@ -63,6 +64,8 @@ PARSED_OPTIONS=$(getopt -n "$0"   -o ha:b:cl:df:g:G:j:st:v \
                 enable-cuda\
                 enable-acro\
                 enable-cute\
+                enable-tblis\
+                eigen3-blas\
                 no-modules\
                 prefer-conda\
                 verbose\
@@ -80,7 +83,7 @@ build_type="Release"
 target="all"
 march="haswell"
 enable_shared="OFF"
-download_method="find"
+package_manager="find"
 enable_tests="OFF"
 enable_openmp="OFF"
 enable_mkl="OFF"
@@ -90,6 +93,8 @@ enable_cpu="OFF"
 enable_cuda="OFF"
 enable_acro="OFF"
 enable_cute="OFF"
+enable_tblis="OFF"
+eigen3_blas="OFF"
 make_threads=8
 prefer_conda="OFF"
 verbose="OFF"
@@ -107,7 +112,7 @@ do
     -l|--clear-libs)
             clear_libs=($(echo "$2" | tr ',' ' '))                  ; echo " * Clear libraries         : $2"      ; shift 2 ;;
     -d|--dry-run)                   dry_run="ON"                    ; echo " * Dry run                 : ON"      ; shift   ;;
-       --download-method)           download_method=$2              ; echo " * Download method         : $2"      ; shift 2 ;;
+       --package-manager)           package_manager=$2              ; echo " * Package manager         : $2"      ; shift 2 ;;
     -f|--extra-flags)               extra_flags=$2                  ; echo " * Extra CMake flags       : $2"      ; shift 2 ;;
     -g|--compiler)                  compiler=$2                     ; echo " * C++ Compiler            : $2"      ; shift 2 ;;
     -G|--generator)                 generator=$2                    ; echo " * CMake generator         : $2"      ; shift 2 ;;
@@ -123,6 +128,8 @@ do
        --enable-cuda)               enable_cuda="ON"                ; echo " * Eigen uses CUDA         : ON"      ; shift   ;;
        --enable-acro)               enable_acro="ON"                ; echo " * AcroTensor GPU          : ON"      ; shift   ;;
        --enable-cute)               enable_cute="ON"                ; echo " * CUTENSOR                : ON"      ; shift   ;;
+       --enable-tblis)              enable_tblis="ON"               ; echo " * tblis                   : ON"      ; shift   ;;
+       --eigen3-blas)               eigen3_blas="ON"                ; echo " * Eigen uses BLAS backend : ON"      ; shift   ;;
        --no-modules)                no_modules="ON"                 ; echo " * Disable module load     : ON"      ; shift   ;;
        --prefer-conda)              prefer_conda="ON"               ; echo " * Prefer anaconda libs    : ON"      ; shift   ;;
     -v|--verbose)                   verbose="ON"                    ; echo " * Verbose makefiles       : ON"      ; shift   ;;
@@ -156,8 +163,8 @@ for lib in "${clear_libs[@]}"; do
     fi
 done
 
-if [[ ! "$download_method" =~ find|fetch|conan ]]; then
-    echo "Download method unsupported: $download_method"
+if [[ ! "$package_manager" =~ find|cmake|conan ]]; then
+    echo "Package manager unsupported: $package_manager"
     exit 1
 fi
 
@@ -209,7 +216,7 @@ if [[ "$HOSTNAME" == *"tetralith"* ]];then
         if [ "$enable_mkl" = "ON" ] ; then
             export MKLROOT=/software/sse/easybuild/prefix/software/imkl/2019.1.144-iimpi-2019a/mkl
             export EBROOTIMKL=/software/sse/easybuild/prefix/software/imkl/2019.1.144-iimpi-2019a
-        elif [[ "$download_method" =~ find ]]; then
+        elif [[ "$package_manager" =~ find ]]; then
             module load OpenBLAS
         fi
         if [[ "$compiler" =~ Clang|clang|cl ]] ; then
@@ -226,7 +233,7 @@ elif [[ "$HOSTNAME" == *"raken"* ]];then
         if [ "$enable_mkl" = "ON" ] ; then
             module load imkl
         fi
-        if [[ "$download_method" =~ find ]] ; then
+        if [[ "$package_manager" =~ find ]] ; then
                 module load HDF5
                 if [ "$enable_mkl" = "OFF" ] ; then
                     module load OpenBLAS
@@ -284,7 +291,7 @@ cat << EOF >&2
           -DBUILD_SHARED_LIBS=$enable_shared
           -DCMAKE_VERBOSE_MAKEFILE=$verbose
           -DTB_PRINT_INFO=$verbose
-          -DTB_DOWNLOAD_METHOD=$download_method
+          -DTB_PACKAGE_MANAGER=$package_manager
           -DTB_PREFER_CONDA_LIBS:BOOL=$prefer_conda
           -DTB_MICROARCH=$march
           -DTB_ENABLE_TESTS:BOOL=$enable_tests
@@ -296,6 +303,8 @@ cat << EOF >&2
           -DTB_ENABLE_CUDA=$enable_cuda
           -DTB_ENABLE_ACRO=$enable_acro
           -DTB_ENABLE_CUTE=$enable_cute
+          -DTB_ENABLE_TBLIS=$enable_tblis
+          -DTB_EIGEN3_BLAS=$eigen3_blas
           $extra_flags
            -G $generator
            ../../
@@ -310,7 +319,7 @@ if [ -z "$dry_run" ] ;then
           -DCMAKE_VERBOSE_MAKEFILE=$verbose \
           -DTB_PRINT_INFO=$verbose \
           -DTB_PRINT_CHECKS=$verbose \
-          -DTB_DOWNLOAD_METHOD=$download_method \
+          -DTB_PACKAGE_MANAGER=$package_manager \
           -DTB_PREFER_CONDA_LIBS:BOOL=$prefer_conda \
           -DTB_MICROARCH=$march \
           -DTB_ENABLE_TESTS:BOOL=$enable_tests \
@@ -322,6 +331,8 @@ if [ -z "$dry_run" ] ;then
           -DTB_ENABLE_CUDA=$enable_cuda \
           -DTB_ENABLE_ACRO=$enable_acro \
           -DTB_ENABLE_CUTE=$enable_cute \
+          -DTB_ENABLE_TBLIS=$enable_tblis \
+          -DTB_EIGEN3_BLAS=$eigen3_blas \
           $extra_flags \
            -G "$generator" \
            ../../
