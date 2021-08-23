@@ -22,8 +22,6 @@ include(cmake/SetupDependenciesConan.cmake)
 
 include(cmake/InstallPackage.cmake)
 
-
-
 # Acrotensor
 if(TB_ENABLE_ACRO)
     list(APPEND acrotensor_ARGS  -DACROTENSOR_ENABLE_CUDA:BOOL=${TB_ENABLE_CUDA})

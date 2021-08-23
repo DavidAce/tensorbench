@@ -112,6 +112,7 @@ function(install_package pkg_name)
         if(PKG_CHECK)
             pkg_check_compile(${pkg_name} ${target_name})
         endif()
+        message(STATUS "Found ${pkg_name}")
         return()
     endif()
 

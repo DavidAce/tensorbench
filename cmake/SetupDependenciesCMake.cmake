@@ -62,9 +62,9 @@ if (TB_PACKAGE_MANAGER STREQUAL "cmake")
     endif ()
 
     # Eigen3 numerical library (needed by ceres and h5pp)
-    install_package(Eigen3 VERSION 3.3)
+    install_package(Eigen3 VERSION 3.3 REQUIRED TARGET_NAME Eigen3::Eigen)
     # h5pp for writing to file binary in format
-    install_package(h5pp VERSION 1.9.0 CMAKE_ARGS ${h5pp_ARGS})
+    install_package(h5pp VERSION 1.9.0 CMAKE_ARGS ${h5pp_ARGS} REQUIRED)
 
 
 
@@ -111,14 +111,14 @@ if (TB_PACKAGE_MANAGER STREQUAL "cmake")
     if(TARGET Eigen3::Eigen)
         get_target_property(EIGEN3_INCLUDE_DIR Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
         target_include_directories(Eigen3::Eigen SYSTEM INTERFACE ${EIGEN3_INCLUDE_DIR})
-
+        message(STATUS "TB_EIGEN3_BLAS ${TB_EIGEN3_BLAS}" )
         if(TB_EIGEN3_BLAS)
-            if(MKL_FOUND)
+            if(TARGET mkl::mkl)
                 message(STATUS "Eigen3 will use MKL")
                 target_compile_definitions    (Eigen3::Eigen INTERFACE EIGEN_USE_MKL_ALL)
                 target_compile_definitions    (Eigen3::Eigen INTERFACE EIGEN_USE_LAPACKE_STRICT)
                 target_link_libraries         (Eigen3::Eigen INTERFACE mkl::mkl)
-            elseif(OpenBLAS_FOUND)
+            elseif(TARGET OpenBLAS::OpenBLAS)
                 message(STATUS "Eigen3 will use OpenBLAS")
                 target_compile_definitions    (Eigen3::Eigen INTERFACE EIGEN_USE_BLAS)
                 target_compile_definitions    (Eigen3::Eigen INTERFACE EIGEN_USE_LAPACKE_STRICT)
