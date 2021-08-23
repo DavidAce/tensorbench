@@ -6,6 +6,7 @@ h5pp/1.9.0@davidace/dev
 eigen/3.4.0@
 xtensor/0.23.10@
 openblas/0.3.17@
+cxxopts/2.2.1@
 
 [generators]
 cmake

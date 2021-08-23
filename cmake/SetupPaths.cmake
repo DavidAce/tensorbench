@@ -15,7 +15,7 @@ endif()
 
 # Setup build and install directories for dependencies
 if(NOT TB_DEPS_BUILD_DIR)
-    set(TB_DEPS_BUILD_DIR ${CMAKE_BINARY_DIR}/tb-deps-build)
+    set(TB_DEPS_BUILD_DIR ${CMAKE_BINARY_DIR}/pkg-build)
 endif()
 
 # Install dependencies to the same location as the main project by default
@@ -23,11 +23,9 @@ if(NOT TB_DEPS_INSTALL_DIR)
     set(TB_DEPS_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
 endif()
 
-if(TB_PREFIX_ADD_PKGNAME)
-    set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/tb CACHE STRING
-            "The option TB_PREFIX_ADD_PKGNAME=ON sets the install directory: <CMAKE_INSTALL_PREFIX>/tb" FORCE)
-endif()
 
+set(PKG_INSTALL_DIR ${TB_DEPS_INSTALL_DIR})
+set(PKG_BUILD_DIR ${TB_DEPS_BUILD_DIR})
 
 # Add search directories and flags for the CMake find_* tools
 list(APPEND CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH} ${TB_DEPS_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX})
