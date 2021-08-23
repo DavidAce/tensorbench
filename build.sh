@@ -16,6 +16,7 @@ Usage            : $PROGNAME [-option | --option ] <=argument>
 -G | --generator [=arg]         : CMake generator  | many options... | (default = "CodeBlocks - Unix Makefiles")
    | --gcc-toolchain [=arg]     : Path to GCC toolchain. Use with Clang if it can't find stdlib (defailt = none)
 -h | --help                     : Help. Shows this text.
+-i | --install-prefix   [=path] : Install directory of TB (default = ~/tb-install)
 -j | --make-threads [=num]      : Number of threads used by Make build (default = 8)
 -l | --clear-libs [=args]       : Clear libraries in comma separated list 'lib1,lib2...'. "all" deletes all.
 -s | --enable-shared            : Enable shared library linking (default is static)
@@ -89,6 +90,7 @@ build_type="Release"
 target="all"
 march="haswell"
 enable_shared="OFF"
+install_prefix="~/tb-install"
 package_manager="find"
 enable_tests="OFF"
 enable_openmp="OFF"
@@ -125,6 +127,7 @@ do
     -f|--extra-flags)               extra_flags=$2                  ; echo " * Extra CMake flags       : $2"      ; shift 2 ;;
     -g|--compiler)                  compiler=$2                     ; echo " * C++ Compiler            : $2"      ; shift 2 ;;
     -G|--generator)                 generator=$2                    ; echo " * CMake generator         : $2"      ; shift 2 ;;
+    -i|--install-prefix)            install_prefix=$2               ; echo " * Install Prefix          : $2"      ; shift 2 ;;
     -j|--make-threads)              make_threads=$2                 ; echo " * MAKE threads            : $2"      ; shift 2 ;;
     -s|--enable-shared)             enable_shared="ON"              ; echo " * Link shared libraries   : ON"      ; shift   ;;
        --enable-tests)              enable_tests="ON"               ; echo " * CTest Testing           : ON"      ; shift   ;;
@@ -301,6 +304,7 @@ cat << EOF >&2
     cd build/$build_type
     cmake -DCMAKE_BUILD_TYPE=$build_type
           -DBUILD_SHARED_LIBS=$enable_shared
+          -DCMAKE_INSTALL_PREFIX:PATH=$install_prefix
           -DCMAKE_VERBOSE_MAKEFILE=$verbose
           -DTB_PRINT_INFO=$verbose
           -DTB_PACKAGE_MANAGER=$package_manager
@@ -331,6 +335,7 @@ if [ -z "$dry_run" ] ;then
     cd build/$build_type
     cmake -DCMAKE_BUILD_TYPE=$build_type \
           -DBUILD_SHARED_LIBS=$enable_shared \
+          -DCMAKE_INSTALL_PREFIX:PATH=$install_prefix \
           -DCMAKE_VERBOSE_MAKEFILE=$verbose \
           -DTB_PRINT_INFO=$verbose \
           -DTB_PRINT_CHECKS=$verbose \
