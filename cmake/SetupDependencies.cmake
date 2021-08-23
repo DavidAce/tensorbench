@@ -43,7 +43,7 @@ else()
 endif()
 
 add_library(tb-deps INTERFACE)
-target_link_libraries(tb-deps INTERFACE h5pp::h5pp ${CONAN_TARGETS})
+target_link_libraries(tb-deps INTERFACE h5pp::h5pp cxxopts::cxxopts ${CONAN_TARGETS})
 
 if(TB_ENABLE_ACRO)
     target_link_libraries(tb-deps INTERFACE acrotensor::acrotensor_static)
