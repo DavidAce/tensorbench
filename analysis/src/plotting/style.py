@@ -13,7 +13,7 @@ rc('text', usetex=True)
 sns.set(style="darkgrid", font_scale=1.0, font='DejaVu Sans',rc={"lines.linewidth": 1.2})
 paper_rc = {'lines.linewidth': 2, 'lines.markersize': 10}
 sns.set_style({"axes.facecolor": ".9"},rc={'text.usetex' : True})
-sns.set_palette(sns.color_palette("colorblind", 8))
+sns.set_palette(sns.color_palette("colorblind", 16))
 # ed_palette = sns.color_palette("bright", 3)
 # dmrg_palette = sns.color_palette("colorblind", 5)
 
