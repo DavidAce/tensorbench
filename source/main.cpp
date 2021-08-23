@@ -1,16 +1,17 @@
 
 #include <contract/contract.h>
+#include <cxxopts.hpp>
 #include <general/enums.h>
 #include <getopt.h>
 #include <gitversion.h>
 #include <storage/results.h>
+#include <tblis/util/thread.h>
 #include <thread>
 #include <tid/tid.h>
 #include <tools/class_tic_toc.h>
 #include <tools/log.h>
 #include <tools/num.h>
 #include <tools/prof.h>
-#include <tblis/util/thread.h>
 
 #if defined(TB_OPENBLAS)
     #include <openblas/cblas.h>
@@ -114,79 +115,107 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
 }
 
 int main(int argc, char *argv[]) {
+    cxxopts::Options options("tensorbench", "Benchmarks of tensor contractions");
+    /* clang-format off */
+    options.add_options()
+        ("B,bond",     "Bond dimension (Sets both chiL and chiR)",  cxxopts::value<std::vector<long>>()->default_value("16"))
+        ("L,chiL",     "Bond dimension to the left",                cxxopts::value<std::vector<long>>()->default_value("-1"))
+        ("R,chiR",     "Bond dimension to the right",               cxxopts::value<std::vector<long>>()->default_value("-1"))
+        ("D,spin",     "Spin dimension",                            cxxopts::value<std::vector<long>>()->default_value("2"))
+        ("M,mpod",     "MPO dimension",                             cxxopts::value<std::vector<long>>()->default_value("16"))
+        ("n,threads",  "Number of threads",                         cxxopts::value<std::vector<int>>()->default_value("1"))
+        ("i,iters",    "Number of iterations",                      cxxopts::value<size_t>()->default_value("3"))
+        ("v,verbose",  "Sets verbosity level",                      cxxopts::value<size_t>()->default_value("2")->implicit_value("1"));
+    /* clang-format on */
+
+    auto in = options.parse(argc, argv);
+    if(in["bond"].count() > 0 and (in["chiL"].count() > 0 or in["chiR"].count() > 0 )) throw std::runtime_error("Argument error: Use EITHER bond or chiL/chiR");
+
+    auto v_chi     = in["bond"].as<std::vector<long>>();
+    auto v_chiL    = in["chiL"].as<std::vector<long>>();
+    auto v_chiR    = in["chiR"].as<std::vector<long>>();
+    auto v_spin    = in["spin"].as<std::vector<long>>();
+    auto v_mpod    = in["mpod"].as<std::vector<long>>();
+    auto v_threads = in["threads"].as<std::vector<int>>();
+    auto iters     = in["iters"].as<size_t>();
+    auto verbosity = in["verbose"].as<size_t>();
+
+
+    tools::log = tools::Logger::setLogger("tensorbench", verbosity);
+    auto t_tot = tid::get("tb").tic_token();
+    tools::prof::init_profiling();
+
     // Here we use getopt to parse CLI input
     // Note that CLI input always override config-file values
     // wherever they are found (config file, h5 file)
-    auto              t_tot     = tid::get("tb").tic_token();
-    auto              log       = tools::Logger::setLogger("tensorbench", 2);
-    size_t            verbosity = 2;
-    size_t            iters     = 3;
-    std::vector<int>  v_threads;
-    std::vector<long> v_chi;
-    std::vector<long> v_chiL;
-    std::vector<long> v_chiR;
-    std::vector<long> v_spin;
-    std::vector<long> v_mpod;
-    while(true) {
-        char opt = static_cast<char>(getopt(argc, argv, "hB:L:R:D:M:i:n:v:"));
-        if(opt == EOF) break;
-        if(optarg == nullptr) log->info("Parsing input argument: -{}", opt);
-        else
-            log->info("Parsing input argument: -{} {}", opt, optarg);
-        switch(opt) {
-            case 'B':
-                if(not v_chiL.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
-                if(not v_chiR.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
-                v_chi.push_back(std::strtol(optarg, nullptr, 10));
-                continue;
-            case 'L':
-                if(not v_chi.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
-                v_chiL.push_back(std::strtol(optarg, nullptr, 10));
-                continue;
-            case 'R':
-                if(not v_chi.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
-                v_chiR.push_back(std::strtol(optarg, nullptr, 10));
-                continue;
-            case 'D': v_spin.push_back(std::strtol(optarg, nullptr, 10)); continue;
-            case 'M': v_mpod.push_back(std::strtol(optarg, nullptr, 10)); continue;
-            case 'i': iters = std::stoul(optarg, nullptr, 10); continue;
-            case 'n':
-#if !defined(EIGEN_USE_THREADS)
-                throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define EIGEN_USE_THREADS");
-#endif
-#if !defined(_OPENMP)
-                throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define _OPENMP");
-#endif
-                v_threads.push_back(std::stoi(optarg, nullptr, 10));
-                continue;
-            case 'v': verbosity = std::strtoul(optarg, nullptr, 10); continue;
-            case ':': log->error("Option -{} needs a value", opt); break;
-            case 'h':
-            case '?':
-            default: print_usage(); exit(0);
-            case -1: break;
-        }
-        break;
-    }
+    //    size_t            verbosity = 2;
+    //    size_t            iters     = 3;
+    //    std::vector<int>  v_threads;
+    //    std::vector<long> v_chi;
+    //    std::vector<long> v_chiL;
+    //    std::vector<long> v_chiR;
+    //    std::vector<long> v_spin;
+    //    std::vector<long> v_mpod;
 
-    if(v_chi.empty() and v_chiL.empty() and v_chiR.empty()) {
-        v_chi  = {256};
-        v_chiL = {-1};
-        v_chiR = {-1};
-    } else if(v_chi.empty() and (not v_chiL.empty() or not v_chiR.empty())) {
-        v_chi = {-1};
-    } else if(not v_chi.empty()) {
-        v_chiL = {-1};
-        v_chiR = {-1};
-    }
-    if(v_chiL.empty()) v_chiL = {16};
-    if(v_chiR.empty()) v_chiR = {16};
-    if(v_spin.empty()) v_spin = {4};
-    if(v_mpod.empty()) v_mpod = {5};
-    if(v_threads.empty()) v_threads = {1};
+//    while(true) {
+//        char opt = static_cast<char>(getopt(argc, argv, "hB:L:R:D:M:i:n:v:"));
+//        if(opt == EOF) break;
+//        if(optarg == nullptr) log->info("Parsing input argument: -{}", opt);
+//        else
+//            log->info("Parsing input argument: -{} {}", opt, optarg);
+//        switch(opt) {
+//            case 'B':
+//                if(not v_chiL.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
+//                if(not v_chiR.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
+//                v_chi.push_back(std::strtol(optarg, nullptr, 10));
+//                continue;
+//            case 'L':
+//                if(not v_chi.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
+//                v_chiL.push_back(std::strtol(optarg, nullptr, 10));
+//                continue;
+//            case 'R':
+//                if(not v_chi.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
+//                v_chiR.push_back(std::strtol(optarg, nullptr, 10));
+//                continue;
+//            case 'D': v_spin.push_back(std::strtol(optarg, nullptr, 10)); continue;
+//            case 'M': v_mpod.push_back(std::strtol(optarg, nullptr, 10)); continue;
+//            case 'i': iters = std::stoul(optarg, nullptr, 10); continue;
+//            case 'n':
+//#if !defined(EIGEN_USE_THREADS)
+//                throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define EIGEN_USE_THREADS");
+//#endif
+//#if !defined(_OPENMP)
+//                throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define _OPENMP");
+//#endif
+//                v_threads.push_back(std::stoi(optarg, nullptr, 10));
+//                continue;
+//            case 'v': verbosity = std::strtoul(optarg, nullptr, 10); continue;
+//            case ':': log->error("Option -{} needs a value", opt); break;
+//            case 'h':
+//            case '?':
+//            default: print_usage(); exit(0);
+//            case -1: break;
+//        }
+//        break;
+//    }
+//
+//    if(v_chi.empty() and v_chiL.empty() and v_chiR.empty()) {
+//        v_chi  = {256};
+//        v_chiL = {-1};
+//        v_chiR = {-1};
+//    } else if(v_chi.empty() and (not v_chiL.empty() or not v_chiR.empty())) {
+//        v_chi = {-1};
+//    } else if(not v_chi.empty()) {
+//        v_chiL = {-1};
+//        v_chiR = {-1};
+//    }
+//    if(v_chiL.empty()) v_chiL = {16};
+//    if(v_chiR.empty()) v_chiR = {16};
+//    if(v_spin.empty()) v_spin = {4};
+//    if(v_mpod.empty()) v_mpod = {5};
+//    if(v_threads.empty()) v_threads = {1};
 
-    tools::prof::init_profiling();
-    tools::log = tools::Logger::setLogger("tensorbench", verbosity);
+
 
     // Set the number of threads to be used
 
