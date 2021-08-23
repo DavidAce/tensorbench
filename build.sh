@@ -59,7 +59,7 @@ PARSED_OPTIONS=$(getopt -n "$0"   -o ha:b:cl:df:g:G:j:st:v \
                 enable-tests\
                 enable-shared\
                 gcc-toolchain:\
-                install-precix:\
+                install-prefix:\
                 make-threads:\
                 enable-openmp\
                 enable-mkl\
