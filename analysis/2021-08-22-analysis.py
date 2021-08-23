@@ -3,9 +3,11 @@ from src.io.h5ops import *
 from src.plotting.style import *
 import matplotlib.pyplot as plt
 
-files = ['tbdb-2021-08-22-eigen-3.3.7.h5',
-         'tbdb-2021-08-23-eigen-3.4.0.h5',
-         'tbdb-2021-08-23-eigen-3.4.0-tblis.h5'
+files = [
+         # 'tbdb-2021-08-22-eigen-3.3.7.h5',
+         # 'tbdb-2021-08-23-eigen-3.4.0.h5',
+         'tbdb-2021-08-23-eigen-3.4.0-tblis.h5',
+         'tbdb-2021-08-23-eigen-3.4.0-tblis-openblas.h5'
          ]
 
 
@@ -125,7 +127,7 @@ fig.tight_layout(pad=5, w_pad=1.0, h_pad=1.0)
 fig.subplots_adjust(wspace=0.2, hspace=0.2)
 
 for f in files:
-    table_data,version_data = get_file_data(f,["eigen","tblis"])
+    table_data,version_data = get_file_data(f,["eigen", "tblis"])
     plot_time_vs_bond(table_data,version_data, axes[0])
     plot_time_vs_threads(table_data,version_data, axes[1])
 plt.show()
