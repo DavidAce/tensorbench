@@ -30,23 +30,6 @@
     #include <cuda_runtime_api.h>
 #endif
 
-void print_usage() {
-    std::cout <<
-        R"(
-==========  cpp_merger  ============
-Usage                       : ./cpp_merger [-option <value>].
--h                          : Help. Shows this text.
--i <iterations>             : Sets number of iterations
--n <num threads>            : Sets number of threads for OpenMP operations
--B <chi>                    : Sets both left and right bond dimension
--L <chiL>                   : Sets the left bond dimension
--R <chiR>                   : Sets the right bond dimension
--D <spin dim>               : Sets the aggregate spin dimension
--M <mpo dim>                : Sets the mpo dimension
--v <level>                  : Enables trace-level verbosity
-)";
-}
-
 template<typename T>
 struct tb_setup {
     int                                      num_threads = 0;
@@ -144,77 +127,6 @@ int main(int argc, char *argv[]) {
     tools::log = tools::Logger::setLogger("tensorbench", verbosity);
     auto t_tot = tid::get("tb").tic_token();
     tools::prof::init_profiling();
-
-    // Here we use getopt to parse CLI input
-    // Note that CLI input always override config-file values
-    // wherever they are found (config file, h5 file)
-    //    size_t            verbosity = 2;
-    //    size_t            iters     = 3;
-    //    std::vector<int>  v_threads;
-    //    std::vector<long> v_chi;
-    //    std::vector<long> v_chiL;
-    //    std::vector<long> v_chiR;
-    //    std::vector<long> v_spin;
-    //    std::vector<long> v_mpod;
-
-//    while(true) {
-//        char opt = static_cast<char>(getopt(argc, argv, "hB:L:R:D:M:i:n:v:"));
-//        if(opt == EOF) break;
-//        if(optarg == nullptr) log->info("Parsing input argument: -{}", opt);
-//        else
-//            log->info("Parsing input argument: -{} {}", opt, optarg);
-//        switch(opt) {
-//            case 'B':
-//                if(not v_chiL.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
-//                if(not v_chiR.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
-//                v_chi.push_back(std::strtol(optarg, nullptr, 10));
-//                continue;
-//            case 'L':
-//                if(not v_chi.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
-//                v_chiL.push_back(std::strtol(optarg, nullptr, 10));
-//                continue;
-//            case 'R':
-//                if(not v_chi.empty()) throw std::runtime_error("Use EITHER -B or -L/R");
-//                v_chiR.push_back(std::strtol(optarg, nullptr, 10));
-//                continue;
-//            case 'D': v_spin.push_back(std::strtol(optarg, nullptr, 10)); continue;
-//            case 'M': v_mpod.push_back(std::strtol(optarg, nullptr, 10)); continue;
-//            case 'i': iters = std::stoul(optarg, nullptr, 10); continue;
-//            case 'n':
-//#if !defined(EIGEN_USE_THREADS)
-//                throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define EIGEN_USE_THREADS");
-//#endif
-//#if !defined(_OPENMP)
-//                throw std::runtime_error("Threading option [-n:<num>] is invalid: Please define _OPENMP");
-//#endif
-//                v_threads.push_back(std::stoi(optarg, nullptr, 10));
-//                continue;
-//            case 'v': verbosity = std::strtoul(optarg, nullptr, 10); continue;
-//            case ':': log->error("Option -{} needs a value", opt); break;
-//            case 'h':
-//            case '?':
-//            default: print_usage(); exit(0);
-//            case -1: break;
-//        }
-//        break;
-//    }
-//
-//    if(v_chi.empty() and v_chiL.empty() and v_chiR.empty()) {
-//        v_chi  = {256};
-//        v_chiL = {-1};
-//        v_chiR = {-1};
-//    } else if(v_chi.empty() and (not v_chiL.empty() or not v_chiR.empty())) {
-//        v_chi = {-1};
-//    } else if(not v_chi.empty()) {
-//        v_chiL = {-1};
-//        v_chiR = {-1};
-//    }
-//    if(v_chiL.empty()) v_chiL = {16};
-//    if(v_chiR.empty()) v_chiR = {16};
-//    if(v_spin.empty()) v_spin = {4};
-//    if(v_mpod.empty()) v_mpod = {5};
-//    if(v_threads.empty()) v_threads = {1};
-
 
 
     // Set the number of threads to be used

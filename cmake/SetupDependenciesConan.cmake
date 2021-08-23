@@ -79,7 +79,7 @@ if(TB_PACKAGE_MANAGER MATCHES "conan")
         )
     endif()
 
-    if(TARGET CONAN_PKG::eigen AND TB_ENABLE_THREADS)
+    if(TARGET CONAN_PKG::eigen)
         target_compile_definitions(CONAN_PKG::eigen INTERFACE EIGEN_USE_THREADS)
     endif()
 
