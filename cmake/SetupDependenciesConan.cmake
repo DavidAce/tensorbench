@@ -20,99 +20,80 @@ if(TB_PACKAGE_MANAGER MATCHES "conan")
             HINTS ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_LIST_DIR}
             NO_DEFAULT_PATH)
 
-    if(CONAN_BUILD_INFO)
-        ##################################################################
-        ### Use pre-existing conanbuildinfo.cmake                      ###
-        ### This avoids having to run conan again                      ###
-        ##################################################################
-        message(STATUS "Detected Conan build info: ${CONAN_BUILD_INFO}")
-        include(${CONAN_BUILD_INFO})
-        conan_basic_setup(KEEP_RPATHS TARGETS)
+
+    unset(CONAN_COMMAND CACHE)
+    find_program (
+            CONAN_COMMAND
+            conan
+            HINTS ${CONAN_PREFIX} $ENV{CONAN_PREFIX} ${CONDA_PREFIX} $ENV{CONDA_PREFIX}
+            PATHS
+            $ENV{HOME}/anaconda3
+            $ENV{HOME}/miniconda3
+            $ENV{HOME}/anaconda
+            $ENV{HOME}/miniconda
+            $ENV{HOME}/.local
+            $ENV{HOME}/.conda
+            PATH_SUFFIXES bin envs/tb/bin envs/dmrg/bin
+    )
+    if(NOT CONAN_COMMAND)
+        message(FATAL_ERROR "Could not find conan program executable")
     else()
-
-        unset(CONAN_COMMAND CACHE)
-        find_program (
-                CONAN_COMMAND
-                conan
-                HINTS ${CONAN_PREFIX} $ENV{CONAN_PREFIX} ${CONDA_PREFIX} $ENV{CONDA_PREFIX}
-                PATHS
-                $ENV{HOME}/anaconda3
-                $ENV{HOME}/miniconda3
-                $ENV{HOME}/anaconda
-                $ENV{HOME}/miniconda
-                $ENV{HOME}/.local
-                $ENV{HOME}/.conda
-                PATH_SUFFIXES bin envs/tb/bin envs/dmrg/bin
-        )
-        if(NOT CONAN_COMMAND)
-            message(FATAL_ERROR "Could not find conan program executable")
-        else()
-            message(STATUS "Found conan: ${CONAN_COMMAND}")
-        endif()
-
-        # Download cmake-conan automatically, you can also just copy the conan.cmake file
-        if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-            message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-            file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/v0.16.1/conan.cmake"
-                    "${CMAKE_BINARY_DIR}/conan.cmake")
-        endif()
-
-        if(BUILD_SHARED_LIBS)
-            list(APPEND TB_CONAN_OPTIONS OPTIONS "*:shared=True")
-        else()
-            list(APPEND TB_CONAN_OPTIONS OPTIONS "*:shared=False")
-        endif()
-
-        include(${CMAKE_BINARY_DIR}/conan.cmake)
-        conan_cmake_run(
-                CONANFILE conanfile.txt
-                CONAN_COMMAND ${CONAN_COMMAND}
-                BUILD_TYPE ${CMAKE_BUILD_TYPE}
-                BASIC_SETUP CMAKE_TARGETS
-                SETTINGS compiler.cppstd=17
-                SETTINGS compiler.libcxx=libstdc++11
-                PROFILE_AUTO ALL
-                ${TB_CONAN_OPTIONS}
-                KEEP_RPATHS
-                BUILD missing
-                BUILD openblas # This builds openblas everytime on github actions
-        )
+        message(STATUS "Found conan: ${CONAN_COMMAND}")
     endif()
 
-    if(TARGET CONAN_PKG::eigen)
-        target_compile_definitions(CONAN_PKG::eigen INTERFACE EIGEN_USE_THREADS)
+    # Download cmake-conan integrator
+    if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan/conan.cmake")
+        message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+        file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/release/0.17/conan.cmake"
+                "${CMAKE_BINARY_DIR}/conan/conan.cmake"
+                EXPECTED_HASH MD5=52a255a933397fdce3d0937f9c737e98
+                TLS_VERIFY ON)
     endif()
+    include(${CMAKE_BINARY_DIR}/conan/conan.cmake)
 
-    if(TARGET CONAN_PKG::eigen)
-        if(TB_EIGEN3_BLAS)
-            if(TARGET mkl::mkl)
-                message(STATUS "Eigen3 will use MKL")
-                target_compile_definitions    (CONAN_PKG::eigen INTERFACE EIGEN_USE_MKL_ALL)
-                target_compile_definitions    (CONAN_PKG::eigen INTERFACE EIGEN_USE_LAPACKE_STRICT)
-                target_link_libraries         (CONAN_PKG::eigen INTERFACE mkl::mkl)
-            elseif(TARGET CONAN_PKG::openblas)
-                message(STATUS "Eigen3 will use OpenBLAS")
-                target_compile_definitions    (CONAN_PKG::eigen INTERFACE EIGEN_USE_BLAS)
-                target_compile_definitions    (CONAN_PKG::eigen INTERFACE EIGEN_USE_LAPACKE_STRICT)
-                target_link_libraries         (CONAN_PKG::eigen INTERFACE CONAN_PKG::openblas)
-            endif()
-        endif()
+    if(BUILD_SHARED_LIBS)
+        list(APPEND TB_CONAN_OPTIONS OPTIONS "*:shared=True")
     else()
-        message(FATAL_ERROR "Target not defined: CONAN_PKG::eigen")
+        list(APPEND TB_CONAN_OPTIONS OPTIONS "*:shared=False")
     endif()
 
 
-    # Make aliases
-    add_library(Eigen3::Eigen       ALIAS CONAN_PKG::eigen)
-    add_library(h5pp::h5pp          ALIAS CONAN_PKG::h5pp)
-    add_library(cxxopts::cxxopts    ALIAS CONAN_PKG::cxxopts)
-    add_library(xtensor             ALIAS CONAN_PKG::xtensor)
-    if(TARGET CONAN_PKG::openblas)
-        add_library(OpenBLAS::OpenBLAS  ALIAS CONAN_PKG::openblas)
+
+    conan_add_remote(CONAN_COMMAND ${CONAN_COMMAND} NAME conan-dmrg URL https://thinkstation.duckdns.org/artifactory/api/conan/conan-dmrg)
+    conan_cmake_autodetect(CONAN_AUTODETECT)
+    conan_cmake_install(
+            CONAN_COMMAND ${CONAN_COMMAND}
+            BUILD missing outdated cascade
+            GENERATOR cmake_find_package_multi
+            SETTINGS ${CONAN_AUTODETECT}
+            INSTALL_FOLDER ${CMAKE_BINARY_DIR}/conan
+            ${TB_CONAN_OPTIONS}
+            PATH_OR_REFERENCE ${CMAKE_SOURCE_DIR}
+    )
+
+    ##################################################################
+    ### Find all the things!                                       ###
+    ##################################################################
+    if(NOT CONAN_CMAKE_SILENT_OUTPUT)
+        set(CONAN_CMAKE_SILENT_OUTPUT OFF) # Default is off
+    endif()
+    list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/conan)
+    list(PREPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/conan)
+    # Use CONFIG to avoid MODULE mode. This is recommended for the cmake_find_package_multi generator
+
+    find_package(Eigen3       3.4    REQUIRED CONFIG)
+    find_package(h5pp         1.9.1  REQUIRED CONFIG)
+    find_package(fmt          8.0.1  REQUIRED CONFIG)
+    find_package(spdlog       1.9.2  REQUIRED CONFIG)
+    find_package(xtensor      0.24.0 REQUIRED CONFIG)
+    find_package(cxxopts      2.2.1  REQUIRED CONFIG)
+
+    if(NOT TB_ENABLE_MKL)
+        find_package(OpenBLAS 0.3.17 REQUIRED CONFIG)
+        target_compile_definitions(OpenBLAS::OpenBLAS INTERFACE OPENBLAS_AVAILABLE)
         #For convenience, define these targes
-        add_library(BLAS::BLAS ALIAS CONAN_PKG::openblas)
-        add_library(LAPACK::LAPACK ALIAS CONAN_PKG::openblas)
-        add_library(lapacke::lapacke  ALIAS CONAN_PKG::openblas)
+        add_library(BLAS::BLAS ALIAS OpenBLAS::OpenBLAS)
+        add_library(LAPACK::LAPACK ALIAS OpenBLAS::OpenBLAS)
+        add_library(lapacke::lapacke  ALIAS OpenBLAS::OpenBLAS)
     endif()
-
 endif()

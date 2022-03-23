@@ -2,9 +2,11 @@
 # To activate reading this file from CMakeLists.txt, enable the setting -DTB_DOWNLOAD_METHOD=conan
 
 [requires]
-h5pp/1.9.0@davidace/dev
+h5pp/1.10.0@davidace/dev
+spdlog/1.9.2@
+fmt/8.0.1@
 eigen/3.4.0@
-xtensor/0.23.10@
+xtensor/0.24.0@
 openblas/0.3.17@
 cxxopts/2.2.1@
 

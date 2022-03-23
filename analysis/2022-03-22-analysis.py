@@ -8,7 +8,8 @@ files = [
     # 'tbdb-2021-08-23-eigen-3.4.0.h5',
     # 'tbdb-2021-08-23-eigen-3.4.0-tblis.h5',
     # 'tbdb-2021-08-23-eigen-3.4.0-tblis-openblas.h5'
-    'tbdb-2021-08-23-eigen-3.4.0-tblis-openblas-kraken.h5'
+    # 'tbdb-2022-03-22.h5'
+    'tbdb-2022-03-23.h5'
 ]
 
 
@@ -84,6 +85,7 @@ def plot_time_vs_bond(table_data, version_data, ax, include=None):
     lwidth = 1.2
     lalpha = 1.0
     lstyle = '-'
+    lstyles = ['-','--',':','-.', '.']
     for thread, name, in itertools.product(threads, names):
         subinclude = {'name': name, 'thread': thread} | include
         bonds = get_table_data("bond", table_data,         include=subinclude)
@@ -93,15 +95,22 @@ def plot_time_vs_bond(table_data, version_data, ax, include=None):
         label = "{} $t$:{}".format(name, thread)
         if 'eigen' in name:
             label = "{} {} $t$:{}".format(version_data['eigen_version'], name, thread)
-            lstyle = '-'
+            lstyle = lstyles[threads.index(thread)]
+            color = 'blue'
+            if name == 'eigen2':
+                color = 'black'
+            if name == 'eigen3':
+                color = 'cyan'
+
         if 'xtensor' in name:
-            lstyle = ':'
+            lstyle = lstyles[threads.index(thread)]
+            color = 'green'
         if 'tblis' in name:
             lwidth = 1.6
-            lstyle = ':'
-
-        ax.errorbar(x=bonds, y=time_avgs, yerr=time_stes, label=label, capsize=2,
-                    linestyle=lstyle,
+            lstyle = lstyles[threads.index(thread)]
+            color = 'red'
+        ax.errorbar(x=bonds, y=np.asarray(time_avgs), yerr=np.asarray(time_stes), label=label, capsize=2,
+                    linestyle=lstyle, color=color,
                     elinewidth=0.3, markeredgewidth=0.8, linewidth=lwidth, alpha=lalpha)
 
     ax.set_xlabel('Bond dimension')
@@ -161,7 +170,7 @@ fig.tight_layout(pad=5, w_pad=1.0, h_pad=1.0)
 fig.subplots_adjust(wspace=0.2, hspace=0.2)
 
 for f in files:
-    table_data, version_data = get_file_data(f, ["eigen", "tblis"])
+    table_data, version_data = get_file_data(f, ["eigen1", "tblis"])
     plot_time_vs_bond(table_data, version_data, axes[0, 0], include={"spin": 2})
     plot_time_vs_bond(table_data, version_data, axes[1, 0], include={"spin": 4})
     plot_time_vs_threads(table_data, version_data, axes[0, 1], include={"spin": 2})

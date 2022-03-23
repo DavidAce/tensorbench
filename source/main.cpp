@@ -4,13 +4,13 @@
 #include <general/enums.h>
 #include <getopt.h>
 #include <gitversion.h>
+#include <math/stat.h>
 #include <storage/results.h>
 #include <tblis/util/thread.h>
 #include <thread>
 #include <tid/tid.h>
 #include <tools/class_tic_toc.h>
 #include <tools/log.h>
-#include <tools/num.h>
 #include <tools/prof.h>
 
 #if defined(TB_OPENBLAS)
@@ -59,7 +59,7 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
     long chiR  = tsp.psi.dimension(2);
     long mpod  = tsp.mpo.dimension(0);
     long spin  = tsp.psi.dimension(0);
-    tools::log->info("Running benchmark {} | iters {}", enum2sv(mode), tsp.iters);
+    tools::log->info("Running benchmark {} | threads {} | iters {}", enum2sv(mode), tsp.iters, tsp.num_threads);
     std::vector<double>            t_vec;
     std::vector<tb_results::table> tb;
     Eigen::Tensor<T, 3>            psi_out;
@@ -78,8 +78,8 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
         if constexpr(mode == tb_mode::xtensor) std::tie(psi_out, ops) = contract::tensor_product_xtensor(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
         if constexpr(mode == tb_mode::tblis) std::tie(psi_out, ops) = contract::tensor_product_tblis(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
         t_prod.toc();
-        tools::log->info("{} | psi dimensions {} | mpo {} | iter {}/{} |  time {:8.4f} s | GOp {:<8.4f} | GOp/s {:<.4f}", tt.get_name(), psi_out.dimensions(),
-                         mpod, iter + 1, tsp.iters, tt.get_last_time_interval(), ops / 1e9, ops / 1e9 / tt.get_last_time_interval());
+        tools::log->info("{} | threads {:2} | psi {} | mpo {} | iter {}/{} |  time {:8.4f} s | GOp {:<8.4f} | GOp/s {:<.4f}", tt.get_name(), tsp.num_threads,
+                         psi_out.dimensions(), mpod, iter + 1, tsp.iters, tt.get_last_time_interval(), ops / 1e9, ops / 1e9 / tt.get_last_time_interval());
 
         if(tsp.psi_check[iter].size() == 0) tsp.psi_check[iter] = psi_out;
         else {
@@ -93,7 +93,8 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
         tb.emplace_back(enum2sv(mode), iter, tsp.num_threads, chiL, chiR, mpod, spin, ops, tt.get_last_time_interval(), tt.get_measured_time());
         t_vec.emplace_back(tt.get_last_time_interval());
     }
-    tools::log->info("{} | total time {:.4f} s | avg time {:.4f} | stdev {:.4f}", tt.get_name(), tt.get_measured_time(), num::mean(t_vec), num::stdev(t_vec));
+    tools::log->info("{} | threads {} | total time {:.4f} s | min {:.4f} | max {:.4f} | avg {:.4f} |  stdev {:.4f}", tt.get_name(), tsp.num_threads, tt.get_measured_time(), stat::min(t_vec),
+                     stat::max(t_vec), stat::mean(t_vec), stat::stdev(t_vec));
     tdb.appendTableRecords(tb, fmt::format("{}/{}_{}", tsp.group, enum2sv(mode), tsp.num_threads));
 }
 
@@ -101,6 +102,7 @@ int main(int argc, char *argv[]) {
     cxxopts::Options options("tensorbench", "Benchmarks of tensor contractions");
     /* clang-format off */
     options.add_options()
+        ("h,help",     "Show help")
         ("B,bond",     "Bond dimension (Sets both chiL and chiR)",  cxxopts::value<std::vector<long>>()->default_value("16"))
         ("L,chiL",     "Bond dimension to the left",                cxxopts::value<std::vector<long>>()->default_value("-1"))
         ("R,chiR",     "Bond dimension to the right",               cxxopts::value<std::vector<long>>()->default_value("-1"))
@@ -108,11 +110,16 @@ int main(int argc, char *argv[]) {
         ("M,mpod",     "MPO dimension",                             cxxopts::value<std::vector<long>>()->default_value("16"))
         ("n,threads",  "Number of threads",                         cxxopts::value<std::vector<int>>()->default_value("1"))
         ("i,iters",    "Number of iterations",                      cxxopts::value<size_t>()->default_value("3"))
-        ("v,verbose",  "Sets verbosity level",                      cxxopts::value<size_t>()->default_value("2")->implicit_value("1"));
+        ("v,verbose",  "Sets verbosity level",                      cxxopts::value<size_t>()->default_value("2"));
     /* clang-format on */
 
     auto in = options.parse(argc, argv);
-    if(in["bond"].count() > 0 and (in["chiL"].count() > 0 or in["chiR"].count() > 0 )) throw std::runtime_error("Argument error: Use EITHER bond or chiL/chiR");
+    if(in["help"].count() > 0) {
+        fmt::print(options.help());
+        exit(0);
+    }
+
+    if(in["bond"].count() > 0 and (in["chiL"].count() > 0 or in["chiR"].count() > 0)) throw std::runtime_error("Argument error: Use EITHER bond or chiL/chiR");
 
     auto v_chi     = in["bond"].as<std::vector<long>>();
     auto v_chiL    = in["chiL"].as<std::vector<long>>();
@@ -123,11 +130,9 @@ int main(int argc, char *argv[]) {
     auto iters     = in["iters"].as<size_t>();
     auto verbosity = in["verbose"].as<size_t>();
 
-
     tools::log = tools::Logger::setLogger("tensorbench", verbosity);
     auto t_tot = tid::get("tb").tic_token();
     tools::prof::init_profiling();
-
 
     // Set the number of threads to be used
 

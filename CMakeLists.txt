@@ -83,7 +83,10 @@ add_executable(tensorbench
         source/tools/log.cpp
         source/tools/class_tic_toc.cpp
         source/math/tenx/omp.cpp
-        source/storage/results.cpp source/storage/results.h)
+#        source/tid/tid.cpp
+#        source/tid/token.cpp
+#        source/tid/ur.cpp
+        source/storage/results.cpp)
 target_include_directories(tensorbench PRIVATE source)
 set_target_properties(tensorbench PROPERTIES LINK_WHAT_YOU_USE TRUE)
 
@@ -256,9 +259,8 @@ endif()
 
 add_subdirectory(source/tid)
 #target_link_libraries(tb-flags INTERFACE -Wl,--whole-archive pthread -Wl,--no-whole-archive rt dl )
-target_link_libraries(tensorbench PRIVATE tb-tid ${tb-extra} tb-deps tb-flags)  # Link everything to main project
-
-
+target_link_libraries(tensorbench PRIVATE  ${tb-extra} tb-deps tb-flags)  # Link everything to main project
+target_link_libraries(tensorbench PRIVATE tb-tid-o)
 
 # Print summary of CMake configuration
 if (TB_PRINT_INFO)

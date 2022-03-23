@@ -40,6 +40,7 @@ contract::ResultType<Scalar> contract::tensor_product_eigen1(const Eigen::Tensor
                                              .contract(mpo, tenx::idx({0, 3}, {2, 0}))
                                              .contract(envR, tenx::idx({0, 2}, {0, 2}))
                                              .shuffle(tenx::array3{1, 0, 2});
+
     tools::prof::t_eigen1->toc();
     return std::make_pair(ham_sq_psi, get_ops_eigen1_L(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0)));
 }
