@@ -1,5 +1,5 @@
 #pragma once
-#include <general/nmspc_sfinae.h>
+#include <general/sfinae.h>
 #include <unsupported/Eigen/CXX11/Tensor>
 
 

@@ -1,17 +1,18 @@
 
-#include <contract/contract.h>
+#include "contract/contract.h"
+#include "general/enums.h"
+#include "math/stat.h"
+#include "mpi/mpi-tools.h"
+#include "storage/results.h"
+#include "tblis/util/thread.h"
+#include "tid/tid.h"
+#include "tools/class_tic_toc.h"
+#include "tools/log.h"
+#include "tools/prof.h"
 #include <cxxopts.hpp>
-#include <general/enums.h>
 #include <getopt.h>
 #include <gitversion.h>
-#include <math/stat.h>
-#include <storage/results.h>
-#include <tblis/util/thread.h>
 #include <thread>
-#include <tid/tid.h>
-#include <tools/class_tic_toc.h>
-#include <tools/log.h>
-#include <tools/prof.h>
 
 #if defined(TB_OPENBLAS)
     #include <openblas/cblas.h>
@@ -93,12 +94,13 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
         tb.emplace_back(enum2sv(mode), iter, tsp.num_threads, chiL, chiR, mpod, spin, ops, tt.get_last_time_interval(), tt.get_measured_time());
         t_vec.emplace_back(tt.get_last_time_interval());
     }
-    tools::log->info("{} | threads {} | total time {:.4f} s | min {:.4f} | max {:.4f} | avg {:.4f} |  stdev {:.4f}", tt.get_name(), tsp.num_threads, tt.get_measured_time(), stat::min(t_vec),
-                     stat::max(t_vec), stat::mean(t_vec), stat::stdev(t_vec));
+    tools::log->info("{} | threads {:2} | total time {:.4f} s | min {:.4f} | max {:.4f} | avg {:.4f} |  stdev {:.4f}", tt.get_name(), tsp.num_threads,
+                     tt.get_measured_time(), stat::min(t_vec), stat::max(t_vec), stat::mean(t_vec), stat::stdev(t_vec));
     tdb.appendTableRecords(tb, fmt::format("{}/{}_{}", tsp.group, enum2sv(mode), tsp.num_threads));
 }
 
 int main(int argc, char *argv[]) {
+
     cxxopts::Options options("tensorbench", "Benchmarks of tensor contractions");
     /* clang-format off */
     options.add_options()
@@ -133,7 +135,9 @@ int main(int argc, char *argv[]) {
     tools::log = tools::Logger::setLogger("tensorbench", verbosity);
     auto t_tot = tid::get("tb").tic_token();
     tools::prof::init_profiling();
-
+    mpi::init();
+    mpi::finalize();
+    exit(0);
     // Set the number of threads to be used
 
 #if defined(TB_CUDA) && __has_include(<cuda.h>)
@@ -151,18 +155,18 @@ int main(int argc, char *argv[]) {
     h5pp::File tbdb(fmt::format("../output/tbdb-{}.h5", currentDateTime()), h5pp::FilePermission::REPLACE);
     tb_results::register_table_type();
 
-    tbdb.writeAttribute(GIT::BRANCH, "git_branch", "/");
-    tbdb.writeAttribute(GIT::COMMIT_HASH, "git_commit", "/");
-    tbdb.writeAttribute(GIT::REVISION, "git_revision", "/");
+    tbdb.writeAttribute(GIT::BRANCH, "/", "git_branch");
+    tbdb.writeAttribute(GIT::COMMIT_HASH, "/", "git_commit");
+    tbdb.writeAttribute(GIT::REVISION, "/", "git_revision");
 
 #if defined(TB_EIGEN1) || defined(TB_EIGEN2) || defined(TB_EIGEN3)
-    tbdb.writeAttribute(fmt::format("Eigen {}.{}.{}", EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION), "eigen_version", "/");
+    tbdb.writeAttribute(fmt::format("Eigen {}.{}.{}", EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION), "/", "eigen_version");
 #endif
 #if defined(TB_OPENBLAS)
-    tbdb.writeAttribute(OPENBLAS_VERSION, "openblas_version", "/");
+    tbdb.writeAttribute(OPENBLAS_VERSION, "/", "openblas_version");
 #endif
 #if defined(TB_MKL)
-    tbdb.writeAttribute(fmt::format("Intel MKL {}", INTEL_MKL_VERSION), "intelmkl_version", "/");
+    tbdb.writeAttribute(fmt::format("Intel MKL {}", INTEL_MKL_VERSION), "/", "intelmkl_version");
 #endif
 
     tools::prof::t_total->tic();

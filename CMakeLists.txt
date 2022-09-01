@@ -23,6 +23,7 @@ option(TB_ENABLE_ACRO              "Benchmark contractions on GPU with acrotenso
 option(TB_ENABLE_CUTE              "Benchmark contractions on GPU with CUTENSOR"                  OFF)
 option(TB_ENABLE_XTENSOR           "Benchmark contractions on CPU with xtensor"                   OFF)
 option(TB_ENABLE_TBLIS             "Benchmark contractions on CPU with TBLIS"                     OFF)
+option(TB_ENABLE_CYCLOPS           "Benchmark contractions on CPU with CYCLOPS"                   OFF)
 option(TB_ENABLE_PCH               "Speed up compilation with precompiled headers"                OFF)
 option(TB_ENABLE_CCACHE            "Speed up compilation with ccache"                             OFF)
 option(TB_ENABLE_ASAN              "Enable sanitizer -fsanitize=address"                          OFF)
@@ -242,6 +243,14 @@ if(TB_ENABLE_TBLIS)
     target_compile_definitions(tb-tblis PUBLIC TB_TBLIS)
     target_link_libraries(tb-tblis PRIVATE tb-flags tb-deps)
     list(APPEND tb-extra tb-tblis)
+endif()
+if(TB_ENABLE_CYCLOPS)
+    add_library(tb-cyclops OBJECT source/contract/tensor_product_cyclops.cpp source/mpi/mpi-tools.cpp)
+    target_include_directories(tb-cyclops PRIVATE source)
+    target_compile_definitions(tb-cyclops PUBLIC TB_CYCLOPS)
+    target_link_libraries(tb-cyclops PRIVATE tb-flags tb-deps)
+    list(APPEND tb-extra tb-cyclops)
+
 endif()
 
 

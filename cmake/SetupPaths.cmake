@@ -33,16 +33,16 @@ list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE STRING "" FORCE)
 
 
-
+if(NOT BUILD_SHARED_LIBS)
+    # Prefer static libraries
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_SHARED_LIBRARY_SUFFIX})
+endif()
 # Make sure find_library prefers static/shared library depending on BUILD_SHARED_LIBS
 # This is important when finding dependencies such as zlib which provides both shared and static libraries.
 # Note that we do not force this cache variable, so users can override it
-#if(BUILD_SHARED_LIBS)
-#    # This is order is the default
-#    set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_SHARED_LIBRARY_SUFFIX};${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE STRING "Prefer finding shared libraries")
-#else()
-#    set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX};${CMAKE_SHARED_LIBRARY_SUFFIX} CACHE STRING "Prefer finding static libraries")
-#endif()
+if(NOT BUILD_SHARED_LIBS)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES "${CMAKE_STATIC_LIBRARY_SUFFIX};${CMAKE_SHARED_LIBRARY_SUFFIX}" CACHE INTERNAL "")
+endif()
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8 OR CMAKE_GENERATOR MATCHES "64")
     set(FIND_LIBRARY_USE_LIB64_PATHS ON)

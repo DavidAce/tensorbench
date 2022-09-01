@@ -66,6 +66,8 @@ if(TB_PACKAGE_MANAGER MATCHES "conan")
             BUILD missing outdated cascade
             GENERATOR cmake_find_package_multi
             SETTINGS ${CONAN_AUTODETECT}
+            ENV CC=${CMAKE_C_COMPILER} # Fixes issue with CMake not detecting the right compiler when not building from scratch
+            ENV CXX=${CMAKE_CXX_COMPILER} # Fixes issue with CMake not detecting the right compiler when not building from scratch
             INSTALL_FOLDER ${CMAKE_BINARY_DIR}/conan
             ${TB_CONAN_OPTIONS}
             PATH_OR_REFERENCE ${CMAKE_SOURCE_DIR}
@@ -82,10 +84,10 @@ if(TB_PACKAGE_MANAGER MATCHES "conan")
     # Use CONFIG to avoid MODULE mode. This is recommended for the cmake_find_package_multi generator
 
     find_package(Eigen3       3.4    REQUIRED CONFIG)
-    find_package(h5pp         1.9.1  REQUIRED CONFIG)
-    find_package(fmt          8.0.1  REQUIRED CONFIG)
-    find_package(spdlog       1.9.2  REQUIRED CONFIG)
-    find_package(xtensor      0.24.0 REQUIRED CONFIG)
+    find_package(h5pp         1.10.1 REQUIRED CONFIG)
+    find_package(fmt          8.1.1  REQUIRED CONFIG)
+    find_package(spdlog       1.10.0 REQUIRED CONFIG)
+    find_package(xtensor      0.24.2 REQUIRED CONFIG)
     find_package(cxxopts      2.2.1  REQUIRED CONFIG)
 
     if(NOT TB_ENABLE_MKL)

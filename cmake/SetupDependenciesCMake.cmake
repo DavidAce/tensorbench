@@ -28,14 +28,6 @@ if (TB_PACKAGE_MANAGER STREQUAL "cmake")
     endif ()
 
     # Find packages or install if missing
-    find_package(Threads REQUIRED)
-    find_package(OpenMP COMPONENTS CXX REQUIRED)
-    find_package(Fortran REQUIRED)
-
-    if (TB_ENABLE_MKL)
-        find_package(MKL COMPONENTS blas lapack gf gnu_thread lp64 REQUIRED)  # MKL - Intel's math Kernel Library, use the BLAS implementation in Eigen and Arpack. Includes lapack.
-    endif ()
-
     if (TB_ENABLE_OPENBLAS AND NOT MKL_FOUND)
 #        set(CMAKE_FIND_DEBUG_MODE ON)
         # If MKL is not on openblas will be used instead. Includes blas, lapack and lapacke

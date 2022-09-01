@@ -1,13 +1,15 @@
 #pragma once
 
+#include "general/iter.h"
 #include "num.h"
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <iterator>
 #include <numeric>
 #include <optional>
 #include <vector>
-#include <general/iter.h>
+
 /*!
  *  \namespace stat
  *  \brief Small convenience-type statistical functions, mean and slope
@@ -24,9 +26,9 @@ namespace stat {
 
     template<typename ContainerType>
     void check_bounds(ContainerType &X, std::optional<long> start_point = std::nullopt, std::optional<long> end_point = std::nullopt) {
-        if(start_point.has_value() and (start_point.value() >= static_cast<long>(X.size()) or start_point.value() < 0))
+        if(start_point.has_value() and (num::cmp_greater_equal(start_point.value(), std::size(X)) or start_point.value() < 0))
             throw std::range_error("Start point is out of range");
-        if(end_point.has_value() and (end_point.value() > static_cast<long>(X.size()) or end_point.value() < start_point))
+        if(end_point.has_value() and (num::cmp_greater(end_point.value(), std::size(X)) or end_point.value() < start_point))
             throw std::range_error("End point is out of range");
     }
 
@@ -63,7 +65,6 @@ namespace stat {
         return std::accumulate(x_it, x_en, static_cast<typename ContainerType::value_type>(0.0)) / n;
     }
 
-
     template<typename ContainerType>
     typename ContainerType::value_type median(ContainerType &X, std::optional<size_t> start_point = std::nullopt,
                                               std::optional<size_t> end_point = std::nullopt) {
@@ -98,7 +99,7 @@ namespace stat {
     template<typename ContainerType>
     double stdev(const ContainerType &X, std::optional<size_t> start_point = std::nullopt, std::optional<size_t> end_point = std::nullopt) {
         auto [x_it, x_en] = get_start_end_iterators(X, start_point, end_point);
-        auto   n      = static_cast<double>(std::distance(x_it, x_en));
+        auto n            = static_cast<double>(std::distance(x_it, x_en));
         if(n == 0) return 0.0;
         double X_mean = stat::mean(X, start_point, end_point);
         double sum    = std::accumulate(x_it, x_en, 0.0, [&X_mean](auto &x1, auto &x2) { return x1 + (x2 - X_mean) * (x2 - X_mean); });
@@ -120,8 +121,8 @@ namespace stat {
             throw std::range_error("slope: size mismatch in arrays: X.size() == " + std::to_string(X.size()) + " | Y.size() == " + std::to_string(Y.size()));
         auto [x_it, x_en] = get_start_end_iterators(X, start_point, end_point);
         auto [y_it, y_en] = get_start_end_iterators(Y, start_point, end_point);
-        auto   n    = static_cast<double>(std::distance(x_it, x_en));
-        if (n <= 1) return std::make_pair(std::numeric_limits<double>::infinity(), 0.0); // Need at least 2 points
+        auto n            = static_cast<double>(std::distance(x_it, x_en));
+        if(n <= 1) return std::make_pair(std::numeric_limits<double>::infinity(), 0.0); // Need at least 2 points
         double avgX = std::accumulate(x_it, x_en, 0.0) / n;
         double avgY = std::accumulate(y_it, y_en, 0.0) / n;
         double sxx  = 0.0;
@@ -170,17 +171,14 @@ namespace stat {
     template<typename ContainerType>
     size_t find_last_valid_point(const ContainerType &Y, std::optional<size_t> start_point = std::nullopt, std::optional<size_t> end_point = std::nullopt) {
         auto [y_it, y_en] = get_start_end_iterators(Y, start_point, end_point);
-        auto   n      = static_cast<double>(std::distance(y_it, y_en));
+        auto n            = static_cast<double>(std::distance(y_it, y_en));
         if(n == 0) return start_point.has_value() ? start_point.value() : 0;
         auto y_invalid_it = std::find_if(y_it, y_en, [](auto &val) { return std::isinf(val) or std::isnan(val); });
-        if(y_invalid_it <= y_en) {
+        if(y_invalid_it != y_en and y_invalid_it != y_it) {
             // Found an invalid point! Back-track once
             std::advance(y_invalid_it, -1);
-            if(y_it == y_invalid_it)
-                return start_point.value();
-            else
-                end_point = std::distance(Y.begin(), y_invalid_it);
         }
+        end_point = std::distance(Y.begin(), y_invalid_it);
         return end_point.value();
     }
 
@@ -188,8 +186,8 @@ namespace stat {
     size_t find_saturation_point(const ContainerType &Y, double slope_tolerance = 1, double std_tolerance = 1, std::optional<size_t> start_point = std::nullopt,
                                  std::optional<size_t> end_point = std::nullopt) {
         auto [y_it, y_en] = get_start_end_iterators(Y, start_point, end_point);
-        auto   n      = static_cast<double>(std::distance(y_it, y_en));
-        auto idx = start_point.has_value() ? start_point.value() : 0;
+        auto n            = static_cast<double>(std::distance(y_it, y_en));
+        auto idx          = start_point.has_value() ? start_point.value() : 0;
         if(n == 0) return idx;
 
         // Sometimes we check saturation using logarithms. It is important that the start-end point range doesn't have nan or infs
@@ -203,7 +201,7 @@ namespace stat {
         // and move "start_point" towards the end. If the standard deviation goes below a certain
         // threshold, i.e. threshold < max_std, then we have found the stabilization point.
 
-        auto   X   = num::range<size_t>(0, Y.size());
+        auto X = num::range<size_t>(0, Y.size());
         while(idx < end_point.value()) {
             auto std        = stat::stdev(Y, idx, end_point.value());
             auto [slp, res] = stat::slope(X, Y, idx, end_point.value());
