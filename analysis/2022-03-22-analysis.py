@@ -8,8 +8,10 @@ files = [
     # 'tbdb-2021-08-23-eigen-3.4.0.h5',
     # 'tbdb-2021-08-23-eigen-3.4.0-tblis.h5',
     # 'tbdb-2021-08-23-eigen-3.4.0-tblis-openblas.h5'
-    # 'tbdb-2022-03-22.h5'
-    'tbdb-2022-03-23.h5'
+    # 'tbdb-2022-03-24.h5'
+    # 'tbdb-2022-03-24-tic.h5'
+    'tbdb-2022-03-25.h5'
+
 ]
 
 
@@ -85,7 +87,7 @@ def plot_time_vs_bond(table_data, version_data, ax, include=None):
     lwidth = 1.2
     lalpha = 1.0
     lstyle = '-'
-    lstyles = ['-','--',':','-.', '.']
+    lstyles = ['-','--',':','-.', '-','--',':','-.']
     for thread, name, in itertools.product(threads, names):
         subinclude = {'name': name, 'thread': thread} | include
         bonds = get_table_data("bond", table_data,         include=subinclude)
@@ -116,7 +118,8 @@ def plot_time_vs_bond(table_data, version_data, ax, include=None):
     ax.set_xlabel('Bond dimension')
     ax.set_ylabel('Time [s]')
     ax.legend()
-    # plt.yscale('log')
+    # ax.set_xscale('log')
+    # ax.set_yscale('log')
     title = 'Benchmark for tensor contraction'
     if include:
         title = "{} ${}$".format(title, include)
@@ -170,11 +173,11 @@ fig.tight_layout(pad=5, w_pad=1.0, h_pad=1.0)
 fig.subplots_adjust(wspace=0.2, hspace=0.2)
 
 for f in files:
-    table_data, version_data = get_file_data(f, ["eigen1", "tblis"])
+    table_data, version_data = get_file_data(f, ["eigen", "tblis"])
     plot_time_vs_bond(table_data, version_data, axes[0, 0], include={"spin": 2})
-    plot_time_vs_bond(table_data, version_data, axes[1, 0], include={"spin": 4})
-    plot_time_vs_threads(table_data, version_data, axes[0, 1], include={"spin": 2})
-    plot_time_vs_threads(table_data, version_data, axes[1, 1], include={"spin": 4})
+    # plot_time_vs_bond(table_data, version_data, axes[1, 0], include={"spin": 4})
+    # plot_time_vs_threads(table_data, version_data, axes[0, 1], include={"spin": 2})
+    # plot_time_vs_threads(table_data, version_data, axes[1, 1], include={"spin": 4})
 
 figrows = 2
 figcols = 2
