@@ -52,7 +52,13 @@ double class_tic_toc::get_measured_time() const {
     } else
         return std::chrono::duration_cast<std::chrono::duration<double>>(measured_time).count();
 }
-double class_tic_toc::get_last_time_interval() const { return std::chrono::duration_cast<std::chrono::duration<double>>(delta_time).count(); }
+double class_tic_toc::get_last_time_interval() const {
+    if(is_measuring) {
+        auto delta_temp = hresclock::now() - tic_timepoint;
+        return std::chrono::duration_cast<std::chrono::duration<double>>(delta_temp).count();
+    } else
+        return std::chrono::duration_cast<std::chrono::duration<double>>(delta_time).count();
+}
 
 void class_tic_toc::print_age() const {
     if(enable) { std::cout << string_age() << std::endl; }

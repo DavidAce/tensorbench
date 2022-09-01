@@ -1,12 +1,12 @@
 #if defined(TB_TBLIS)
 
     #include <complex>
-    #include <contract/contract.h>
-    #include <tblis/tblis.h>
-    #include <tblis/util/thread.h>
-    #include <tools/class_tic_toc.h>
-    #include <tools/log.h>
-    #include <tools/prof.h>
+    #include "contract/contract.h"
+    #include "tblis/tblis.h"
+    #include "tblis/util/thread.h"
+    #include "tools/class_tic_toc.h"
+    #include "tools/log.h"
+    #include "tools/prof.h"
 
 long get_ops_tblis_L(long d, long chiL, long chiR, long m);
 long get_ops_tblis_R(long d, long chiL, long chiR, long m) {
@@ -50,43 +50,40 @@ tblis::short_vector<tblis::stride_type, N> dim2stride(const Eigen::DSizes<T, N> 
 template<typename Scalar, auto NA, auto NB, auto NC>
 void contract_tblis(const Eigen::Tensor<Scalar, NA> &ea, const Eigen::Tensor<Scalar, NB> &eb, Eigen::Tensor<Scalar, NC> &ec, const tblis::label_vector &la,
                     const tblis::label_vector &lb, const tblis::label_vector &lc) {
+
     tblis::len_vector da, db, dc;
     da.assign(ea.dimensions().begin(), ea.dimensions().end());
     db.assign(eb.dimensions().begin(), eb.dimensions().end());
     dc.assign(ec.dimensions().begin(), ec.dimensions().end());
-
-    auto ta = tblis::varray_view<const Scalar>(da, ea.data(), tblis::COLUMN_MAJOR);
-    auto tb = tblis::varray_view<const Scalar>(db, eb.data(), tblis::COLUMN_MAJOR);
-    auto tc = tblis::varray_view<Scalar>(dc, ec.data(), tblis::COLUMN_MAJOR);
-    //    for(long i = 0; i < ea.size(); i++) { tools::log->info("ea i {:>5}: ea {:>24.16f} ta {:>24.16f}", i, ea.coeff(i), ta.data()[i]); }
-    //    for(long i = 0; i < eb.size(); i++) { tools::log->info("eb i {:>5}: eb {:>24.16f} tb {:>24.16f}", i, eb.coeff(i), tb.data()[i]); }
-    //    for(long i = 0; i < ec.size(); i++) { tools::log->info("ec i {:>5}: ec {:>24.16f} tc {:>24.16f}", i, ec.coeff(i), tc.data()[i]); }
+    auto   ta    = tblis::varray_view<const Scalar>(da, ea.data(), tblis::COLUMN_MAJOR);
+    auto   tb    = tblis::varray_view<const Scalar>(db, eb.data(), tblis::COLUMN_MAJOR);
+    auto   tc    = tblis::varray_view<Scalar>(dc, ec.data(), tblis::COLUMN_MAJOR);
     double alpha = 1.0;
     double beta  = 0.0;
-    tblis::mult(alpha, ta, la, tb, lb, beta, tc, lc);
-    //
-    //    for(long i = 0; i < ea.size(); i++) { tools::log->info("ea j {:>5}: ea {:>24.16f} ta {:>24.16f}", i, ea.coeff(i), ta.data()[i]); }
-    //    for(long i = 0; i < eb.size(); i++) { tools::log->info("eb j {:>5}: eb {:>24.16f} tb {:>24.16f}", i, eb.coeff(i), tb.data()[i]); }
-    //    for(long i = 0; i < ec.size(); i++) { tools::log->info("ec j {:>5}: ec {:>24.16f} tc {:>24.16f}", i, ec.coeff(i), tc.data()[i]); }
-    //
-    //    for(long i = 0; i < ea.size(); i++) { tools::log->info("ea k {:>5}: ea {:>24.16f} ta {:>24.16f}", i, ea.coeff(i), ta.data()[i]); }
-    //    for(long i = 0; i < eb.size(); i++) { tools::log->info("eb k {:>5}: eb {:>24.16f} tb {:>24.16f}", i, eb.coeff(i), tb.data()[i]); }
-    //    for(long i = 0; i < ec.size(); i++) { tools::log->info("ec k {:>5}: ec {:>24.16f} tc {:>24.16f}", i, ec.coeff(i), tc.data()[i]); }
+    tblis::mult(alpha, ta, la.c_str(), tb, lb.c_str(), beta, tc, lc.c_str());
 }
 
 template<typename Scalar>
 contract::ResultType<Scalar> contract::tensor_product_tblis(const Eigen::Tensor<Scalar, 3> &psi, const Eigen::Tensor<Scalar, 4> &mpo,
                                                             const Eigen::Tensor<Scalar, 3> &envL, const Eigen::Tensor<Scalar, 3> &envR) {
     auto                     dsizes = psi.dimensions();
-    Eigen::Tensor<Scalar, 4> psienL(psi.dimension(0), psi.dimension(2), envL.dimension(1), envL.dimension(2));
-    Eigen::Tensor<Scalar, 4> psienLmpo(psi.dimension(2), envL.dimension(1), mpo.dimension(1), mpo.dimension(3));
+    tools::prof::t_tblis->tic();
     Eigen::Tensor<Scalar, 3> ham_sq_psi(psi.dimensions());
 
-    tools::prof::t_tblis->tic();
-//    tools::log->info("tblis threads: {}",tblis_get_num_threads());
-    contract_tblis(psi, envL, psienL, "afb", "fcd", "abcd");
-    contract_tblis(psienL, mpo, psienLmpo, "qijr", "rkql", "ijkl");
-    contract_tblis(psienLmpo, envR, ham_sq_psi, "qjri", "qkr", "ijk");
+    if (psi.dimension(1) >= psi.dimension(2)){
+        Eigen::Tensor<Scalar, 4> psi_envL(psi.dimension(0), psi.dimension(2), envL.dimension(1), envL.dimension(2));
+        Eigen::Tensor<Scalar, 4> psi_envL_mpo(psi.dimension(2), envL.dimension(1), mpo.dimension(1), mpo.dimension(3));
+        contract_tblis(psi, envL, psi_envL, "afb", "fcd", "abcd");
+        contract_tblis(psi_envL, mpo, psi_envL_mpo, "qijr", "rkql", "ijkl");
+        contract_tblis(psi_envL_mpo, envR, ham_sq_psi, "qjri", "qkr", "ijk");
+    }
+    else{
+        Eigen::Tensor<Scalar, 4> psi_envR(psi.dimension(0), psi.dimension(1), envR.dimension(1), envR.dimension(2));
+        Eigen::Tensor<Scalar, 4> psi_envR_mpo(psi.dimension(1), envR.dimension(1), mpo.dimension(0), mpo.dimension(3));
+        contract_tblis(psi, envR, psi_envR, "abf", "fcd", "abcd");
+        contract_tblis(psi_envR, mpo, psi_envR_mpo, "qijk", "rkql", "ijrl");
+        contract_tblis(psi_envR_mpo, envL, ham_sq_psi, "qkri", "qjr", "ijk");
+    }
 
     tools::prof::t_tblis->toc();
     return std::make_pair(ham_sq_psi, get_ops_tblis_L(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0)));

@@ -6,15 +6,15 @@
 #include <tools/class_tic_toc.h>
 void tools::prof::init_profiling() {
     if(t_total != nullptr) return;
-    t_total   = std::make_unique<class_tic_toc>(true, 7, "Total Time");
-    t_eigen1  = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu1");
-    t_eigen2  = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu2");
-    t_eigen3  = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu3");
-    t_cuda    = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cuda");
-    t_acro    = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version acro");
-    t_cute    = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cute");
-    t_xtensor = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version xtensor");
-    t_tblis   = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version tblis");
+    t_total        = std::make_unique<class_tic_toc>(true, 7, "Total Time");
+    t_eigen1       = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu1");
+    t_eigen2       = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu2");
+    t_eigen3       = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cpu3");
+    t_cuda         = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cuda");
+    t_acro         = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version acro");
+    t_cute         = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cute");
+    t_xtensor      = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version xtensor");
+    t_tblis        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version tblis");
 }
 void tools::prof::reset_profiling() {
     //    t_total.reset();

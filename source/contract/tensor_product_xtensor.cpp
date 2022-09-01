@@ -1,12 +1,12 @@
 
 #if defined(TB_XTENSOR)
+    #include "contract/contract.h"
+    #include "tools/class_tic_toc.h"
+    #include "tools/prof.h"
+    #include "xtensor-blas/xlinalg.hpp"
+    #include "xtensor/xadapt.hpp"
+    #include "xtensor/xtensor.hpp"
     #include <complex>
-    #include <contract/contract.h>
-    #include <tools/class_tic_toc.h>
-    #include <tools/prof.h>
-    #include <xtensor/xtensor.hpp>
-    #include <xtensor/xadapt.hpp>
-    #include <xtensor-blas/xlinalg.hpp>
 
 long get_ops_xtensor(long d, long chiL, long chiR, long m) {
     if(chiR > chiL) return get_ops_xtensor(d, chiR, chiL, m);
