@@ -35,7 +35,9 @@ ExternalProject_Add(external_cyclops
                     GIT_REPOSITORY https://github.com/cyclops-community/ctf.git
                     GIT_TAG 8f1c19954613189528ee0243fad6c636f4b9033b # master on August 31, 2022
                     GIT_PROGRESS TRUE
-
+#                    PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/ctf.8f1c199.patch # Include omp and critter headers with <> instead of ""
+                    PATCH_COMMAND patch  --forward -p1 -i ${PROJECT_SOURCE_DIR}/ctf.8f1c199.patch || true # Include omp and critter headers with <> instead of ""
+#                    PATCH_COMMAND git apply ${PROJECT_SOURCE_DIR}/ctf.8f1c199.patch
                     PREFIX ${CMAKE_BINARY_DIR}
                     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
 
@@ -47,24 +49,28 @@ ExternalProject_Add(external_cyclops
                     USES_TERMINAL_INSTALL TRUE
                     USES_TERMINAL_TEST TRUE
 
-                    BUILD_ALWAYS TRUE
+                    BUILD_ALWAYS FALSE
                     BUILD_IN_SOURCE FALSE
-                    PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/ctf.8f1c199.patch # Include omp and critter headers with <> instead of ""
 
-                    CONFIGURE_COMMAND ""
-                    BUILD_COMMAND
-#                    COMMAND <SOURCE_DIR>/configure -h
+                    CONFIGURE_COMMAND
                     COMMAND export CXX=${cxx}
                     COMMAND export OMPI_CXX=${ompi_cxx}
                     COMMAND export LIBS=${libs}
                     COMMAND export LD_LIBS=${ld_libs}
                     COMMAND export INCLUDES=${incs}
                     COMMAND export CXXFLAGS=${cxxflags}
-                    COMMAND <SOURCE_DIR>/configure --build-dir=<BINARY_DIR> --install-dir=<INSTALL_DIR> --with-lapack --verbose
+                    COMMAND <SOURCE_DIR>/configure
+                            --build-dir=<BINARY_DIR>
+                            --install-dir=<INSTALL_DIR>
+                            --with-lapack
+                            --build-hptt
+                            --verbose
 
-#                    BUILD_COMMAND
+                    BUILD_COMMAND
                     COMMAND make -j${NUM_THREADS}
 
                     INSTALL_COMMAND
-                    make install
+                    COMMAND make install
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory <BINARY_DIR>/hptt/include <INSTALL_DIR>/include
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory <BINARY_DIR>/hptt/lib <INSTALL_DIR>/lib
                     )

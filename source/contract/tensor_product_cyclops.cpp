@@ -94,14 +94,13 @@ contract::ResultType<Scalar> contract::tensor_product_cyclops(const Eigen::Tenso
     CTF::Tensor<Scalar> mpo_ctf  = get_ctf_tensor(mpo, world);
     CTF::Tensor<Scalar> envL_ctf = get_ctf_tensor(envL, world);
     CTF::Tensor<Scalar> envR_ctf = get_ctf_tensor(envR, world);
-    tools::prof::t_cyclops->tic();
     CTF::Tensor<Scalar> psi_ctf  = get_ctf_tensor(psi, world);
     auto res_ctf = CTF::Tensor<Scalar>(psi_ctf.order, psi_ctf.lens, world); // Same dims as psi_ctf
     mpi::barrier();
-
+    tools::prof::t_cyclops->tic();
     res_ctf["ijk"] = psi_ctf["abc"] * envL_ctf["bjd"] * mpo_ctf["deai"] * envR_ctf["cke"];
-    auto res = get_eigen_tensor<Scalar, 3>(res_ctf);
     tools::prof::t_cyclops->toc();
+    auto res = get_eigen_tensor<Scalar, 3>(res_ctf);
 
     return {res, get_ops_cyclops_L(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0))};
 }
