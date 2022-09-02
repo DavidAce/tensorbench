@@ -32,8 +32,6 @@
 
 # linux
 
-
-
 function(register_found_components)
     foreach(cmp ${MKL_FIND_COMPONENTS})
         if(MKL_${cmp}_FOUND)
@@ -41,7 +39,6 @@ function(register_found_components)
         endif()
     endforeach()
 endfunction()
-
 
 function(find_mkl_libraries)
 
@@ -59,7 +56,6 @@ function(find_mkl_libraries)
     endif()
     list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.1 .so.2) # For tbb
 
-
     # macos
     if(APPLE)
         set(MKL_ARCH_DIR "intel64")
@@ -69,7 +65,7 @@ function(find_mkl_libraries)
         set(MKL_ARCH_DIR "ia32")
     endif()
 
-    if (WIN32)
+    if(WIN32)
         if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
             set(MKL_ARCH_DIR "intel64")
         else()
@@ -79,85 +75,85 @@ function(find_mkl_libraries)
     set(MKL_ARCH_DIR ${MKL_ARCH_DIR} PARENT_SCOPE)
 
     set(MKL_ROOT_SEARCH_PATHS
-            ${MKL_ROOT_DIR}
-            $ENV{MKL_DIR}  ${MKL_DIR}
-            $ENV{MKLDIR}   ${MKLDIR}
-            $ENV{MKLROOT}  ${MKLROOT}
-            $ENV{MKL_ROOT} ${MKL_ROOT}
-            $ENV{mkl_root} ${mkl_root}
-            $ENV{HOME}
-            /opt
-            /opt/intel
-            /opt/intel/oneapi
-            /usr/lib/x86_64-linux-gnu
-            /usr
-            /Library/Frameworks/Intel_MKL.framework/Versions/Current/lib/universal
-            "Program Files (x86)/Intel/ComposerXE-2011/mkl"
-            )
+        ${MKL_ROOT_DIR}
+        $ENV{MKL_DIR} ${MKL_DIR}
+        $ENV{MKLDIR} ${MKLDIR}
+        $ENV{MKLROOT} ${MKLROOT}
+        $ENV{MKL_ROOT} ${MKL_ROOT}
+        $ENV{mkl_root} ${mkl_root}
+        $ENV{HOME}
+        /opt
+        /opt/intel
+        /opt/intel/oneapi
+        /usr/lib/x86_64-linux-gnu
+        /usr
+        /Library/Frameworks/Intel_MKL.framework/Versions/Current/lib/universal
+        "Program Files (x86)/Intel/ComposerXE-2011/mkl"
+        )
 
     set(MKL_PATH_SUFFIXES
-            intel/oneapi/mkl/latest
-            oneapi/mkl/latest
-            intel/oneapi/mkl
-            oneapi/mkl
-            intel/mkl
-            mkl
-            )
+        intel/oneapi/mkl/latest
+        oneapi/mkl/latest
+        intel/oneapi/mkl
+        oneapi/mkl
+        intel/mkl
+        mkl
+        )
 
     find_path(MKL_ROOT_DIR
-            include/mkl.h
-            PATHS ${MKL_ROOT_SEARCH_PATHS}
-            PATH_SUFFIXES ${MKL_PATH_SUFFIXES}
-            )
+              include/mkl.h
+              PATHS ${MKL_ROOT_SEARCH_PATHS}
+              PATH_SUFFIXES ${MKL_PATH_SUFFIXES}
+              )
     if(MKL_ROOT_DIR)
         message(STATUS "Found MKL ROOT: ${MKL_ROOT_DIR}")
         find_path(MKL_INCLUDE_DIR
-                mkl.h
-                HINTS ${MKL_ROOT_DIR}/include
-                )
+                  mkl.h
+                  HINTS ${MKL_ROOT_DIR}/include
+                  )
 
         set(MKL_INCLUDE_DIR ${MKL_INCLUDE_DIR} PARENT_SCOPE)
         if(NOT MKL_INCLUDE_DIR)
             message(WARNING "Found MKL_ROOT_DIR but not MKL_INCLUDE_DIR:"
                     "MKL_ROOT_DIR   : ${MKL_ROOT_DIR})"
                     "MKL_INCLUDE_DIR: ${MKL_INCLUDE_DIR})")
-                    return()
+            return()
         endif()
         set(par_libnames tbb tbbmalloc iomp5)
         set(mkl_libnames rt core sequential intel_thread gnu_thread tbb_thread cdft_core)
         if(MKL_ARCH_DIR MATCHES "32")
             list(APPEND mkl_libnames
-                    intel
-                    gf
-                    blas
-                    lapack
-                    )
-            else()
+                 intel
+                 gf
+                 blas
+                 lapack
+                 )
+        else()
             list(APPEND mkl_libnames
-                    intel_lp64
-                    intel_ilp64
-                    gf_lp64
-                    gf_ilp64
-                    blas95_lp64
-                    blas95_ilp64
-                    lapack95_lp64
-                    lapack95_ilp64
-                    scalapack_lp64
-                    scalapack_ilp64
-                    blacs_intelmpi_lp64
-                    blacs_intelmpi_ilp64
-                    blacs_openmpi_lp64
-                    blacs_openmpi_ilp64
-                    )
+                 intel_lp64
+                 intel_ilp64
+                 gf_lp64
+                 gf_ilp64
+                 blas95_lp64
+                 blas95_ilp64
+                 lapack95_lp64
+                 lapack95_ilp64
+                 scalapack_lp64
+                 scalapack_ilp64
+                 blacs_intelmpi_lp64
+                 blacs_intelmpi_ilp64
+                 blacs_openmpi_lp64
+                 blacs_openmpi_ilp64
+                 )
         endif()
 
         foreach(lib ${mkl_libnames})
             find_library(MKL_${lib}_LIBRARY
-                    mkl_${lib}
-                    HINTS ${MKL_ROOT_DIR}
-                    PATH_SUFFIXES
-                    lib lib/${MKL_ARCH_DIR}
-                    )
+                         mkl_${lib}
+                         HINTS ${MKL_ROOT_DIR}
+                         PATH_SUFFIXES
+                         lib lib/${MKL_ARCH_DIR}
+                         )
             if(MKL_${lib}_LIBRARY)
                 add_library(mkl::mkl_${lib} UNKNOWN IMPORTED)
                 set_target_properties(mkl::mkl_${lib} PROPERTIES IMPORTED_LOCATION "${MKL_${lib}_LIBRARY}")
@@ -169,26 +165,26 @@ function(find_mkl_libraries)
             endif()
         endforeach()
         if(TARGET mkl::mkl_rt)
-            set_target_properties(mkl::mkl_rt PROPERTIES INTERFACE_LINK_DIRECTORIES  ${MKL_ROOT_DIR}/lib/${MKL_ARCH_DIR})
+            set_target_properties(mkl::mkl_rt PROPERTIES INTERFACE_LINK_DIRECTORIES ${MKL_ROOT_DIR}/lib/${MKL_ARCH_DIR})
         endif()
 
         foreach(lib ${par_libnames})
             find_library(MKL_${lib}_LIBRARY
-                        ${lib}
-                        HINTS
-                        ${MKL_ROOT_DIR}
-                        ${MKL_ROOT_DIR}/tbb/lib/${MKL_ARCH_DIR}
-                        ${MKL_ROOT_DIR}/../tbb/lib/${MKL_ARCH_DIR}
-                        ${MKL_ROOT_DIR}/../../tbb/lib/${MKL_ARCH_DIR}
-                        ${MKL_ROOT_DIR}/tbb/latest/lib/${MKL_ARCH_DIR}
-                        ${MKL_ROOT_DIR}/../tbb/latest/lib/${MKL_ARCH_DIR}
-                        ${MKL_ROOT_DIR}/../../tbb/latest/lib/${MKL_ARCH_DIR}
-                        PATH_SUFFIXES
-                        lib lib/${MKL_ARCH_DIR}
-                        gcc4.4
-                        gcc4.7
-                        gcc4.8
-                        NO_DEFAULT_PATH
+                         ${lib}
+                         HINTS
+                         ${MKL_ROOT_DIR}
+                         ${MKL_ROOT_DIR}/tbb/lib/${MKL_ARCH_DIR}
+                         ${MKL_ROOT_DIR}/../tbb/lib/${MKL_ARCH_DIR}
+                         ${MKL_ROOT_DIR}/../../tbb/lib/${MKL_ARCH_DIR}
+                         ${MKL_ROOT_DIR}/tbb/latest/lib/${MKL_ARCH_DIR}
+                         ${MKL_ROOT_DIR}/../tbb/latest/lib/${MKL_ARCH_DIR}
+                         ${MKL_ROOT_DIR}/../../tbb/latest/lib/${MKL_ARCH_DIR}
+                         PATH_SUFFIXES
+                         lib lib/${MKL_ARCH_DIR}
+                         gcc4.4
+                         gcc4.7
+                         gcc4.8
+                         NO_DEFAULT_PATH
                          )
             if(MKL_${lib}_LIBRARY)
                 add_library(mkl::${lib} UNKNOWN IMPORTED)
@@ -205,12 +201,12 @@ endfunction()
 function(setup_mkl_targets)
 
     # Setup all the library variants
-    set (MKL_FORTRAN_VARIANTS intel gf)
-    set (MKL_THREAD_VARIANTS sequential intel_thread gnu_thread tbb_thread )
-    set (MKL_ARCH_VARIANTS)
-    set (MKL_MATH_VARIANTS blas lapack)
-    set (MKL_BLACS_VARIANTS blacs_intelmpi blacs_openmpi)
-    set (MKL_CLUSTER_LIBS scalapack cdft)
+    set(MKL_FORTRAN_VARIANTS intel gf)
+    set(MKL_THREAD_VARIANTS sequential intel_thread gnu_thread tbb_thread)
+    set(MKL_ARCH_VARIANTS)
+    set(MKL_MATH_VARIANTS blas lapack)
+    set(MKL_BLACS_VARIANTS blacs_intelmpi blacs_openmpi)
+    set(MKL_CLUSTER_LIBS scalapack cdft)
     if(MKL_ARCH_DIR MATCHES "64")
         list(APPEND MKL_ARCH_VARIANTS ilp64 lp64)
         list(APPEND MKL_95_SUFFIX 95_)
@@ -225,7 +221,6 @@ function(setup_mkl_targets)
     set(MKL_MATH_DEFAULT blas lapack)
     set(MKL_BLACS_DEFAULT)
     set(MKL_CLUSTER_DEFAULT)
-
 
     # Get enabled languages
     get_property(LANG GLOBAL PROPERTY ENABLED_LANGUAGES)
@@ -295,7 +290,6 @@ function(setup_mkl_targets)
         set(MKL_FIND_CLUSTER_COMPONENTS ${MKL_CLUSTER_DEFAULT})
     endif()
 
-
     # If multiple components matched, the resulting target will not be unique, which means
     # the component list is ill-defined
     list(LENGTH MKL_FIND_FORTRAN_COMPONENTS MKL_FIND_FORTRAN_LENGTH)
@@ -327,9 +321,9 @@ function(setup_mkl_targets)
     endif()
 
     # Define usable targets
-    foreach (fort ${MKL_FIND_FORTRAN_COMPONENTS})
-        foreach (thread ${MKL_FIND_THREAD_COMPONENTS})
-            foreach (arch ${MKL_FIND_ARCH_COMPONENTS})
+    foreach(fort ${MKL_FIND_FORTRAN_COMPONENTS})
+        foreach(thread ${MKL_FIND_THREAD_COMPONENTS})
+            foreach(arch ${MKL_FIND_ARCH_COMPONENTS})
                 if(arch MATCHES "32" AND NOT TARGET mkl::mkl_${fort}_${arch})
                     # We make an alias for the mkl::mkl_gf library as mkl::mkl_gf_ia32
                     add_library(mkl::mkl_${fort}_${arch} ALIAS mkl::mkl_${fort})
@@ -384,22 +378,22 @@ function(setup_mkl_targets)
 
                 if(MSVC)
                     target_link_libraries(mkl::mkl_${fort}_${thread}_${arch} INTERFACE
-                            mkl::mkl_${fort}_${arch}
-                            mkl::mkl_${thread}
-                            mkl::mkl_core
-                            )
+                                          mkl::mkl_${fort}_${arch}
+                                          mkl::mkl_${thread}
+                                          mkl::mkl_core
+                                          )
                 else()
                     target_link_libraries(mkl::mkl_${fort}_${arch} INTERFACE -Wl,--end-group)
                     target_link_libraries(mkl::mkl_${thread} INTERFACE -Wl,--end-group)
                     target_link_libraries(mkl::mkl_core INTERFACE -Wl,--end-group)
                     target_link_libraries(mkl::mkl_${fort}_${thread}_${arch} INTERFACE
-                            -Wl,--start-group
-                            mkl::mkl_${fort}_${arch}
-                            mkl::mkl_${thread}
-                            mkl::mkl_core
-                            -Wl,--end-group
-                            -Wl,--as-needed
-                            )
+                                          -Wl,--start-group
+                                          mkl::mkl_${fort}_${arch}
+                                          mkl::mkl_${thread}
+                                          mkl::mkl_core
+                                          -Wl,--end-group
+                                          -Wl,--as-needed
+                                          )
                 endif()
                 target_include_directories(mkl::mkl_${fort}_${thread}_${arch} SYSTEM INTERFACE ${MKL_INCLUDE_DIR})
                 set_target_properties(mkl::mkl_${fort}_${thread}_${arch} PROPERTIES INTERFACE_LINK_DIRECTORIES ${MKL_ROOT_DIR}/lib/${MKL_ARCH_DIR})
@@ -410,7 +404,10 @@ function(setup_mkl_targets)
                     find_package(Threads REQUIRED)
                     find_package(OpenMP COMPONENTS ${C} ${CXX} ${Fortran} REQUIRED)
                     foreach(lang ${LANG})
-                        if(TARGET OpenMP::OpenMP_${lang})
+                        if(OpenMP_${lang}_FLAGS)
+                            target_link_options(mkl::mkl_${fort}_${thread}_${arch} INTERFACE ${OpenMP_${lang}_FLAGS})
+                            target_compile_options(mkl::mkl_${fort}_${thread}_${arch} INTERFACE ${OpenMP_${lang}_FLAGS})
+                        elseif(TARGET OpenMP::OpenMP_${lang})
                             target_link_libraries(mkl::mkl_${fort}_${thread}_${arch} INTERFACE OpenMP::OpenMP_${lang})
                         endif()
                     endforeach()
@@ -432,9 +429,9 @@ function(setup_mkl_targets)
                 endif()
                 target_link_libraries(mkl::mkl_${fort}_${thread}_${arch} INTERFACE m dl)
                 list(APPEND MKL_TARGETS mkl::mkl_${fort}_${thread}_${arch})
-                set(MKL_${fort}_FOUND   TRUE PARENT_SCOPE)
+                set(MKL_${fort}_FOUND TRUE PARENT_SCOPE)
                 set(MKL_${thread}_FOUND TRUE PARENT_SCOPE)
-                set(MKL_${arch}_FOUND   TRUE PARENT_SCOPE)
+                set(MKL_${arch}_FOUND TRUE PARENT_SCOPE)
             endforeach()
         endforeach()
     endforeach()
@@ -551,12 +548,9 @@ function(get_mkl_info libs incs opts defs ftrs target)
 
 endfunction()
 
-
 if(MKL_FOUND)
     return()
 endif()
-
-
 
 find_mkl_libraries()
 setup_mkl_targets()
@@ -571,10 +565,10 @@ endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MKL
-        REQUIRED_VARS MKL_INCLUDE_DIR MKL_TARGETS
-        REASON_FAILURE_MESSAGE ${FAIL_MESSAGE}
-        HANDLE_COMPONENTS
-        )
+                                  REQUIRED_VARS MKL_INCLUDE_DIR MKL_TARGETS
+                                  REASON_FAILURE_MESSAGE ${FAIL_MESSAGE}
+                                  HANDLE_COMPONENTS
+                                  )
 
 if(MKL_FOUND)
 
@@ -616,11 +610,11 @@ if(MKL_FOUND)
     message("MKL_COMPILE_DEFINITIONS   : ${MKL_COMPILE_DEFINITIONS}")
     message("MKL_COMPILE_FEATURES      : ${MKL_COMPILE_FEATURES}")
 
-    set(MKL_LIBRARIES            "${MKL_LIBRARIES}"            CACHE INTERNAL "")
-    set(MKL_INCLUDE_DIRS         "${MKL_INCLUDE_DIRS}"         CACHE INTERNAL "")
-    set(MKL_COMPILE_OPTIONS      "${MKL_COMPILE_OPTIONS}"      CACHE INTERNAL "")
-    set(MKL_COMPILE_DEFINITIONS  "${MKL_COMPILE_DEFINITIONS}"  CACHE INTERNAL "")
-    set(MKL_COMPILE_FEATURES     "${MKL_COMPILE_FEATURES}"     CACHE INTERNAL "")
+    set(MKL_LIBRARIES "${MKL_LIBRARIES}" CACHE INTERNAL "")
+    set(MKL_INCLUDE_DIRS "${MKL_INCLUDE_DIRS}" CACHE INTERNAL "")
+    set(MKL_COMPILE_OPTIONS "${MKL_COMPILE_OPTIONS}" CACHE INTERNAL "")
+    set(MKL_COMPILE_DEFINITIONS "${MKL_COMPILE_DEFINITIONS}" CACHE INTERNAL "")
+    set(MKL_COMPILE_FEATURES "${MKL_COMPILE_FEATURES}" CACHE INTERNAL "")
 
     mark_as_advanced(MKL_LIBRARIES
                      MKL_INCLUDE_DIRS

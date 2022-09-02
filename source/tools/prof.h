@@ -16,6 +16,7 @@ namespace tools::prof{
     inline std::unique_ptr<class_tic_toc> t_cute;
     inline std::unique_ptr<class_tic_toc> t_xtensor;
     inline std::unique_ptr<class_tic_toc> t_tblis;
+    inline std::unique_ptr<class_tic_toc> t_cyclops;
 
 
     extern void print_mem_usage();

@@ -22,7 +22,8 @@ namespace tenx {
         span(Eigen::Array<T, Eigen::Dynamic, 1> &a) noexcept : ptr_{a.data()}, len_{static_cast<std::size_t>(a.size())} {}
         span(Eigen::Array<T, 1, Eigen::Dynamic> &a) noexcept : ptr_{a.data()}, len_{static_cast<std::size_t>(a.size())} {}
         span(std::vector<T> &v) noexcept : ptr_{v.data()}, len_{v.size()} {}
-
+        using value_type = T;
+        using Scalar     = T;
         T &operator[](int i) noexcept { return *ptr_[i]; }
 
         T const &operator[](int i) const noexcept { return *ptr_[i]; }
@@ -32,5 +33,8 @@ namespace tenx {
         T *begin() noexcept { return ptr_; }
 
         T *end() noexcept { return ptr_ + len_; }
+
+        T       *data() noexcept { return ptr_; }
+        const T *data() const noexcept { return ptr_; }
     };
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include <math/tenx.h>
+#include "math/tenx.h"
 
 namespace contract {
     template<typename Scalar>
@@ -27,4 +27,8 @@ namespace contract {
     template<typename Scalar>
     [[nodiscard]] ResultType<Scalar> tensor_product_tblis(const Eigen::Tensor<Scalar, 3> &psi, const Eigen::Tensor<Scalar, 4> &mpo,
                                                                  const Eigen::Tensor<Scalar, 3> &envL, const Eigen::Tensor<Scalar, 3> &envR);
+
+    template<typename Scalar>
+    [[nodiscard]] ResultType<Scalar> tensor_product_cyclops(const Eigen::Tensor<Scalar, 3> &psi, const Eigen::Tensor<Scalar, 4> &mpo,
+                                                          const Eigen::Tensor<Scalar, 3> &envL, const Eigen::Tensor<Scalar, 3> &envR);
 }

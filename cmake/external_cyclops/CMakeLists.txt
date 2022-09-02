@@ -24,13 +24,6 @@ if(MKL_INCLUDE_DIRS)
 endif()
 
 find_package(MPI COMPONENTS CXX REQUIRED)
-message(STATUS "MPI_CXX_COMPILER: ${MPI_CXX_COMPILER}")
-
-find_package(OpenMP COMPONENTS CXX REQUIRED)
-message(STATUS "OpenMP_CXX_FLAGS: ${OpenMP_CXX_FLAGS}")
-
-
-
 set(cxx ${MPI_CXX_COMPILER})
 set(ompi_cxx ${CMAKE_CXX_COMPILER})
 set(cxxflags "-O3 -DNDEBUG -std=c++17 -fPIC -g -fno-strict-aliasing -fno-omit-frame-pointer ${OpenMP_CXX_FLAGS}")
@@ -56,6 +49,8 @@ ExternalProject_Add(external_cyclops
 
                     BUILD_ALWAYS TRUE
                     BUILD_IN_SOURCE FALSE
+                    PATCH_COMMAND patch -p1 -i ${PROJECT_SOURCE_DIR}/ctf.8f1c199.patch # Include omp and critter headers with <> instead of ""
+
                     CONFIGURE_COMMAND ""
                     BUILD_COMMAND
 #                    COMMAND <SOURCE_DIR>/configure -h

@@ -28,11 +28,12 @@ void mpi::barrier() {
     if(world.size > 1 or mpi::on) MPI_Barrier(MPI_COMM_WORLD);
 }
 
+
 void mpi::scatter(std::vector<h5pp::fs::path> &data, int src) {
     if(world.size == 1) return; // No need to scatter
 
-    // Since the path's are not plain data, we need to mimic the logic of scatter
-    // Every path is constructible from a string, so we can simply send the string data around.
+    // Since the paths are not plain data, we need to mimic the logic of scatter
+    // Every path is constructable from a string, so we can simply send the string data around.
 
     // First we need to decide how to split the data into even chunks
     // First we need to decide how to split the data into even chunks
@@ -88,8 +89,8 @@ void mpi::scatter_r(std::vector<h5pp::fs::path> &data, int src) {
 
     // Scatter in roundrobin mode
 
-    // Since the path's are not plain data, we need to mimic the logic of scatter
-    // Every path is constructible from a string, so we can simply send the string data around.
+    // Since the paths are not plain data, we need to mimic the logic of scatter
+    // Every path is constructable from a string, so we can simply send the string data around.
 
     // First we need to decide how to split the data into even chunks
     std::vector<size_t> counts(world.get_size<size_t>(), 0);

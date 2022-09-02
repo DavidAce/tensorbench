@@ -15,6 +15,7 @@ void tools::prof::init_profiling() {
     t_cute         = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cute");
     t_xtensor      = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version xtensor");
     t_tblis        = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version tblis");
+    t_cyclops      = std::make_unique<class_tic_toc>(true, 7, "H²|Ψ> version cyclops");
 }
 void tools::prof::reset_profiling() {
     //    t_total.reset();
@@ -26,6 +27,7 @@ void tools::prof::reset_profiling() {
     t_cute->reset();
     t_xtensor->reset();
     t_tblis->reset();
+    t_cyclops->reset();
 }
 
 double tools::prof::mem_usage_in_mb(std::string_view name) {

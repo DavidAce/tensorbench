@@ -227,7 +227,7 @@ namespace num {
      *   \param in a vector, array or any 1D container with "<code> .data() </code>" method.
      *   \param from first element to add (default == 0)
      *   \param to last element to add (default == -1: from - size)
-     *   \return sum of of elements with type Input::value_type .
+     *   \return sum of elements with type Input::value_type .
      *   \example Let <code> v = {1,2,3,4}</code>. Then <code> sum(v,0,3) = 10 </code>.
      */
     template<typename Input>
@@ -241,7 +241,7 @@ namespace num {
      *   \param in a vector, array or any 1D container with "<code> .data() </code>" method.
      *   \param from first element to multiply (default == 0)
      *   \param to last element to multiply (default == -1: from - size)
-     *   \return product of of elements with type Input::value_type .
+     *   \return product of elements with type Input::value_type .
      *   \example Let <code> v = {1,2,3,4}</code>. Then <code> prod(v,0,3) = 24 </code>.
      */
     template<typename Input, typename From, typename To>
@@ -250,6 +250,49 @@ namespace num {
         num = std::min<long>(num, static_cast<long>(in.size()) - from);
         return std::accumulate(std::begin(in) + from, std::begin(in) + from + num, 1, std::multiplies<>());
     }
+
+
+    /*! \brief Cumulative sum operator for containers such as vector
+     *   \param in a vector, array or any 1D container with "<code> .data() </code>" method.
+     *   \param from first element to add (default == 0)
+     *   \param to last element to add (default == -1: from - size)
+     *   \return cumulative sum of elements with type Input::value_type .
+     *   \example Let <code> v = {1,2,3,4}</code>. Then <code> cumsum(v,0,3) = {1,3,6,10} </code>.
+     */
+    template<typename Input>
+    [[nodiscard]] auto cumsum(const Input &in, long from = 0, long num = -1) {
+        if(num < 0) num = in.size();
+        num = std::min<long>(num, static_cast<long>(in.size()) - from);
+        typename Input::value_type sum = 0;
+        Input out;
+        out.reserve(num);
+        for (auto it = std::begin(in) + from; it != std::begin(in) + from + num; it++ ){
+            sum += *it;
+            out.emplace_back(sum);
+        }
+        return out;
+    }
+    /*! \brief Displacements for containers such as vector
+     *   \param in a vector, array or any 1D container with "<code> .data() </code>" method.
+     *   \param from first element to add (default == 0)
+     *   \param to last element to add (default == -1: from - size)
+     *   \return displacements of elements with type Input::value_type .
+     *   \example Let <code> v = {1,2,3,4}</code>. Then <code> disps(v,0,3) = {0,1,3,6} </code>.
+     */
+    template<typename Input>
+    [[nodiscard]] auto disps(const Input &in, long from = 0, long num = -1) {
+        if(num < 0) num = in.size();
+        num = std::min<long>(num, static_cast<long>(in.size()) - from);
+        typename Input::value_type sum = 0;
+        Input out;
+        out.reserve(num);
+        for (auto it = std::begin(in) + from; it != std::begin(in) + from + num; it++ ){
+            out.emplace_back(sum);
+            sum += *it;
+        }
+        return out;
+    }
+
 
     /*! \brief Checks if multiple values are equal to each other
      *   \param args any number of values

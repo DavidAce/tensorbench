@@ -24,21 +24,14 @@ endfunction()
 find_cyclops()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(cyclops
-                                  DEFAULT_MSG
-                                  CYCLOPS_LIBRARY CYCLOPS_INCLUDE_DIR)
+find_package_handle_standard_args(cyclops DEFAULT_MSG CYCLOPS_LIBRARY CYCLOPS_INCLUDE_DIR)
 
 if (cyclops_FOUND)
-
-    if(BUILD_SHARED_LIBS)
-        set(CYCLOPS_LIBTYPE SHARED)
-    else()
-        set(CYCLOPS_LIBTYPE STATIC)
-    endif()
-
-    add_library(cyclops::cyclops ${CYCLOPS_LIBTYPE} IMPORTED)
+    add_library(cyclops::cyclops UNKNOWN IMPORTED)
     set_target_properties(cyclops::cyclops PROPERTIES IMPORTED_LOCATION "${CYCLOPS_LIBRARY}")
     target_include_directories(cyclops::cyclops SYSTEM INTERFACE ${CYCLOPS_INCLUDE_DIR})
-    find_package(MPI COMPONENTS C REQUIRED)
-    target_link_libraries(cyclops::cyclops INTERFACE BLAS::BLAS MPI::MPI_C)
+
+    find_package(MPI COMPONENTS CXX REQUIRED)
+    find_package(OpenMP COMPONENTS CXX REQUIRED)
+    target_link_libraries(cyclops::cyclops INTERFACE BLAS::BLAS MPI::MPI_CXX OpenMP::OpenMP_CXX)
 endif()

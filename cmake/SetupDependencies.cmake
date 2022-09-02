@@ -20,9 +20,9 @@ find_package(Fortran REQUIRED)
 
 if (TB_ENABLE_MKL)
     if(TB_ENABLE_CYCLOPS)
-        find_package(MKL COMPONENTS blas lapack  gf gnu_thread lp64 scalapack blacs_openmpi REQUIRED)
+        find_package(MKL COMPONENTS blas lapack gf gnu_thread lp64 scalapack blacs_openmpi REQUIRED)
     else()
-        find_package(MKL COMPONENTS blas lapack  gf gnu_thread lp64 REQUIRED)
+        find_package(MKL COMPONENTS blas lapack gf gnu_thread lp64 REQUIRED)
     endif()
 
 endif ()
@@ -36,19 +36,19 @@ add_library(tb-deps INTERFACE)
 
 # Acrotensor
 if(TB_ENABLE_ACRO)
-    list(APPEND acrotensor_ARGS  -DACROTENSOR_ENABLE_CUDA:BOOL=${TB_ENABLE_CUDA})
-    install_package(acrotensor TARGET_NAME acrotensor::acrotensor_static CMAKE_ARGS ${acrotensor_ARGS})
+    install_package(acrotensor TARGET_NAME acrotensor::acrotensor_static
+                    CMAKE_ARGS -DACROTENSOR_ENABLE_CUDA:BOOL=${TB_ENABLE_CUDA})
 endif()
 
 if(TB_ENABLE_TBLIS)
     install_package(tblis MODULE)
 endif()
 if(TB_ENABLE_XTENSOR AND TARGET TB_ENABLE_OPENBLAS)
-    set(XTENSOR_USE_OPENBLAS ON)
-    mark_as_advanced(XTENSOR_USE_OPENBLAS)
     find_package(xtensor REQUIRED)
-    list(APPEND xtensor-blas_ARGS  "-DUSE_OPENBLAS:BOOL=${XTENSOR_USE_OPENBLAS}")
-    install_package(xtensor-blas CMAKE_ARGS ${xtensor-blas_ARGS} TARGET_NAME xtensor-blas DEPENDS xtl xsimd xtensor OpenBLAS::OpenBLAS)
+    install_package(xtensor-blas
+                    CMAKE_ARGS -DUSE_OPENBLAS:BOOL=ON
+                    TARGET_NAME xtensor-blas
+                    DEPENDS xtl xsimd xtensor OpenBLAS::OpenBLAS)
     target_link_libraries(xtensor INTERFACE xtensor-blas)
 endif()
 
