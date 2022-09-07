@@ -141,14 +141,14 @@ namespace tenx {
         return asEval(expr.square().sum().sqrt().abs(), device)->coeff(0);
     }
 
-    inline Eigen::Tensor<std::complex<double>, 1> broadcast(Eigen::Tensor<std::complex<double>, 1> &tensor, const std::array<long, 1> &bcast) {
-        // Use this function to avoid a bug in Eigen when broadcasting complex tensors of rank 1, with compiler option -mfma
-        // See more here https://gitlab.com/libeigen/eigen/-/issues/2351
-        std::array<long, 2> bcast2 = {bcast[0], 1};
-        std::array<long, 2> shape2 = {tensor.size(), 1};
-        std::array<long, 1> shape1 = {tensor.size() * bcast[0]};
-        return tensor.reshape(shape2).broadcast(bcast2).reshape(shape1);
-    }
+//    inline Eigen::Tensor<std::complex<double>, 1> broadcast(Eigen::Tensor<std::complex<double>, 1> &tensor, const std::array<long, 1> &bcast) {
+//        // Use this function to avoid a bug in Eigen when broadcasting complex tensors of rank 1, with compiler option -mfma
+//        // See more here https://gitlab.com/libeigen/eigen/-/issues/2351
+//        std::array<long, 2> bcast2 = {bcast[0], 1};
+//        std::array<long, 2> shape2 = {tensor.size(), 1};
+//        std::array<long, 1> shape1 = {tensor.size() * bcast[0]};
+//        return tensor.reshape(shape2).broadcast(bcast2).reshape(shape1);
+//    }
 
     template<typename T, typename Device = Eigen::DefaultDevice>
     auto asNormalized(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, const Device &device = Device()) {

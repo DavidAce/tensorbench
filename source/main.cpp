@@ -79,7 +79,7 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
             if constexpr(mode == tb_mode::eigen1) std::tie(psi_out, ops) = contract::tensor_product_eigen1(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
             if constexpr(mode == tb_mode::eigen2) std::tie(psi_out, ops) = contract::tensor_product_eigen2(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
             if constexpr(mode == tb_mode::eigen3) std::tie(psi_out, ops) = contract::tensor_product_eigen3(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
-            if constexpr(mode == tb_mode::cute) std::tie(psi_out, ops) = contract::tensor_product_cute(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
+            if constexpr(mode == tb_mode::cute) std::tie(psi_out, ops)   = contract::tensor_product_cute  (tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
             if constexpr(mode == tb_mode::acro) throw std::runtime_error("not implemented?");
             if constexpr(mode == tb_mode::xtensor) std::tie(psi_out, ops) = contract::tensor_product_xtensor(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
             if constexpr(mode == tb_mode::tblis) std::tie(psi_out, ops) = contract::tensor_product_tblis(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
@@ -112,9 +112,26 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
     mpi::barrier();
 }
 
+/*
+ * Resources explaining MPI/OpenMP Hybrid parameters
+ *
+ * https://www.admin-magazine.com/HPC/Articles/Processor-Affinity-for-OpenMP-and-MPI
+ *
+ * These mpirun flags seem to work well:
+ * -n 4 --report-bindings --map-by l3cache:pe=4 --bind-to core -x OMP_PLACES=sockets -x OMP_PROC_BIND=true -x OMP_NUM_THREADS=4 -x OMP_DISPLAY_AFFINITY=true ...
+ *
+ */
+
 int main(int argc, char *argv[]) {
     cxxopts::Options options("tensorbench", "Benchmarks of tensor contractions");
     /* clang-format off */
+
+    std::string omp_max_threads_default = "1";
+
+#if defined(_OPENMP)
+        // This will honor env variable OMP_NUM_THREADS
+        omp_max_threads_default = fmt::format("{}", omp_get_max_threads());
+#endif
     options.add_options()
         ("h,help",     "Show help")
         ("B,bond",     "Bond dimension (Sets both chiL and chiR)",  cxxopts::value<std::vector<long>>()->default_value("16"))
@@ -122,7 +139,7 @@ int main(int argc, char *argv[]) {
         ("R,chiR",     "Bond dimension to the right",               cxxopts::value<std::vector<long>>()->default_value("-1"))
         ("D,spin",     "Spin dimension",                            cxxopts::value<std::vector<long>>()->default_value("2"))
         ("M,mpod",     "MPO dimension",                             cxxopts::value<std::vector<long>>()->default_value("16"))
-        ("n,threads",  "Number of threads",                         cxxopts::value<std::vector<int>>()->default_value("1"))
+        ("n,threads",  "Number of threads",                         cxxopts::value<std::vector<int>>()->default_value(omp_max_threads_default))
         ("i,iters",    "Number of iterations",                      cxxopts::value<size_t>()->default_value("3"))
         ("v,verbose",  "Sets verbosity level",                      cxxopts::value<size_t>()->default_value("2"));
     /* clang-format on */
@@ -148,8 +165,24 @@ int main(int argc, char *argv[]) {
     auto t_tot = tid::get("tb").tic_token();
     tools::prof::init_profiling();
     mpi::init();
+#if defined(_OPENMP)
+    omp_set_num_threads(v_threads.front());
+#endif
+    for(int id = 0; id < mpi::world.size; ++id) {
+        if(id == mpi::world.id) {
+#pragma omp parallel
+            {
+                tools::log->info("Hello from mpi rank {} of {} | omp thread {} of {} | on thread {}", mpi::world.id, mpi::world.size, omp_get_thread_num(),
+                                 omp_get_max_threads(), sched_getcpu());
+            }
+        }
+        tools::log->flush();
+        mpi::barrier();
+    }
 
-    // Set the number of threads to be used
+    // mpi::finalize();
+    // exit(0);
+    //  Set the number of threads to be used
 
 #if defined(TB_CUDA) && __has_include(<cuda.h>)
     tools::log->info("Initializing CUDA");

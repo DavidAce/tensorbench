@@ -1,3 +1,6 @@
+cmake_minimum_required(VERSION 3.20)
+set(PROJECT_UNAME TB)
+set(PROJECT_LNAME tb)
 
 message(STATUS "C compiler ${CMAKE_C_COMPILER}")
 message(STATUS "FC compiler ${CMAKE_Fortran_COMPILER}")
@@ -24,49 +27,53 @@ if(TB_MICROARCH)
 endif()
 
 
-###########################################
-###  Apply RELEASE/DEBUG compile flags  ###
-###########################################
-if(CXX_MARCH)
-    message(STATUS "Using microarchitechture: ${CXX_MARCH}")
-    list(APPEND CMAKE_CXX_FLAGS            -march=${CXX_MARCH} -mtune=${CXX_MARCH})
-endif()
+###  Add optional RELEASE/DEBUG compile to flags
+if (NOT TARGET tb-flags)
+    add_library(tb-flags INTERFACE)
+endif ()
 
-list(APPEND CMAKE_CXX_FLAGS                )
-list(APPEND CMAKE_CXX_FLAGS_RELEASE        -O3 -DNDEBUG -g -fno-strict-aliasing -Wall -Wextra -Wpedantic)
-list(APPEND CMAKE_CXX_FLAGS_DEBUG          -O0 -g -fno-omit-frame-pointer -fno-strict-aliasing -DNDEBUG -D_FORTIFY_SOURCE=2 -Wall -Wextra -Wpedantic) #-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
-list(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO )
-list(APPEND CMAKE_CXX_FLAGS_MINSIZEREL)
+### Set arch
+target_compile_options(tb-flags INTERFACE  $<$<COMPILE_LANGUAGE:CXX>:-march=${TB_MICROARCH}> )
+target_compile_options(tb-flags INTERFACE  $<$<COMPILE_LANGUAGE:CXX>:-mtune=${TB_MICROARCH}> )
+target_compile_options(tb-flags INTERFACE  $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -march=${TB_MICROARCH}> )
 
-string (REPLACE " " ";" CMAKE_CXX_FLAGS_LIST                "${CMAKE_CXX_FLAGS}")
-string (REPLACE " " ";" CMAKE_CXX_FLAGS_RELEASE_LIST        "${CMAKE_CXX_FLAGS_RELEASE}")
-string (REPLACE " " ";" CMAKE_CXX_FLAGS_DEBUG_LIST          "${CMAKE_CXX_FLAGS_DEBUG}")
-string (REPLACE " " ";" CMAKE_CXX_FLAGS_RELWITHDEBINFO_LIST "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-string (REPLACE " " ";" CMAKE_CXX_FLAGS_MINSIZEREL_LIST     "${CMAKE_CXX_FLAGS_MINSIZEREL}")
 
-list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS_LIST)
-list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS_RELEASE_LIST)
-list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS_DEBUG_LIST)
-list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS_RELWITHDEBINFO_LIST)
-list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS_MINSIZEREL_LIST)
+###  Enable c++17 support
+target_compile_features(tb-flags INTERFACE cxx_std_17)
 
-string (REPLACE ";" " " CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS_LIST}")
-string (REPLACE ";" " " CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE_LIST}")
-string (REPLACE ";" " " CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG_LIST}")
-string (REPLACE ";" " " CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO_LIST}")
-string (REPLACE ";" " " CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL_LIST}")
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+
+# Settings for sanitizers
+if (${PROJECT_UNAME}_ENABLE_ASAN)
+    target_compile_options(tb-flags INTERFACE $<$<COMPILE_LANGUAGE:CXX>:-fsanitize=address;-fno-omit-frame-pointer>)
+    target_link_options(tb-flags INTERFACE -fsanitize=address)
+endif ()
+if (${PROJECT_UNAME}_ENABLE_USAN)
+    target_compile_options(tb-flags INTERFACE $<$<COMPILE_LANGUAGE:CXX>:-fsanitize=undefined,leak,pointer-compare,pointer-subtract,alignment,bounds;-fno-omit-frame-pointer>)
+    target_link_libraries(tb-flags INTERFACE -fsanitize=undefined,leak,pointer-compare,pointer-subtract,alignment,bounds)
+endif ()
+
+### Enable link time optimization
+function(target_enable_lto tgt)
+    if(${PROJECT_UNAME}_ENABLE_LTO)
+        include(CheckIPOSupported)
+        check_ipo_supported(RESULT lto_supported OUTPUT lto_error)
+        if(lto_supported)
+            message(STATUS "LTO enabled")
+            set_target_properties(${tgt} PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON)
+        else()
+            message(FATAL_ERROR "LTO is not supported: ${lto_error}")
+        endif()
+    endif()
+endfunction()
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT CMAKE_EXE_LINKER_FLAGS MATCHES "fuse-ld=gold")
-    set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=gold ${CMAKE_EXE_LINKER_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=gold -Wl,--disable-new-dtags")
 endif()
 
 ###############################
 # Settings for shared builds
-
 # use, i.e. don't skip the full RPATH for the build tree
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 

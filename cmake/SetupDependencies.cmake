@@ -24,8 +24,13 @@ if (TB_ENABLE_MKL)
     else()
         find_package(MKL COMPONENTS blas lapack gf gnu_thread lp64 REQUIRED)
     endif()
-
+    target_compile_definitions(mkl::mkl INTERFACE TB_MKL)
 endif ()
+if(TB_ENABLE_OPENBLAS)
+    find_package(OpenBLAS REQUIRED)
+    target_compile_definitions(OpenBLAS::OpenBLAS INTERFACE TB_OPENBLAS)
+
+endif()
 
 
 include(cmake/SetupDependenciesCMake.cmake)
@@ -43,51 +48,28 @@ endif()
 if(TB_ENABLE_TBLIS)
     install_package(tblis MODULE)
 endif()
-if(TB_ENABLE_XTENSOR AND TARGET TB_ENABLE_OPENBLAS)
+if(TB_ENABLE_XTENSOR)
     find_package(xtensor REQUIRED)
     install_package(xtensor-blas
                     CMAKE_ARGS -DUSE_OPENBLAS:BOOL=ON
                     TARGET_NAME xtensor-blas
-                    DEPENDS xtl xsimd xtensor OpenBLAS::OpenBLAS)
+                    DEPENDS xtl xsimd xtensor BLAS::BLAS)
+    target_compile_definitions(xtensor-blas INTERFACE HAVE_CBLAS=1)
     target_link_libraries(xtensor INTERFACE xtensor-blas)
 endif()
 
 if(TB_ENABLE_CYCLOPS)
     install_package(cyclops MODULE)
+    target_compile_definitions(tb-flags INTERFACE TB_MPI)
 endif()
 
 
 ##################################################################
 ### Link all the things!                                       ###
 ##################################################################
-if(TARGET OpenMP::OpenMP_CXX)
-    target_link_libraries(tb-flags INTERFACE OpenMP::OpenMP_CXX)
-else()
-    target_compile_options(tb-flags INTERFACE -Wno-unknown-pragmas)
-endif()
-
+target_link_libraries(tb-flags INTERFACE OpenMP::OpenMP_CXX)
 target_link_libraries(tb-deps INTERFACE h5pp::h5pp cxxopts::cxxopts)
 
-
-# Configure Eigen
-if(TARGET Eigen3::Eigen)
-    target_compile_definitions(Eigen3::Eigen INTERFACE EIGEN_USE_THREADS)
-    get_target_property(EIGEN3_INCLUDE_DIR Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
-    target_include_directories(Eigen3::Eigen SYSTEM INTERFACE ${EIGEN3_INCLUDE_DIR})
-    if(TARGET mkl::mkl)
-        message(STATUS "Eigen3 will use MKL")
-        target_compile_definitions    (Eigen3::Eigen INTERFACE EIGEN_USE_MKL_ALL)
-        target_compile_definitions    (Eigen3::Eigen INTERFACE EIGEN_USE_LAPACKE_STRICT)
-        target_link_libraries         (Eigen3::Eigen INTERFACE mkl::mkl)
-    elseif(TARGET OpenBLAS::OpenBLAS)
-        message(STATUS "Eigen3 will use OpenBLAS")
-        target_compile_definitions    (Eigen3::Eigen INTERFACE EIGEN_USE_BLAS)
-        target_compile_definitions    (Eigen3::Eigen INTERFACE EIGEN_USE_LAPACKE_STRICT)
-        target_link_libraries         (Eigen3::Eigen INTERFACE OpenBLAS::OpenBLAS)
-    endif()
-else()
-    message(FATAL_ERROR "Target not defined: Eigen3::Eigen")
-endif()
 
 
 if(TB_ENABLE_ACRO)
@@ -102,11 +84,11 @@ endif()
 if(TB_ENABLE_XTENSOR)
     target_link_libraries(tb-deps INTERFACE xtensor)
 endif()
-
 if(TB_ENABLE_MKL)
-    target_compile_definitions(tb-deps INTERFACE TB_MKL)
+    target_link_libraries(tb-deps INTERFACE mkl::mkl)
 endif()
 if(TB_ENABLE_OPENBLAS)
-    target_compile_definitions(tb-deps INTERFACE TB_OPENBLAS)
     target_link_libraries(tb-deps INTERFACE OpenBLAS::OpenBLAS)
 endif()
+
+set_target_properties(OpenMP::OpenMP_CXX PROPERTIES INTERFACE_LINK_LIBRARIES "") # Use flag only

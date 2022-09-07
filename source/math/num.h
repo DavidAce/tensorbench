@@ -244,7 +244,7 @@ namespace num {
      *   \return product of elements with type Input::value_type .
      *   \example Let <code> v = {1,2,3,4}</code>. Then <code> prod(v,0,3) = 24 </code>.
      */
-    template<typename Input, typename From, typename To>
+    template<typename Input>
     [[nodiscard]] auto prod(const Input &in, long from = 0, long num = -1) {
         if(num < 0) num = in.size();
         num = std::min<long>(num, static_cast<long>(in.size()) - from);

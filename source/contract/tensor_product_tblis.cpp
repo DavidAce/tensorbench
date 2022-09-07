@@ -74,8 +74,8 @@ contract::ResultType<Scalar> contract::tensor_product_tblis(const Eigen::Tensor<
         Eigen::Tensor<Scalar, 4> psi_envL(psi.dimension(0), psi.dimension(2), envL.dimension(1), envL.dimension(2));
         Eigen::Tensor<Scalar, 4> psi_envL_mpo(psi.dimension(2), envL.dimension(1), mpo.dimension(1), mpo.dimension(3));
         contract_tblis(psi, envL, psi_envL, "afb", "fcd", "abcd");
-        contract_tblis(psi_envL, mpo, psi_envL_mpo, "qijr", "rkql", "ijkl");
-        contract_tblis(psi_envL_mpo, envR, ham_sq_psi, "qjri", "qkr", "ijk");
+        contract_tblis(psi_envL, mpo, psi_envL_mpo, "abcd", "diaj", "bcij");
+        contract_tblis(psi_envL_mpo, envR, ham_sq_psi, "bcij", "bki", "jck");
     }
     else{
         Eigen::Tensor<Scalar, 4> psi_envR(psi.dimension(0), psi.dimension(1), envR.dimension(1), envR.dimension(2));
@@ -89,7 +89,7 @@ contract::ResultType<Scalar> contract::tensor_product_tblis(const Eigen::Tensor<
     return std::make_pair(ham_sq_psi, get_ops_tblis_L(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0)));
 }
 
-using cplx = std::complex<double>;
+using cx64 = std::complex<double>;
 using fp32 = float;
 using fp64 = double;
 

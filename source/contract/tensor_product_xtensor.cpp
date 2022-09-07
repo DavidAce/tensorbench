@@ -1,12 +1,20 @@
 
 #if defined(TB_XTENSOR)
+    #undef EIGEN_USE_MKL_ALL
+//    #undef EIGEN_USE_LAPACKE_STRICT
+
+#ifndef HAVE_CBLAS
+#define HAVE_CBLAS 1
+#endif
+    #include <complex>
+    #include <xtensor-blas/xlinalg.hpp>
+    #include <xtensor/xadapt.hpp>
+    #include <xtensor/xtensor.hpp>
+
+// include blas first
     #include "contract/contract.h"
     #include "tools/class_tic_toc.h"
     #include "tools/prof.h"
-    #include "xtensor-blas/xlinalg.hpp"
-    #include "xtensor/xadapt.hpp"
-    #include "xtensor/xtensor.hpp"
-    #include <complex>
 
 long get_ops_xtensor(long d, long chiL, long chiR, long m) {
     if(chiR > chiL) return get_ops_xtensor(d, chiR, chiL, m);
@@ -55,7 +63,7 @@ contract::ResultType<Scalar> contract::tensor_product_xtensor(const Eigen::Tenso
     return std::make_pair(ham_sq_psi, get_ops_xtensor(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0)));
 }
 
-using cplx = std::complex<double>;
+using cx64 = std::complex<double>;
 using fp32 = float;
 using fp64 = double;
 

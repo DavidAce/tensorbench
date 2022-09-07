@@ -52,7 +52,7 @@ contract::ResultType<Scalar> contract::tensor_product_eigen1(const Eigen::Tensor
     return std::make_pair(ham_sq_psi, get_ops_eigen1_L(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0)));
 }
 
-using cplx = std::complex<double>;
+using cx64 = std::complex<double>;
 using fp32 = float;
 using fp64 = double;
 

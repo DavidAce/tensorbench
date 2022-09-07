@@ -1,14 +1,13 @@
 
 
 #if defined(TB_CUTE)
-//    #include <complex>
-    #include <contract/contract.h>
-    #include <tools/class_tic_toc.h>
-    #include <tools/log.h>
-    #include <tools/prof.h>
-
-    #include <stdio.h>
-    #include <stdlib.h>
+    #include "contract.h"
+    #include "tools/class_tic_toc.h"
+    #include "tools/fmt.h"
+    #include "tools/log.h"
+    #include "tools/prof.h"
+    #include <cstdio>
+    #include <cstdlib>
 
     #include <cuda_runtime.h>
     #include <cutensor.h>
@@ -26,29 +25,45 @@
             }                                                                                                                                                  \
         }
 
-    #define HANDLE_CUDA_ERROR(x)                                                        \
-    { const auto err = x;                                                               \
-      if( err != cudaSuccess )                                                          \
-      {  tools::log->critical("{} in line {}", cudaGetErrorString(err),__LINE__);       \
-                exit(err);                                                              \
-      }                                                                                 \
-    }
+    #define HANDLE_CUDA_ERROR(x)                                                                                                                               \
+        {                                                                                                                                                      \
+            const auto err = x;                                                                                                                                \
+            if(err != cudaSuccess) {                                                                                                                           \
+                tools::log->critical("{} in line {}", cudaGetErrorString(err), __LINE__);                                                                      \
+                exit(err);                                                                                                                                     \
+            }                                                                                                                                                  \
+        }
 
-
-long get_ops_m(long chiL, long chiR, long d, long m) {
-    long step1   = chiL * chiL * chiR * m * m * d;
-    long step2_m = chiL * chiR * d * d * m * m * (d * m + 1);
-    long step3_m = chiL * chiR * d * d * m * m * (d * m + 1);
-    long step4   = chiL * chiR * d * m * (chiR * m * m * m + m * m + 1);
-    return step1 + step2_m + step3_m + step4;
+long get_ops_cute_L(long d, long chiL, long chiR, long m);
+long get_ops_cute_R(long d, long chiL, long chiR, long m) {
+    // Same as L, just swap chiL and chiR
+    if(chiR > chiL) return get_ops_cute_L(d, chiR, chiL, m);
+    else
+        return get_ops_cute_L(d, chiL, chiR, m);
 }
 
+long get_ops_cute_L(long d, long chiL, long chiR, long m) {
+    if(chiR > chiL) return get_ops_cute_R(d, chiL, chiR, m);
+    if(d > m) {
+        // d first
+        long step1 = chiL * chiL * chiR * m * m * d;
+        long step2 = chiL * chiR * d * m * m * m * (d * m + 1);
+        long step3 = chiL * chiR * d * m * (chiR * m * m * m + m * m + 1);
+        return step1 + step2 + step3;
+    } else {
+        // m first
+        long step1 = chiL * chiL * chiR * m * d;
+        long step2 = chiL * chiR * d * m * m * (d * m + 1);
+        long step3 = chiL * chiR * chiR * d * m * (m + 1);
+        return step1 + step2 + step3;
+    }
+}
 
 template<typename Scalar>
 class Meta {
     private:
-    Scalar *      d_ptr    = nullptr;
-    const Scalar *h_ptr   = nullptr;
+    Scalar       *d_ptr = nullptr;
+    const Scalar *h_ptr = nullptr;
 
     public:
     using value_type = Scalar;
@@ -62,43 +77,40 @@ class Meta {
         for(size_t idx = 0; idx < rank; idx++) extent.push_back(tensor.dimension(idx));
     }
 
-    Meta(const std::vector<int> &mode_, const std::vector<int64_t> & extent_) : mode(mode_),extent(extent_) {
+    Meta(const std::vector<int> &mode_, const std::vector<int64_t> &extent_) : mode(mode_), extent(extent_) {
         if(mode.size() != extent.size()) throw std::runtime_error("Mode and extent size mismatch");
     }
 
     ~Meta() {
-//        if(d_ptr) HANDLE_CUDA_ERROR(cudaFree(d_ptr));
-
+        //        if(d_ptr) HANDLE_CUDA_ERROR(cudaFree(d_ptr));
     }
-
     auto size() {
         size_t size = 1;
         for(auto &ext : extent) size *= ext;
         return size;
     }
 
-    size_t   byteSize() { return size() * sizeof(Scalar); }
-    uint32_t rank() { return mode.size(); }
-    Scalar * data_d() { return d_ptr; }
-    const Scalar * data_h() {
-        return h_ptr;
-    }
-    void copyToDevice() {
+    size_t        byteSize() { return size() * sizeof(Scalar); }
+    uint32_t      rank() { return mode.size(); }
+    Scalar       *data_d() { return d_ptr; }
+    const Scalar *data_h() { return h_ptr; }
+    void          copyToDevice() {
+//        size_t mf, ma;
+//        cudaMemGetInfo(&mf, &ma);
+//        tools::log->trace("CUDA: Free {} | Total {}", static_cast<double>(mf)/std::pow(1024,2), static_cast<double>(ma)/std::pow(1024,2));
         if(data_d() == nullptr) HANDLE_CUDA_ERROR(cudaMalloc((void **) &d_ptr, byteSize()));
         if(data_h() == nullptr) return; // Nothing to copy
         HANDLE_CUDA_ERROR(cudaMemcpy(data_d(), data_h(), byteSize(), cudaMemcpyHostToDevice));
     }
 
-    void copyFromDevice(Scalar * data_h) {
+    void copyFromDevice(Scalar *data_h) {
         if(data_h == nullptr) throw std::runtime_error("Cannot copy from device: Host data is null");
         if(data_d() == nullptr) return; // Nothing to copy
         HANDLE_CUDA_ERROR(cudaMemcpy(data_h, data_d(), byteSize(), cudaMemcpyDeviceToHost));
     }
 
-    void free(){
-        if(d_ptr) {
-            HANDLE_CUDA_ERROR(cudaFree(d_ptr));
-        }
+    void free() {
+        if(d_ptr) { HANDLE_CUDA_ERROR(cudaFree(d_ptr)); }
     }
 };
 
@@ -165,7 +177,7 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
 
     // Query workspace
     size_t worksize = 0;
-    HANDLE_ERROR(cutensorContractionGetWorkspace(&handle, &desc, &find, CUTENSOR_WORKSPACE_RECOMMENDED, &worksize));
+    HANDLE_ERROR(cutensorContractionGetWorkspaceSize(&handle, &desc, &find, CUTENSOR_WORKSPACE_RECOMMENDED, &worksize));
 
     // Allocate workspace
     void *work = nullptr;
@@ -190,14 +202,14 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
     /* ***************************** */
 
     cutensorStatus_t err;
-    cudaStream_t stream = nullptr;
+    cudaStream_t     stream = nullptr;
     // Execute the tensor contraction
     err = cutensorContraction(&handle, &plan, (void *) &alpha, tensor_A.data_d(), tensor_B.data_d(), (void *) &beta, tensor_R.data_d(), tensor_R.data_d(), work,
                               worksize, stream);
     cudaDeviceSynchronize();
 
     // Check for errors
-    if(err != CUTENSOR_STATUS_SUCCESS) {  tools::log->error("{}", cutensorGetErrorString(err)); }
+    if(err != CUTENSOR_STATUS_SUCCESS) { tools::log->error("{}", cutensorGetErrorString(err)); }
 
     tools::log->trace("Execute contraction from plan");
 
@@ -207,124 +219,84 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
 }
 
 template<typename Scalar>
-Eigen::Tensor<Scalar, 3> contract::tensor_product_cute(const Eigen::Tensor<Scalar, 3> &psi_in, const Eigen::Tensor<Scalar, 4> &mpo,
-                                                                    const Eigen::Tensor<Scalar, 4> &envL, const Eigen::Tensor<Scalar, 4> &envR) {
+contract::ResultType<Scalar> contract::tensor_product_cute(const Eigen::Tensor<Scalar, 3> &psi, const Eigen::Tensor<Scalar, 4> &mpo,
+                                                           const Eigen::Tensor<Scalar, 3> &envL, const Eigen::Tensor<Scalar, 3> &envR) {
     tools::prof::t_cute->tic();
-    Eigen::DSizes<long, 3>   dsizes = psi_in.dimensions();
-    Eigen::Tensor<Scalar, 3> ham_sq_psi(dsizes);
-    Eigen::Tensor<Scalar, 3> psi_shuffled = psi_in.shuffle(tenx::array3{1, 0, 2});
+    Eigen::DSizes<long, 3>   dsizes = psi.dimensions();
+    tools::log->info("cute: psi  dims {}", psi.dimensions());
+    tools::log->info("cute: mpo  dims {}", mpo.dimensions());
+    tools::log->info("cute: envL dims {}", envL.dimensions());
+    tools::log->info("cute: envR dims {}", envR.dimensions());
 
     // Extents
     std::unordered_map<int, int64_t> ext;
-    ext['i'] = psi_shuffled.dimension(0);
-    ext['j'] = psi_shuffled.dimension(1);
-    ext['k'] = psi_shuffled.dimension(2);
+    ext['i'] = psi.dimension(0);
+    ext['j'] = psi.dimension(1);
+    ext['k'] = psi.dimension(2);
     ext['l'] = mpo.dimension(0);
     ext['m'] = mpo.dimension(1);
     ext['n'] = mpo.dimension(3);
-    ext['o'] = mpo.dimension(0);
-    ext['p'] = mpo.dimension(1);
-    ext['q'] = mpo.dimension(3);
-    ext['r'] = envL.dimension(1);
-    ext['s'] = envR.dimension(1);
+    ext['o'] = envL.dimension(1);
+    ext['p'] = envR.dimension(1);
 
-    tools::log->trace("Define tensors for contracting psi and envL");
+    tools::log->info("cute: ext {}", ext);
+    tools::log->info("Define cuda tensor meta objects");
+    Meta<Scalar> cu_psi(psi, {'i', 'j', 'k'});
+    Meta<Scalar> cu_mpo(mpo, {'l', 'm', 'i', 'n'});
+    Meta<Scalar> cu_envL(envL, {'j', 'o', 'l'});
+    Meta<Scalar> cu_envR(envR, {'k', 'p', 'm'});
+    Meta<Scalar> cu_psi_envL({'i', 'k', 'l', 'o'}, {ext['i'], ext['k'], ext['l'], ext['o']});
+    Meta<Scalar> cu_psi_envL_mpo({'k', 'o', 'm', 'n'}, {ext['k'], ext['o'], ext['m'], ext['n']});
+    Meta<Scalar> cu_ham_psi_sq({'n', 'o', 'p'}, {ext['n'], ext['o'], ext['p']});
 
-    Meta<Scalar> cu_psi(psi_shuffled, {'i', 'j', 'k'});
-    Meta<Scalar> cu_envL(envL, {'i', 'r', 'l', 'o'});
-    Meta<Scalar> cu_psi_envL({'j','k','r','l','o'}, {ext['j'],ext['k'],ext['r'],ext['l'],ext['o']});
-    tools::log->trace("Copy to device");
+    tools::log->info("Copy to device: step 1 of 3");
     cu_psi.copyToDevice();
     cu_envL.copyToDevice();
     cu_psi_envL.copyToDevice();
 
     tools::log->trace("Contract psi and envL");
-    cuTensorContract(cu_psi_envL,cu_psi,cu_envL);
+    cuTensorContract(cu_psi_envL, cu_psi, cu_envL);
 
     cu_psi.free();
     cu_envL.free();
 
-    tools::log->trace("Define tensors for contracting psi_envL and mpo1");
-    Meta<Scalar> cu_mpo1(mpo, {'l', 'm', 'j', 'n'});
-    Meta<Scalar> cu_psi_envL_mpo1({'k','r','o','m','n'}, {ext['k'],ext['r'],ext['o'],ext['m'],ext['n']});
-    tools::log->trace("Copy to device");
-    cu_mpo1.copyToDevice();
-    cu_psi_envL_mpo1.copyToDevice();
+    tools::log->info("Copy to device: step 2 of 3");
+    cu_mpo.copyToDevice();
+    cu_psi_envL_mpo.copyToDevice();
 
-    tools::log->trace("Contract psi_envL and mpo1");
-    cuTensorContract(cu_psi_envL_mpo1,cu_psi_envL,cu_mpo1);
+    tools::log->info("Contract psi_envL and mpo");
+    cuTensorContract(cu_psi_envL_mpo, cu_psi_envL, cu_mpo);
 
-    cu_mpo1.free();
+    cu_mpo.free();
     cu_psi_envL.free();
 
-    tools::log->trace("Define tensors for contracting psi_envL_mpo1 and mpo2");
-    Meta<Scalar> cu_mpo2(mpo, {'o', 'p', 'n', 'q'});
-    Meta<Scalar> cu_psi_envL_mpo1_mpo2({'k','r','m','p','q'}, {ext['k'],ext['r'],ext['m'],ext['p'],ext['q']});
-    tools::log->trace("Copy to device");
-    cu_mpo2.copyToDevice();
-    cu_psi_envL_mpo1_mpo2.copyToDevice();
-
-    tools::log->trace("Contract psi_envL_mpo1 and mpo2");
-    cuTensorContract(cu_psi_envL_mpo1_mpo2,cu_psi_envL_mpo1,cu_mpo2);
-
-    cu_mpo2.free();
-    cu_psi_envL_mpo1.free();
-
-    tools::log->trace("Define tensors for contracting psi_envL_mpo1 and mpo2");
-    Meta<Scalar> cu_envR(envR, {'k', 's', 'm', 'p'});
-    Meta<Scalar> cu_ham_psi_sq({'q','r','s'}, {ext['q'],ext['r'],ext['s']});
-    tools::log->trace("Copy to device");
+    tools::log->info("Copy to device: step 3 of 3");
     cu_envR.copyToDevice();
     cu_ham_psi_sq.copyToDevice();
 
-    tools::log->trace("Contract psi_envL_mpo1_mpo2 and envR");
-    cuTensorContract(cu_ham_psi_sq,cu_psi_envL_mpo1_mpo2,cu_envR);
+    tools::log->info("Contract psi_envL_mpo and envR");
+    cuTensorContract(cu_ham_psi_sq, cu_psi_envL_mpo, cu_envR);
 
     cu_envR.free();
-    cu_psi_envL_mpo1_mpo2.free();
+    cu_psi_envL_mpo.free();
 
+    Eigen::Tensor<Scalar, 3> ham_sq_psi(dsizes);
     cu_ham_psi_sq.copyFromDevice(ham_sq_psi.data());
     cu_ham_psi_sq.free();
     tools::prof::t_cute->toc();
+    tools::log->info("Done");
 
-#if !defined(NDEBUG)
-    Eigen::Tensor<Scalar, 3> ham_sq_psi_cpu(dsizes);
-    ham_sq_psi_cpu.device(*tenx::omp::dev) =
-        psi_shuffled
-            .contract(envL , tenx::idx(tenx::array1{0}, tenx::array1{0}))
-            .contract(mpo  , tenx::idx(tenx::array2{0, 3}, tenx::array2{2, 0}))
-            .contract(mpo  , tenx::idx(tenx::array2{4, 2}, tenx::array2{2, 0}))
-            .contract(envR,  tenx::idx(tenx::array3{0, 2, 3}, tenx::array3{0, 2, 3}))
-            .shuffle(tenx::array3{1, 0, 2});
-
-    for (long i = 0; i < ham_sq_psi_cpu.size(); i++) {
-        if (std::abs(ham_sq_psi_cpu(i) - ham_sq_psi(i))/std::abs(ham_sq_psi_cpu(i)) > 1e-4) {
-            tools::log->error("Tensor mismatch > 1e-2 at index {:5}: cpu {:20.16f} != gpu {:20.16f}",i,ham_sq_psi_cpu(i) ,ham_sq_psi(i));
-//            throw std::runtime_error("Tensor mismatch > 1e-4 at index "+ std::to_string(i)
-//                                     + " " + std::to_string(ham_sq_psi_cpu(i)) + " " + std::to_string(ham_sq_psi(i)));
-        }
-//        if (not Eigen::internal::isApprox(ham_sq_psi_cpu(i),  ham_sq_psi(i), 1e-4)) {
-//            tools::log->error("Tensor mismatch > 1e-4 at index {:5}: {:.8f} != {.8f}",i,ham_sq_psi_cpu(i) ,ham_sq_psi(i));
-//            throw std::runtime_error("Tensor approx mismatch > 1e-4 at index "+ std::to_string(i)
-//                                     + " " + std::to_string(ham_sq_psi_cpu(i)) + " " + std::to_string(ham_sq_psi(i)));
-//        }
-
-    }
-
-#endif
-
-
-    return std::make_pair(ham_sq_psi,get_ops_m(dsizes[0],dsizes[1],dsizes[2],mpo.dimension(0)));
+    return std::make_pair(ham_sq_psi, get_ops_cute_L(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0)));
 }
 
-using cplx = std::complex<double>;
-using fp32 = float;
+// using cx64 = std::complex<double>;
+// using fp32 = float;
 using fp64 = double;
 
 // template contract::ResultType<cplx> contract::tensor_product_cute(const Eigen::Tensor<cplx, 3> &psi_in, const Eigen::Tensor<cplx, 4> &mpo,
 //                                                                           const Eigen::Tensor<cplx, 4> &envL, const Eigen::Tensor<cplx, 4> &envR);
-template contract::ResultType<fp32> contract::tensor_product_cute(const Eigen::Tensor<fp32, 3> &psi_in, const Eigen::Tensor<fp32, 4> &mpo,
-                                                                           const Eigen::Tensor<fp32, 4> &envL, const Eigen::Tensor<fp32, 4> &envR);
-template contract::ResultType<fp64> contract::tensor_product_cute(const Eigen::Tensor<fp64, 3> &psi_in, const Eigen::Tensor<fp64, 4> &mpo,
-                                                                           const Eigen::Tensor<fp64, 4> &envL, const Eigen::Tensor<fp64, 4> &envR);
+// template contract::ResultType<fp32> contract::tensor_product_cute(const Eigen::Tensor<fp32, 3> &psi_in, const Eigen::Tensor<fp32, 4> &mpo,
+//                                                                           const Eigen::Tensor<fp32, 4> &envL, const Eigen::Tensor<fp32, 4> &envR);
+template contract::ResultType<fp64> contract::tensor_product_cute(const Eigen::Tensor<fp64, 3> &psi, const Eigen::Tensor<fp64, 4> &mpo,
+                                                                  const Eigen::Tensor<fp64, 3> &envL, const Eigen::Tensor<fp64, 3> &envR);
 #endif

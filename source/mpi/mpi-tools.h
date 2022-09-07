@@ -7,8 +7,13 @@
 #include <general/sfinae.h>
 #include <h5pp/details/h5ppFilesystem.h>
 #include <h5pp/details/h5ppFormat.h>
-#include <mpi.h>
 #include <vector>
+
+#if defined(TB_MPI)
+    #include <mpi/mpi.h>
+#endif
+
+
 namespace mpi {
 
     inline bool on = false;
@@ -31,9 +36,11 @@ namespace mpi {
     void        init();
     void        finalize();
     void        barrier();
+
+#if defined(TB_MPI)
     template<typename T>
     [[nodiscard]] constexpr MPI_Datatype get_dtype() noexcept {
-        using D               = typename std::decay<T>::type;
+        using D = typename std::decay<T>::type;
         /* clang-format off */
         if constexpr(std::is_same_v<T, char>)                           return MPI_CHAR;
         else if constexpr(std::is_same_v<D, signed char>)               return MPI_SIGNED_CHAR;
@@ -140,12 +147,12 @@ namespace mpi {
         MPI_Bcast(mpi::get_buffer(data), mpi::get_count(data), mpi::get_dtype<T>(), src, MPI_COMM_WORLD);
     }
 
-    template<typename R, typename S>
-    void gatherv(R &recv, const S &send, int dst) {
+    template<typename S, typename R>
+    void gatherv(const S &send, R &recv, int dst) {
         int              count = mpi::get_count(send);
         std::vector<int> counts(world.size);
         std::vector<int> displs;
-        int err = MPI_Gather(&count, 1, MPI_INT, counts.data(), 1, MPI_INT, dst, MPI_COMM_WORLD);
+        int              err = MPI_Gather(&count, 1, MPI_INT, counts.data(), 1, MPI_INT, dst, MPI_COMM_WORLD);
         if(err != 0) tools::log->error("mpi::gatherv: MPI_Gather exit code {}", err);
         if constexpr(sfinae::has_resize_v<R>) {
             if(world.id == dst) {
@@ -155,10 +162,27 @@ namespace mpi {
             }
         }
         err = MPI_Gatherv(mpi::get_cbuffer(send), count, mpi::get_dtype<S>(), mpi::get_buffer(recv), counts.data(), displs.data(), mpi::get_dtype<R>(), dst,
-                              MPI_COMM_WORLD);
+                          MPI_COMM_WORLD);
         if(err != 0) tools::log->error("mpi::gatherv: MPI_Gatherv exit code {}", err);
+    }
+
+    template<typename S, typename R>
+    void scatterv(const S &send, R &recv, int src, int recvcount = -1) {
+        if(recvcount == -1) recvcount = mpi::get_count(recv);
+        if constexpr(sfinae::has_resize_v<R>) recv.resize(recvcount); // Resize receiving buffer.
+        std::vector<int> sendcounts;
+        std::vector<int> displs;
+        if(mpi::world.id == src) sendcounts.resize(world.size);
+        int err = MPI_Gather(&recvcount, 1, MPI_INT, sendcounts.data(), 1, MPI_INT, src, MPI_COMM_WORLD);
+        if(err != 0) tools::log->error("mpi::scatterv: MPI_Gather exit code {}", err);
+        if(mpi::world.id == src) displs = num::disps(sendcounts);
+
+        err = MPI_Scatterv(mpi::get_cbuffer(send), sendcounts.data(), displs.data(), mpi::get_dtype<S>(), mpi::get_buffer(recv), recvcount, mpi::get_dtype<R>(),
+                           src, MPI_COMM_WORLD);
+        if(err != 0) tools::log->error("mpi::scatterv: MPI_Scatterv exit code {}", err);
     }
 
     void scatter(std::vector<h5pp::fs::path> &data, int srcId);
     void scatter_r(std::vector<h5pp::fs::path> &data, int srcId); // Roundrobin
+#endif
 }

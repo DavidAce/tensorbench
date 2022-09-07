@@ -3,7 +3,16 @@
 #include "general/iter.h"
 #include "math/num.h"
 #include "tools/log.h"
-#include <mpi/mpi.h>
+
+#if !defined(TB_MPI)
+
+void mpi::init() {}
+void mpi::finalize() {}
+void mpi::barrier() {}
+
+#else
+
+    #include <mpi/mpi.h>
 void mpi::init() {
     // Initialize the MPI environment
     MPI_Init(nullptr, nullptr);
@@ -12,11 +21,11 @@ void mpi::init() {
 
     if(world.id == 0) tools::log->info("MPI initialized with {} processes", world.size);
     if(world.size > 1) {
-        mpi::on = true;
-        auto logname       = tools::log->name();
-        auto width         = fmt::format("{}", world.size - 1).size();
-        auto mpiname       = fmt::format("{}-{:>{}}", tools::log->name(), world.id, width);
-        tools::log = tools::Logger::setLogger(mpiname, static_cast<size_t>(tools::log->level()));
+        mpi::on      = true;
+        auto logname = tools::log->name();
+        auto width   = fmt::format("{}", world.size - 1).size();
+        auto mpiname = fmt::format("{}-{:>{}}", tools::log->name(), world.id, width);
+        tools::log   = tools::Logger::setLogger(mpiname, static_cast<size_t>(tools::log->level()));
     }
 }
 
@@ -27,7 +36,6 @@ void mpi::finalize() {
 void mpi::barrier() {
     if(world.size > 1 or mpi::on) MPI_Barrier(MPI_COMM_WORLD);
 }
-
 
 void mpi::scatter(std::vector<h5pp::fs::path> &data, int src) {
     if(world.size == 1) return; // No need to scatter
@@ -136,3 +144,4 @@ void mpi::scatter_r(std::vector<h5pp::fs::path> &data, int src) {
     if(data.size() != counts[world.get_id<size_t>()])
         throw std::logic_error(h5pp::format("mpi::scatter on id {} failed: counts {} | size {}", world.id, counts, data.size()));
 }
+#endif
