@@ -13,7 +13,7 @@ execute_process(
 
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
-        COMMAND git log -1 --format=%h
+        COMMAND git rev-parse --verify HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_VARIABLE GIT_COMMIT_HASH
         OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -27,10 +27,18 @@ execute_process(
         OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+cmake_host_system_information(RESULT _host_name QUERY HOSTNAME)
+cmake_host_system_information(RESULT _proc_type QUERY PROCESSOR_DESCRIPTION)
+cmake_host_system_information(RESULT _os_name QUERY OS_NAME)
+cmake_host_system_information(RESULT _os_release QUERY OS_RELEASE)
+cmake_host_system_information(RESULT _os_version QUERY OS_VERSION)
+cmake_host_system_information(RESULT _os_platform QUERY OS_PLATFORM)
+
+
 configure_file(
-${CMAKE_SOURCE_DIR}/cmake/gitversion.h.in
-${CMAKE_BINARY_DIR}/gitversion/gitversion.h
+${CMAKE_SOURCE_DIR}/cmake/environment.h.in
+${CMAKE_BINARY_DIR}/environment/include/env/environment.h
 )
 
-include_directories(${CMAKE_BINARY_DIR}/gitversion)
+include_directories(${CMAKE_BINARY_DIR}/environment/include)
 
