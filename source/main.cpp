@@ -1,7 +1,12 @@
 
-#include "contract/contract.h"
+#include "benchmarks/benchmarks.h"
+#include "config/config.h"
+#include "debug/exceptions.h"
+#include "debug/info.h"
+#include "debug/stacktrace.h"
 #include "general/enums.h"
 #include "math/stat.h"
+#include "math/tenx.h"
 #include "mpi/mpi-tools.h"
 #include "storage/results.h"
 #include "tblis/util/thread.h"
@@ -9,9 +14,8 @@
 #include "tools/class_tic_toc.h"
 #include "tools/log.h"
 #include "tools/prof.h"
-#include <cxxopts.hpp>
-#include <getopt.h>
-#include <gitversion.h>
+#include <env/environment.h>
+#include <omp.h>
 #include <thread>
 
 #if defined(TB_OPENBLAS)
@@ -40,6 +44,10 @@ struct tb_setup {
     Eigen::Tensor<T, 4>                      mpo;
     mutable std::vector<Eigen::Tensor<T, 3>> psi_check;
 };
+
+void print_timers() {
+//    for(const auto &t : tid::get_tree("main", tid::level::normal)) tools::log->info("{}", t.str());
+}
 
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 std::string currentDateTime() {
@@ -79,7 +87,7 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
             if constexpr(mode == tb_mode::eigen1) std::tie(psi_out, ops) = contract::tensor_product_eigen1(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
             if constexpr(mode == tb_mode::eigen2) std::tie(psi_out, ops) = contract::tensor_product_eigen2(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
             if constexpr(mode == tb_mode::eigen3) std::tie(psi_out, ops) = contract::tensor_product_eigen3(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
-            if constexpr(mode == tb_mode::cute) std::tie(psi_out, ops)   = contract::tensor_product_cute  (tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
+            if constexpr(mode == tb_mode::cute) std::tie(psi_out, ops) = contract::tensor_product_cute(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
             if constexpr(mode == tb_mode::acro) throw std::runtime_error("not implemented?");
             if constexpr(mode == tb_mode::xtensor) std::tie(psi_out, ops) = contract::tensor_product_xtensor(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
             if constexpr(mode == tb_mode::tblis) std::tie(psi_out, ops) = contract::tensor_product_tblis(tsp.psi, tsp.mpo, tsp.envL, tsp.envR);
@@ -123,51 +131,34 @@ void run_benchmark(h5pp::File &tdb, const tb_setup<T> &tsp, class_tic_toc &tt) {
  */
 
 int main(int argc, char *argv[]) {
-    cxxopts::Options options("tensorbench", "Benchmarks of tensor contractions");
-    /* clang-format off */
+    config::parse(argc, argv);
+    tools::log = tools::Logger::setLogger("tensorbench", config::loglevel);
+    tools::log->info("Hostname        : {}", debug::hostname());
+    tools::log->info("Build hostname  : {}", env::build::hostname);
+    tools::log->info("Git branch      : {}", env::git::branch);
+    tools::log->info("    commit hash : {}", env::git::commit_hash);
+    tools::log->info("    revision    : {}", env::git::revision);
 
-    std::string omp_max_threads_default = "1";
+    // Register termination codes and what to do on exit
 
-#if defined(_OPENMP)
-        // This will honor env variable OMP_NUM_THREADS
-        omp_max_threads_default = fmt::format("{}", omp_get_max_threads());
-#endif
-    options.add_options()
-        ("h,help",     "Show help")
-        ("B,bond",     "Bond dimension (Sets both chiL and chiR)",  cxxopts::value<std::vector<long>>()->default_value("16"))
-        ("L,chiL",     "Bond dimension to the left",                cxxopts::value<std::vector<long>>()->default_value("-1"))
-        ("R,chiR",     "Bond dimension to the right",               cxxopts::value<std::vector<long>>()->default_value("-1"))
-        ("D,spin",     "Spin dimension",                            cxxopts::value<std::vector<long>>()->default_value("2"))
-        ("M,mpod",     "MPO dimension",                             cxxopts::value<std::vector<long>>()->default_value("16"))
-        ("n,threads",  "Number of threads",                         cxxopts::value<std::vector<int>>()->default_value(omp_max_threads_default))
-        ("i,iters",    "Number of iterations",                      cxxopts::value<size_t>()->default_value("3"))
-        ("v,verbose",  "Sets verbosity level",                      cxxopts::value<size_t>()->default_value("2"));
-    /* clang-format on */
+    debug::register_callbacks();
+    std::atexit(mpi::finalize);
+    std::atexit(debug::print_stack_trace);
+    std::atexit(debug::print_mem_usage);
+    std::atexit(print_timers);
+    std::at_quick_exit(mpi::finalize);
+    std::at_quick_exit(debug::print_stack_trace);
+    std::at_quick_exit(debug::print_mem_usage);
+    std::at_quick_exit(print_timers);
 
-    auto in = options.parse(argc, argv);
-    if(in["help"].count() > 0) {
-        fmt::print(options.help());
-        exit(0);
-    }
+    auto t_main = tid::tic_scope("main");
+//    auto t_test = tid::tic_scope("test");
+//    auto t_time = tid::tic_token("time");
+//    for (const auto & t : tid::internal::tid_db) tools::log->info("tid_db: {}", t.first);
+    exit(0);
 
-    if(in["bond"].count() > 0 and (in["chiL"].count() > 0 or in["chiR"].count() > 0)) throw std::runtime_error("Argument error: Use EITHER bond or chiL/chiR");
-
-    auto v_chi     = in["bond"].as<std::vector<long>>();
-    auto v_chiL    = in["chiL"].as<std::vector<long>>();
-    auto v_chiR    = in["chiR"].as<std::vector<long>>();
-    auto v_spin    = in["spin"].as<std::vector<long>>();
-    auto v_mpod    = in["mpod"].as<std::vector<long>>();
-    auto v_threads = in["threads"].as<std::vector<int>>();
-    auto iters     = in["iters"].as<size_t>();
-    auto verbosity = in["verbose"].as<size_t>();
-
-    tools::log = tools::Logger::setLogger("tensorbench", verbosity);
-    auto t_tot = tid::get("tb").tic_token();
     tools::prof::init_profiling();
     mpi::init();
-#if defined(_OPENMP)
-    omp_set_num_threads(v_threads.front());
-#endif
     for(int id = 0; id < mpi::world.size; ++id) {
         if(id == mpi::world.id) {
 #pragma omp parallel
@@ -200,9 +191,9 @@ int main(int argc, char *argv[]) {
     if(mpi::world.id == 0) {
         tbdb = h5pp::File(fmt::format("../output/tbdb-{}.h5", currentDateTime()), h5pp::FilePermission::REPLACE);
         tb_results::register_table_type();
-        tbdb.writeAttribute(GIT::BRANCH, "/", "git_branch");
-        tbdb.writeAttribute(GIT::COMMIT_HASH, "/", "git_commit");
-        tbdb.writeAttribute(GIT::REVISION, "/", "git_revision");
+        tbdb.writeAttribute(env::git::branch, "/", "branch");
+        tbdb.writeAttribute(env::git::commit_hash, "/", "commit_hash");
+        tbdb.writeAttribute(env::git::revision, "/", "revision");
 
 #if defined(TB_EIGEN1) || defined(TB_EIGEN2) || defined(TB_EIGEN3)
         tbdb.writeAttribute(fmt::format("Eigen {}.{}.{}", EIGEN_WORLD_VERSION, EIGEN_MAJOR_VERSION, EIGEN_MINOR_VERSION), "/", "eigen_version");
@@ -214,31 +205,32 @@ int main(int argc, char *argv[]) {
         tbdb.writeAttribute(fmt::format("Intel MKL {}", INTEL_MKL_VERSION), "/", "intelmkl_version");
 #endif
         tools::log->info("Starting benchmark");
-        tools::log->info("chi : {}", v_chi);
-        tools::log->info("chiL: {}", v_chiL);
-        tools::log->info("chiR: {}", v_chiR);
-        tools::log->info("mpod: {}", v_mpod);
-        tools::log->info("spin: {}", v_spin);
+        tools::log->info("spin  : {}", config::v_spin);
+        tools::log->info("mpod  : {}", config::v_spin);
+        tools::log->info("bond  : {}", config::v_bond);
+        tools::log->info("bond L: {}", config::v_bondL);
+        tools::log->info("bond R: {}", config::v_bondR);
     }
+    auto t_tb = tid::tic_scope("tensorbench", tid::level::normal);
 
     tools::prof::t_total->tic();
 
-    for(auto chi : v_chi)
-        for(auto chiL : v_chiL)
-            for(auto chiR : v_chiR)
-                for(auto mpod : v_mpod)
-                    for(auto spin : v_spin) {
-                        if(chiL == -1) chiL = chi;
-                        if(chiR == -1) chiR = chi;
+    for(auto bond : config::v_bond)
+        for(auto bondL : config::v_bondL)
+            for(auto bondR : config::v_bondR)
+                for(auto mpod : config::v_mpod)
+                    for(auto spin : config::v_spin) {
+                        if(bondL == -1) bondL = bond;
+                        if(bondR == -1) bondR = bond;
                         tb_setup<Scalar> tbs;
-                        tbs.iters = iters;
-                        tbs.group = fmt::format("chiL_{}_chiR_{}_mpod_{}_spin_{}", chiL, chiR, mpod, spin);
+                        tbs.iters = config::n_iter;
+                        tbs.group = fmt::format("spin{}_mpod{}_bondL{}_bondR{}", spin, mpod, bondL, bondR);
 
                         if(mpi::world.id == 0) {
-                            tbs.envL = Eigen::Tensor<Scalar, 3>(chiL, chiL, mpod);
-                            tbs.envR = Eigen::Tensor<Scalar, 3>(chiR, chiR, mpod);
+                            tbs.envL = Eigen::Tensor<Scalar, 3>(bondL, bondL, mpod);
+                            tbs.envR = Eigen::Tensor<Scalar, 3>(bondR, bondR, mpod);
                             tbs.mpo  = Eigen::Tensor<Scalar, 4>(mpod, mpod, spin, spin);
-                            tbs.psi  = Eigen::Tensor<Scalar, 3>(spin, chiL, chiR);
+                            tbs.psi  = Eigen::Tensor<Scalar, 3>(spin, bondL, bondR);
 
                             tbs.envL.setRandom();
                             tbs.envR.setRandom();
@@ -252,7 +244,7 @@ int main(int argc, char *argv[]) {
                         run_benchmark<Scalar, tb_mode::cute>(tbdb, tbs, *tools::prof::t_cute);
 #endif
 
-                        for(auto num_threads : v_threads) {
+                        for(auto num_threads : config::v_nomp) {
                             if(num_threads <= 0) throw std::runtime_error(fmt::format("Invalid num threads: {}", optarg));
                             tools::prof::reset_profiling();
 #if defined(EIGEN_USE_THREADS)

@@ -1,6 +1,5 @@
 #pragma once
-#include "math/tenx.h"
-
+#include <unsupported/Eigen/CXX11/Tensor>
 namespace contract {
     template<typename Scalar>
     using ResultType = std::pair<Eigen::Tensor<Scalar, 3>, long>;

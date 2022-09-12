@@ -1,9 +1,10 @@
 #if defined(TB_EIGEN1)
 
+    #include "benchmarks/benchmarks.h"
+    #include "math/tenx.h"
+    #include "tools/class_tic_toc.h"
+    #include "tools/prof.h"
     #include <complex>
-    #include <contract/contract.h>
-    #include <tools/class_tic_toc.h>
-    #include <tools/prof.h>
 
 long get_ops_eigen1_L(long d, long chiL, long chiR, long m);
 long get_ops_eigen1_R(long d, long chiL, long chiR, long m) {

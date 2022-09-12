@@ -3,16 +3,17 @@
     #undef EIGEN_USE_MKL_ALL
 //    #undef EIGEN_USE_LAPACKE_STRICT
 
-#ifndef HAVE_CBLAS
-#define HAVE_CBLAS 1
-#endif
+    #ifndef HAVE_CBLAS
+        #define HAVE_CBLAS 1
+    #endif
     #include <complex>
     #include <xtensor-blas/xlinalg.hpp>
     #include <xtensor/xadapt.hpp>
     #include <xtensor/xtensor.hpp>
 
 // include blas first
-    #include "contract/contract.h"
+    #include "benchmarks/benchmarks.h"
+    #include "math/tenx.h"
     #include "tools/class_tic_toc.h"
     #include "tools/prof.h"
 

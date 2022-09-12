@@ -1,7 +1,8 @@
 #if defined(TB_EIGEN3)
 
+    #include "math/tenx.h"
+    #include <benchmarks/benchmarks.h>
     #include <complex>
-    #include <contract/contract.h>
     #include <tools/class_tic_toc.h>
     #include <tools/prof.h>
 
@@ -36,20 +37,17 @@ contract::ResultType<Scalar> contract::tensor_product_eigen3(const Eigen::Tensor
     Eigen::DSizes<long, 3>   dsizes = psi_in.dimensions();
     Eigen::Tensor<Scalar, 3> ham_sq_psi(dsizes);
 
-    Eigen::Tensor<Scalar,3> psi_sh = psi_in.shuffle(tenx::array3{1,0,2});
-    Eigen::Tensor<Scalar,3> enL_sh = envL.shuffle(tenx::array3{0,2,1});
-    Eigen::Tensor<Scalar,3> enR_sh = envR.shuffle(tenx::array3{0,2,1});
-    Eigen::Tensor<Scalar,4> mpo_sh = mpo.shuffle(tenx::array4{0,2,1,3});
+    Eigen::Tensor<Scalar, 3> psi_sh = psi_in.shuffle(tenx::array3{1, 0, 2});
+    Eigen::Tensor<Scalar, 3> enL_sh = envL.shuffle(tenx::array3{0, 2, 1});
+    Eigen::Tensor<Scalar, 3> enR_sh = envR.shuffle(tenx::array3{0, 2, 1});
+    Eigen::Tensor<Scalar, 4> mpo_sh = mpo.shuffle(tenx::array4{0, 2, 1, 3});
 
     tools::prof::t_eigen3->tic();
 
-    ham_sq_psi.device(*tenx::omp::dev) = psi_sh
-                                         .contract(enL_sh, tenx::idx({0}, {0}))
-                                         .contract(mpo_sh, tenx::idx({2, 0}, {0, 1}))
-                                         .contract(enR_sh, tenx::idx({0, 2}, {0, 1}))
-                                         .shuffle(tenx::array3{1, 0, 2});
-
-
+    ham_sq_psi.device(*tenx::omp::dev) = psi_sh.contract(enL_sh, tenx::idx({0}, {0}))
+                                             .contract(mpo_sh, tenx::idx({2, 0}, {0, 1}))
+                                             .contract(enR_sh, tenx::idx({0, 2}, {0, 1}))
+                                             .shuffle(tenx::array3{1, 0, 2});
 
     tools::prof::t_eigen3->toc();
     return std::make_pair(ham_sq_psi, get_ops_eigen3_L(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0)));

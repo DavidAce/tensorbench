@@ -1,12 +1,13 @@
 #if defined(TB_TBLIS)
 
-    #include <complex>
-    #include "contract/contract.h"
+    #include "benchmarks/benchmarks.h"
+    #include "math/tenx.h"
     #include "tblis/tblis.h"
     #include "tblis/util/thread.h"
     #include "tools/class_tic_toc.h"
     #include "tools/log.h"
     #include "tools/prof.h"
+    #include <complex>
 
 long get_ops_tblis_L(long d, long chiL, long chiR, long m);
 long get_ops_tblis_R(long d, long chiL, long chiR, long m) {
@@ -50,7 +51,6 @@ tblis::short_vector<tblis::stride_type, N> dim2stride(const Eigen::DSizes<T, N> 
 template<typename Scalar, auto NA, auto NB, auto NC>
 void contract_tblis(const Eigen::Tensor<Scalar, NA> &ea, const Eigen::Tensor<Scalar, NB> &eb, Eigen::Tensor<Scalar, NC> &ec, const tblis::label_vector &la,
                     const tblis::label_vector &lb, const tblis::label_vector &lc) {
-
     tblis::len_vector da, db, dc;
     da.assign(ea.dimensions().begin(), ea.dimensions().end());
     db.assign(eb.dimensions().begin(), eb.dimensions().end());
@@ -66,18 +66,17 @@ void contract_tblis(const Eigen::Tensor<Scalar, NA> &ea, const Eigen::Tensor<Sca
 template<typename Scalar>
 contract::ResultType<Scalar> contract::tensor_product_tblis(const Eigen::Tensor<Scalar, 3> &psi, const Eigen::Tensor<Scalar, 4> &mpo,
                                                             const Eigen::Tensor<Scalar, 3> &envL, const Eigen::Tensor<Scalar, 3> &envR) {
-    auto                     dsizes = psi.dimensions();
+    auto dsizes = psi.dimensions();
     tools::prof::t_tblis->tic();
     Eigen::Tensor<Scalar, 3> ham_sq_psi(psi.dimensions());
 
-    if (psi.dimension(1) >= psi.dimension(2)){
+    if(psi.dimension(1) >= psi.dimension(2)) {
         Eigen::Tensor<Scalar, 4> psi_envL(psi.dimension(0), psi.dimension(2), envL.dimension(1), envL.dimension(2));
         Eigen::Tensor<Scalar, 4> psi_envL_mpo(psi.dimension(2), envL.dimension(1), mpo.dimension(1), mpo.dimension(3));
         contract_tblis(psi, envL, psi_envL, "afb", "fcd", "abcd");
         contract_tblis(psi_envL, mpo, psi_envL_mpo, "abcd", "diaj", "bcij");
         contract_tblis(psi_envL_mpo, envR, ham_sq_psi, "bcij", "bki", "jck");
-    }
-    else{
+    } else {
         Eigen::Tensor<Scalar, 4> psi_envR(psi.dimension(0), psi.dimension(1), envR.dimension(1), envR.dimension(2));
         Eigen::Tensor<Scalar, 4> psi_envR_mpo(psi.dimension(1), envR.dimension(1), mpo.dimension(0), mpo.dimension(3));
         contract_tblis(psi, envR, psi_envR, "abf", "fcd", "abcd");

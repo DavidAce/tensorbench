@@ -1,7 +1,9 @@
 
 
 #if defined(TB_CUTE)
-    #include "contract.h"
+    #include "benchmarks.h"
+    #include "math/tenx.h"
+    #include "tid/tid.h"
     #include "tools/class_tic_toc.h"
     #include "tools/fmt.h"
     #include "tools/log.h"
@@ -95,27 +97,32 @@ class Meta {
     Scalar       *data_d() { return d_ptr; }
     const Scalar *data_h() { return h_ptr; }
     void          copyToDevice() {
-//        size_t mf, ma;
-//        cudaMemGetInfo(&mf, &ma);
-//        tools::log->trace("CUDA: Free {} | Total {}", static_cast<double>(mf)/std::pow(1024,2), static_cast<double>(ma)/std::pow(1024,2));
+//        auto t_copy2gpu = tid::tic_token("copy2gpu");
+
+        //        size_t mf, ma;
+        //        cudaMemGetInfo(&mf, &ma);
+        //        tools::log->trace("CUDA: Free {} | Total {}", static_cast<double>(mf)/std::pow(1024,2), static_cast<double>(ma)/std::pow(1024,2));
         if(data_d() == nullptr) HANDLE_CUDA_ERROR(cudaMalloc((void **) &d_ptr, byteSize()));
         if(data_h() == nullptr) return; // Nothing to copy
         HANDLE_CUDA_ERROR(cudaMemcpy(data_d(), data_h(), byteSize(), cudaMemcpyHostToDevice));
     }
 
     void copyFromDevice(Scalar *data_h) {
+//        auto t_copy2cpu = tid::tic_token("copy2cpu");
         if(data_h == nullptr) throw std::runtime_error("Cannot copy from device: Host data is null");
         if(data_d() == nullptr) return; // Nothing to copy
         HANDLE_CUDA_ERROR(cudaMemcpy(data_h, data_d(), byteSize(), cudaMemcpyDeviceToHost));
     }
 
     void free() {
+//        auto t_copy2cpu = tid::tic_token("free");
         if(d_ptr) { HANDLE_CUDA_ERROR(cudaFree(d_ptr)); }
     }
 };
 
 template<typename Scalar>
 void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scalar> &tensor_B) {
+    auto t_con = tid::tic_token("contract");
     // CUDA types
     cudaDataType_t        typeCutensor;
     cutensorComputeType_t typeCompute;
@@ -221,12 +228,9 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
 template<typename Scalar>
 contract::ResultType<Scalar> contract::tensor_product_cute(const Eigen::Tensor<Scalar, 3> &psi, const Eigen::Tensor<Scalar, 4> &mpo,
                                                            const Eigen::Tensor<Scalar, 3> &envL, const Eigen::Tensor<Scalar, 3> &envR) {
-    tools::prof::t_cute->tic();
-    Eigen::DSizes<long, 3>   dsizes = psi.dimensions();
-    tools::log->info("cute: psi  dims {}", psi.dimensions());
-    tools::log->info("cute: mpo  dims {}", mpo.dimensions());
-    tools::log->info("cute: envL dims {}", envL.dimensions());
-    tools::log->info("cute: envR dims {}", envR.dimensions());
+    auto t_cute = tid::tic_scope("cute");
+
+    Eigen::DSizes<long, 3> dsizes = psi.dimensions();
 
     // Extents
     std::unordered_map<int, int64_t> ext;
@@ -239,8 +243,8 @@ contract::ResultType<Scalar> contract::tensor_product_cute(const Eigen::Tensor<S
     ext['o'] = envL.dimension(1);
     ext['p'] = envR.dimension(1);
 
-    tools::log->info("cute: ext {}", ext);
-    tools::log->info("Define cuda tensor meta objects");
+    tools::log->trace("cute: ext {}", ext);
+    tools::log->trace("Define cuda tensor meta objects");
     Meta<Scalar> cu_psi(psi, {'i', 'j', 'k'});
     Meta<Scalar> cu_mpo(mpo, {'l', 'm', 'i', 'n'});
     Meta<Scalar> cu_envL(envL, {'j', 'o', 'l'});
@@ -249,43 +253,43 @@ contract::ResultType<Scalar> contract::tensor_product_cute(const Eigen::Tensor<S
     Meta<Scalar> cu_psi_envL_mpo({'k', 'o', 'm', 'n'}, {ext['k'], ext['o'], ext['m'], ext['n']});
     Meta<Scalar> cu_ham_psi_sq({'n', 'o', 'p'}, {ext['n'], ext['o'], ext['p']});
 
-    tools::log->info("Copy to device: step 1 of 3");
-    cu_psi.copyToDevice();
-    cu_envL.copyToDevice();
-    cu_psi_envL.copyToDevice();
-
-    tools::log->trace("Contract psi and envL");
-    cuTensorContract(cu_psi_envL, cu_psi, cu_envL);
-
-    cu_psi.free();
-    cu_envL.free();
-
-    tools::log->info("Copy to device: step 2 of 3");
+    tools::log->trace("Copy to device: step 0 of 3 (preamble)");
     cu_mpo.copyToDevice();
-    cu_psi_envL_mpo.copyToDevice();
-
-    tools::log->info("Contract psi_envL and mpo");
-    cuTensorContract(cu_psi_envL_mpo, cu_psi_envL, cu_mpo);
-
-    cu_mpo.free();
-    cu_psi_envL.free();
-
-    tools::log->info("Copy to device: step 3 of 3");
+    cu_envL.copyToDevice();
     cu_envR.copyToDevice();
-    cu_ham_psi_sq.copyToDevice();
 
-    tools::log->info("Contract psi_envL_mpo and envR");
-    cuTensorContract(cu_ham_psi_sq, cu_psi_envL_mpo, cu_envR);
+    auto t_contract = tid::tic_scope("contract");
+    {
+        tools::log->trace("Contract psi and envL");
+        auto t_con1 = tid::tic_scope("psi_envL", tid::level::extra);
+        cu_psi.copyToDevice();
+        cu_psi_envL.copyToDevice();
+        cuTensorContract(cu_psi_envL, cu_psi, cu_envL);
+        cu_psi.free();
+        cu_envL.free();
+    }
 
-    cu_envR.free();
-    cu_psi_envL_mpo.free();
+    {
+        tools::log->trace("Contract psi_envL and mpo");
+        auto t_con2 = tid::tic_scope("psi_envL_mpo", tid::level::extra);
+        cu_psi_envL_mpo.copyToDevice();
+        cuTensorContract(cu_psi_envL_mpo, cu_psi_envL, cu_mpo);
+        cu_mpo.free();
+        cu_psi_envL.free();
+    }
+
+    {
+        tools::log->trace("Contract psi_envL_mpo and envR");
+        auto t_con3 = tid::tic_scope("psi_envL_mpo_envR", tid::level::extra);
+        cu_ham_psi_sq.copyToDevice();
+        cuTensorContract(cu_ham_psi_sq, cu_psi_envL_mpo, cu_envR);
+        cu_envR.free();
+        cu_psi_envL_mpo.free();
+    }
 
     Eigen::Tensor<Scalar, 3> ham_sq_psi(dsizes);
     cu_ham_psi_sq.copyFromDevice(ham_sq_psi.data());
     cu_ham_psi_sq.free();
-    tools::prof::t_cute->toc();
-    tools::log->info("Done");
-
     return std::make_pair(ham_sq_psi, get_ops_cute_L(dsizes[0], dsizes[1], dsizes[2], mpo.dimension(0)));
 }
 

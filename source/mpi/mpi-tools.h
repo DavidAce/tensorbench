@@ -8,6 +8,7 @@
 #include <h5pp/details/h5ppFilesystem.h>
 #include <h5pp/details/h5ppFormat.h>
 #include <vector>
+#include "tid/tid.h"
 
 #if defined(TB_MPI)
     #include <mpi/mpi.h>
@@ -97,6 +98,7 @@ namespace mpi {
 
     template<typename T>
     void send(const T &data, int dst, int tag) {
+        auto t_mpi = tid::tic_token("mpi::send");
         if constexpr(sfinae::has_size_v<T>) {
             size_t count = data.size();
             MPI_Send(&count, 1, mpi::get_dtype<size_t>(), dst, 0, MPI_COMM_WORLD);
@@ -107,6 +109,7 @@ namespace mpi {
 
     template<typename T>
     void recv(T &data, int src, int tag) {
+        auto t_mpi = tid::tic_token("mpi::recv");
         if constexpr(sfinae::has_size_v<T>) {
             size_t count;
             MPI_Recv(&count, 1, mpi::get_dtype<size_t>(), src, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -118,7 +121,8 @@ namespace mpi {
 
     template<typename T>
     void sendrecv(const T &send, const T &recv, int src, int dst, int tag) {
-        // Start by sending the data size so we can resize the receiving buffer accordingly
+        auto t_mpi = tid::tic_token("mpi::sendrecv");
+        // Start by sending the data size, so we can resize the receiving buffer accordingly
         int count = mpi::get_count(send);
         MPI_Sendrecv_replace(&count, 1, MPI_INT, dst, tag, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         if constexpr(sfinae::has_resize_v<T>) {
@@ -130,6 +134,7 @@ namespace mpi {
 
     template<typename T>
     void sendrecv_replace(T &data, int src, int dst, int tag) {
+        auto t_mpi = tid::tic_token("mpi::sendrecv_replace");
         if constexpr(sfinae::has_resize_v<T>) {
             // Start by sending the data size, so we can resize the receiving buffer accordingly
             int count = mpi::get_count(data);
@@ -141,6 +146,7 @@ namespace mpi {
 
     template<typename T>
     void bcast(T &data, int src) {
+        auto t_mpi = tid::tic_token("mpi::bcast");
         int count = mpi::get_count(data);
         MPI_Bcast(&count, 1, MPI_INT, src, MPI_COMM_WORLD);       // Send data size, so we can resize the receiving buffers accordingly
         if constexpr(sfinae::has_resize_v<T>) data.resize(count); // Resize receiving buffers. Should not modify the src container
@@ -149,6 +155,7 @@ namespace mpi {
 
     template<typename S, typename R>
     void gatherv(const S &send, R &recv, int dst) {
+        auto t_mpi = tid::tic_token("mpi::gatherv");
         int              count = mpi::get_count(send);
         std::vector<int> counts(world.size);
         std::vector<int> displs;
@@ -168,6 +175,7 @@ namespace mpi {
 
     template<typename S, typename R>
     void scatterv(const S &send, R &recv, int src, int recvcount = -1) {
+        auto t_mpi = tid::tic_token("mpi::scatterv");
         if(recvcount == -1) recvcount = mpi::get_count(recv);
         if constexpr(sfinae::has_resize_v<R>) recv.resize(recvcount); // Resize receiving buffer.
         std::vector<int> sendcounts;
