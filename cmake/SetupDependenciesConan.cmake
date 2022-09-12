@@ -52,24 +52,36 @@ if(TB_PACKAGE_MANAGER MATCHES "conan")
     include(${CMAKE_BINARY_DIR}/conan/conan.cmake)
 
     if(BUILD_SHARED_LIBS)
-        list(APPEND TB_CONAN_OPTIONS OPTIONS "*:shared=True")
+        list(APPEND CONAN_OPTIONS OPTIONS "*:shared=True")
     else()
-        list(APPEND TB_CONAN_OPTIONS OPTIONS "*:shared=False")
+        list(APPEND CONAN_OPTIONS OPTIONS "*:shared=False")
     endif()
 
-
+    # Copy the current compiler flags to conan
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" CONAN_BUILD_TYPE)
+    set(CONAN_CXXFLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CONAN_BUILD_TYPE}}")
+    set(CONAN_CFLAGS "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${CONAN_BUILD_TYPE}}")
+    set(CONAN_LDFLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+    message(STATUS "CONAN_CXXFLAGS: ${CONAN_CXXFLAGS}")
+    message(STATUS "CONAN_CFLAGS  : ${CONAN_CFLAGS}")
+    message(STATUS "CONAN_LDFLAGS : ${CONAN_LDFLAGS}")
+    message(STATUS "CONAN_BUILD   : ${CONAN_BUILD}")
 
     conan_add_remote(CONAN_COMMAND ${CONAN_COMMAND} NAME conan-dmrg URL https://thinkstation.duckdns.org/artifactory/api/conan/conan-dmrg)
     conan_cmake_autodetect(CONAN_AUTODETECT)
     conan_cmake_install(
             CONAN_COMMAND ${CONAN_COMMAND}
-            BUILD missing outdated cascade
+            BUILD ${CONAN_BUILD} missing outdated cascade
             GENERATOR cmake_find_package_multi
             SETTINGS ${CONAN_AUTODETECT}
+            INSTALL_FOLDER ${CMAKE_BINARY_DIR}/conan
             ENV CC=${CMAKE_C_COMPILER} # Fixes issue with CMake not detecting the right compiler when not building from scratch
             ENV CXX=${CMAKE_CXX_COMPILER} # Fixes issue with CMake not detecting the right compiler when not building from scratch
-            INSTALL_FOLDER ${CMAKE_BINARY_DIR}/conan
-            ${TB_CONAN_OPTIONS}
+            ENV CXXFLAGS=${CONAN_CXXFLAGS}
+            ENV CFLAGS=${CONAN_CFLAGS}
+            ENV LDFLAGS=${CONAN_LDFLAGS}
+            ENV VERBOSE=1
+            ${CONAN_OPTIONS}
             PATH_OR_REFERENCE ${CMAKE_SOURCE_DIR}
     )
 
@@ -83,12 +95,10 @@ if(TB_PACKAGE_MANAGER MATCHES "conan")
     list(PREPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/conan)
     # Use CONFIG to avoid MODULE mode. This is recommended for the cmake_find_package_multi generator
 
-    find_package(Eigen3       3.4    REQUIRED CONFIG)
     find_package(h5pp         1.10.1 REQUIRED CONFIG)
-    find_package(fmt          8.1.1  REQUIRED CONFIG)
-    find_package(spdlog       1.10.0 REQUIRED CONFIG)
     find_package(xtensor      0.24.2 REQUIRED CONFIG)
-    find_package(cxxopts      2.2.1  REQUIRED CONFIG)
+    find_package(CLI11        2.2.0  REQUIRED CONFIG)
+    find_package(Backward     1.6    REQUIRED CONFIG)
 
     if(NOT TB_ENABLE_MKL)
         find_package(OpenBLAS 0.3.17 REQUIRED CONFIG)

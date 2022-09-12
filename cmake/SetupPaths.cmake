@@ -35,25 +35,10 @@ set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE STRING "" FORCE)
 # Make sure find_library prefers static/shared library depending on BUILD_SHARED_LIBS
 # This is important when finding dependencies such as zlib which provides both shared and static libraries.
 # Note that we do not force this cache variable, so users can override it
-if(NOT BUILD_SHARED_LIBS)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES "${CMAKE_STATIC_LIBRARY_SUFFIX};${CMAKE_SHARED_LIBRARY_SUFFIX}" CACHE INTERNAL "")
-endif()
+#if(NOT BUILD_SHARED_LIBS)
+#    set(CMAKE_FIND_LIBRARY_SUFFIXES "${CMAKE_STATIC_LIBRARY_SUFFIX};${CMAKE_SHARED_LIBRARY_SUFFIX}" CACHE INTERNAL "")
+#endif()
 
-if (CMAKE_SIZEOF_VOID_P EQUAL 8 OR CMAKE_GENERATOR MATCHES "64")
-    set(FIND_LIBRARY_USE_LIB64_PATHS ON)
-elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(FIND_LIBRARY_USE_LIB32_PATHS ON)
-endif ()
-
-
-if(WIN32)
-    # On Windows it is standard practice to collect binaries into one directory.
-    # This way we avoid errors from .dll's not being found at runtime.
-    # These directories will contain h5pp tests, examples and possibly dependencies
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "Collect .exe and .dll")
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Collect .lib")
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Collect .lib")
-endif()
 
 if (TB_PACKAGE_MANAGER MATCHES "conan")
     # Paths to search for conan installation.

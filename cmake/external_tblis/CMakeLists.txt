@@ -9,8 +9,9 @@ include(ExternalProject)
 
 set(cc ${CMAKE_C_COMPILER})
 set(cxx ${CMAKE_CXX_COMPILER})
-set(cflags "-O3 -DNDEBUG -std=c17 -fPIC -g -fno-strict-aliasing -fno-omit-frame-pointer")
-set(cxxflags "-O3 -DNDEBUG -std=c++17 -fPIC -g -fno-strict-aliasing -fno-omit-frame-pointer")
+set(cflags "-fPIC ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
+set(cxxflags "-fPIC ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
+set(ldflags "${CMAKE_EXE_LINKER_FLAGS}")
 set(libs "-lm -ldl")
 
 
@@ -40,6 +41,7 @@ ExternalProject_Add(external_tblis
         COMMAND export LIBS=${libs}
         COMMAND export CFLAGS=${cflags}
         COMMAND export CXXFLAGS=${cxxflags}
+        COMMAND export LDFLAGS=${ldflags}
         COMMAND ./configure --enable-config=haswell,skx1,zen --prefix=<INSTALL_DIR>
 
         BUILD_COMMAND

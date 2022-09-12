@@ -26,8 +26,12 @@ endif()
 find_package(MPI COMPONENTS CXX REQUIRED)
 set(cxx ${MPI_CXX_COMPILER})
 set(ompi_cxx ${CMAKE_CXX_COMPILER})
-set(cxxflags "-O3 -DNDEBUG -std=c++17 -fPIC -g -fno-strict-aliasing -fno-omit-frame-pointer ${OpenMP_CXX_FLAGS}")
+set(cxxflags "-fPIC ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE} ${OpenMP_CXX_FLAGS}")
+set(ldflags "${CMAKE_EXE_LINKER_FLAGS} -fPIC")
 
+message(STATUS "libs    : ${libs}")
+message(STATUS "cxxflags: ${cxxflags}")
+message(STATUS "ldflags : ${ldflags}")
 message(STATUS "libs: ${libs}")
 
 
@@ -59,11 +63,11 @@ ExternalProject_Add(external_cyclops
                     COMMAND export LD_LIBS=${ld_libs}
                     COMMAND export INCLUDES=${incs}
                     COMMAND export CXXFLAGS=${cxxflags}
+                    COMMAND export LDFLAGS=${ldflags}
                     COMMAND <SOURCE_DIR>/configure
                             --build-dir=<BINARY_DIR>
                             --install-dir=<INSTALL_DIR>
                             --with-lapack
-                            --build-hptt
                             --verbose
 
                     BUILD_COMMAND
@@ -71,6 +75,6 @@ ExternalProject_Add(external_cyclops
 
                     INSTALL_COMMAND
                     COMMAND make install
-                    COMMAND ${CMAKE_COMMAND} -E copy_directory <BINARY_DIR>/hptt/include <INSTALL_DIR>/include
-                    COMMAND ${CMAKE_COMMAND} -E copy_directory <BINARY_DIR>/hptt/lib <INSTALL_DIR>/lib
+#                    COMMAND ${CMAKE_COMMAND} -E copy_directory <BINARY_DIR>/hptt/include <INSTALL_DIR>/include
+#                    COMMAND ${CMAKE_COMMAND} -E copy_directory <BINARY_DIR>/hptt/lib <INSTALL_DIR>/lib
                     )
