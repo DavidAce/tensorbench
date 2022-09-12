@@ -50,10 +50,6 @@ function(find_mkl_libraries)
         endif()
     endif()
 
-#    if(NOT BUILD_SHARED_LIBS)
-#        # Prefer static libraries
-#        set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_SHARED_LIBRARY_SUFFIX})
-#    endif()
     list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.1 .so.2) # For tbb
 
     # macos
@@ -158,9 +154,9 @@ function(find_mkl_libraries)
                 add_library(mkl::mkl_${lib} UNKNOWN IMPORTED)
                 set_target_properties(mkl::mkl_${lib} PROPERTIES IMPORTED_LOCATION "${MKL_${lib}_LIBRARY}")
                 set_target_properties(mkl::mkl_${lib} PROPERTIES LINK_WHAT_YOU_USE TRUE)
-                message(DEBUG "Adding target mkl::mkl_${lib} : ${MKL_${lib}_LIBRARY}")
+                message(TRACE "Adding target mkl::mkl_${lib} : ${MKL_${lib}_LIBRARY}")
             else()
-                message(DEBUG "Missed target mkl::mkl_${lib}")
+                message(TRACE "Missed target mkl::mkl_${lib}")
 
             endif()
         endforeach()
@@ -190,9 +186,9 @@ function(find_mkl_libraries)
                 add_library(mkl::${lib} UNKNOWN IMPORTED)
                 set_target_properties(mkl::${lib} PROPERTIES IMPORTED_LOCATION "${MKL_${lib}_LIBRARY}")
                 set_target_properties(mkl::${lib} PROPERTIES LINK_WHAT_YOU_USE TRUE)
-                message(DEBUG "Adding library mkl::${lib} : ${MKL_${lib}_LIBRARY}")
+                message(TRACE "Adding library mkl::${lib} : ${MKL_${lib}_LIBRARY}")
             else()
-                message(DEBUG "Missed library mkl::${lib}")
+                message(TRACE "Missed library mkl::${lib}")
             endif()
         endforeach()
     endif()
@@ -350,7 +346,7 @@ function(setup_mkl_targets)
                 endif()
 
                 if(scalapack IN_LIST MKL_FIND_CLUSTER_COMPONENTS)
-                    target_link_libraries(mkl::mkl_scalapack_${arch} INTERFACE -Wl,--start-group  MPI::MPI_C)
+                    target_link_libraries(mkl::mkl_scalapack_${arch} INTERFACE -Wl,--start-group MPI::MPI_C)
                     target_link_libraries(mkl::mkl_${fort}_${thread}_${arch} INTERFACE mkl::mkl_scalapack_${arch})
                     set(MKL_scalapack_FOUND TRUE PARENT_SCOPE)
                 endif()
@@ -400,11 +396,16 @@ function(setup_mkl_targets)
                     target_compile_options(mkl::mkl_${fort}_${thread}_${arch} INTERFACE -m64)
                 endif()
                 if(thread MATCHES "gnu_thread")
-                    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-                    find_package(Threads REQUIRED)
                     find_package(OpenMP COMPONENTS ${C} ${CXX} ${Fortran} REQUIRED)
                     foreach(lang ${LANG})
-                        target_link_libraries(mkl::mkl_${fort}_${thread}_${arch} INTERFACE OpenMP::OpenMP_${lang})
+                        if(OpenMP_${lang}_FLAGS)
+                            target_link_options(mkl::mkl_${fort}_${thread}_${arch} INTERFACE
+                                                $<$<COMPILE_LANGUAGE:${LANG}>:${OpenMP_${lang}_FLAGS}>)
+                            target_compile_options(mkl::mkl_${fort}_${thread}_${arch} INTERFACE
+                                                   $<$<COMPILE_LANGUAGE:${LANG}>:${OpenMP_${lang}_FLAGS}>)
+                        elseif(TARGET OpenMP::OpenMP_${lang})
+                            target_link_libraries(mkl::mkl_${fort}_${thread}_${arch} INTERFACE OpenMP::OpenMP_${lang})
+                        endif()
                     endforeach()
                 endif()
                 if(thread MATCHES "intel_thread")
@@ -569,8 +570,6 @@ find_package_handle_standard_args(MKL
                                   HANDLE_COMPONENTS
                                   )
 
-
-
 if(MKL_FOUND)
     if(NOT TARGET mkl::mkl)
         add_library(mkl::mkl INTERFACE IMPORTED)
@@ -609,7 +608,6 @@ if(MKL_FOUND)
     set(LAPACK_COMPILE_OPTIONS "${MKL_COMPILE_OPTIONS}" CACHE INTERNAL "")
     set(LAPACK_COMPILE_DEFINITIONS "${MKL_COMPILE_DEFINITIONS}" CACHE INTERNAL "")
     set(LAPACK_COMPILE_FEATURES "${MKL_COMPILE_FEATURES}" CACHE INTERNAL "")
-
     mark_as_advanced(MKL_LIBRARIES
                      MKL_INCLUDE_DIRS
                      MKL_COMPILE_OPTIONS
