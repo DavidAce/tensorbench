@@ -3,12 +3,10 @@
 
 [requires]
 h5pp/1.10.1@davidace/dev
-spdlog/1.10.0
-fmt/8.1.1
-eigen/3.4.0
 xtensor/0.24.2
 openblas/0.3.20
-cxxopts/2.2.1
+backward-cpp/1.6
+cli11/2.2.0
 
 [generators]
 cmake
