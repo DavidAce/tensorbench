@@ -68,7 +68,10 @@ endif()
 ### Link all the things!                                       ###
 ##################################################################
 target_link_libraries(tb-flags INTERFACE OpenMP::OpenMP_CXX)
-target_link_libraries(tb-deps INTERFACE h5pp::h5pp cxxopts::cxxopts)
+target_link_libraries(tb-deps INTERFACE
+                      h5pp::h5pp
+                      CLI11::CLI11
+                      Backward::Backward)
 
 
 
@@ -90,5 +93,5 @@ endif()
 if(TB_ENABLE_OPENBLAS)
     target_link_libraries(tb-deps INTERFACE OpenBLAS::OpenBLAS)
 endif()
-
+target_compile_definitions(tb-flags INTERFACE EIGEN_USE_THREADS) # For Eigen::Tensor parallelization
 set_target_properties(OpenMP::OpenMP_CXX PROPERTIES INTERFACE_LINK_LIBRARIES "") # Use flag only
