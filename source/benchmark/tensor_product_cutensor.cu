@@ -292,6 +292,6 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
 #endif
 }
 
-template benchmark::ResultType<fp32> benchmark::tensor_product_cutensor(const tb_setup<T> &tbs);
-template benchmark::ResultType<fp64> benchmark::tensor_product_cutensor(const tb_setup<T> &tbs);
-template benchmark::ResultType<cplx> benchmark::tensor_product_cutensor(const tb_setup<T> &tbs);
+template benchmark::ResultType<fp32> benchmark::tensor_product_cutensor(const tb_setup<fp32> &tbs);
+template benchmark::ResultType<fp64> benchmark::tensor_product_cutensor(const tb_setup<fp64> &tbs);
+template benchmark::ResultType<cplx> benchmark::tensor_product_cutensor(const tb_setup<cplx> &tbs);
