@@ -228,10 +228,10 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
 #endif
 
 template<typename T>
-benchmark::ResultType<T> benchmark::tensor_product_cute([[maybe_unused]] const tb_setup<T> &tbs) {
-#if defined(TB_CUTE)
+benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] const tb_setup<T> &tbs) {
+#if defined(TB_CUTENSOR)
     auto                   t_cutensor = tid::tic_scope("cutensor");
-    Eigen::DSizes<long, 3> dsizes = tbs.psi.dimensions();
+    Eigen::DSizes<long, 3> dsizes     = tbs.psi.dimensions();
 
     // Extents
     std::unordered_map<int, int64_t> ext;
@@ -292,6 +292,6 @@ benchmark::ResultType<T> benchmark::tensor_product_cute([[maybe_unused]] const t
 #endif
 }
 
-template benchmark::ResultType<fp32> benchmark::tensor_product_cute(const tb_setup<fp32> &tbs);
-template benchmark::ResultType<fp64> benchmark::tensor_product_cute(const tb_setup<fp64> &tbs);
-template benchmark::ResultType<cplx> benchmark::tensor_product_cute(const tb_setup<cplx> &tbs);
+template benchmark::ResultType<fp32> benchmark::tensor_product_cutensor(const tb_setup<T> &tbs);
+template benchmark::ResultType<fp64> benchmark::tensor_product_cutensor(const tb_setup<T> &tbs);
+template benchmark::ResultType<cplx> benchmark::tensor_product_cutensor(const tb_setup<T> &tbs);

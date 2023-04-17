@@ -79,7 +79,7 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
             if(tbs.mode == tb_mode::eigen1) psi_out = benchmark::tensor_product_eigen1(tbs);
             if(tbs.mode == tb_mode::eigen2) psi_out = benchmark::tensor_product_eigen2(tbs);
             if(tbs.mode == tb_mode::eigen3) psi_out = benchmark::tensor_product_eigen3(tbs);
-            if(tbs.mode == tb_mode::cutensor) psi_out = benchmark::tensor_product_cute(tbs);
+            if(tbs.mode == tb_mode::cutensor) psi_out = benchmark::tensor_product_cutensor(tbs);
             if(tbs.mode == tb_mode::xtensor) psi_out = benchmark::tensor_product_xtensor(tbs);
             if(tbs.mode == tb_mode::tblis) psi_out = benchmark::tensor_product_tblis(tbs);
         }

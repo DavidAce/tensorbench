@@ -85,10 +85,10 @@ add_library(tb-tblis OBJECT source/benchmark/tensor_product_tblis.cpp)
 add_library(tb-cyclops OBJECT source/benchmark/tensor_product_cyclops.cpp)
 if(TB_ENABLE_CUTENSOR)
     enable_language(CUDA)
-    add_library(tb-cutensor OBJECT source/benchmark/tensor_product_cute.cu)
+    add_library(tb-cutensor OBJECT source/benchmark/tensor_product_cutensor.cu)
 else()
     # Add this dummy that can be compiled without enabling CUDA
-    add_library(tb-cutensor OBJECT source/benchmark/tensor_product_cute.cpp)
+    add_library(tb-cutensor OBJECT source/benchmark/tensor_product_cutensor.cpp)
 endif()
 
 

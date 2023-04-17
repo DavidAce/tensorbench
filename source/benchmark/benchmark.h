@@ -48,7 +48,7 @@ namespace benchmark {
     [[nodiscard]] ResultType<T> tensor_product_eigen3(const tb_setup<T> &tbs);
 
     template<typename T>
-    [[nodiscard]] ResultType<T> tensor_product_cute(const tb_setup<T> &tbs);
+    [[nodiscard]] ResultType<T> tensor_product_cutensor(const tb_setup<T> &tbs);
 
     template<typename T>
     [[nodiscard]] ResultType<T> tensor_product_xtensor(const tb_setup<T> &tbs);
