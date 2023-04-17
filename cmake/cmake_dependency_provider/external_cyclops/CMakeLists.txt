@@ -28,13 +28,27 @@ function(append_incs inclist addincs)
     set(${inclist} "${${inclist}};${applist}" PARENT_SCOPE)
 endfunction()
 
+find_package(OpenMP COMPONENTS CXX REQUIRED)
 find_package(MPI COMPONENTS CXX REQUIRED)
+find_package(hptt REQUIRED)
 find_package(BLAS REQUIRED)
-message(STATUS "Cyclops found BLAS_LIBRARIES: ${BLAS_LIBRARIES}")
-set(build_scalapack "--build-scalapack")
+find_package(scalapack REQUIRED)
 
+if(TARGET scalapack AND NOT SCALAPACK_LIBRARY)
+    get_target_property(SCALAPACK_LIBRARY scalapack LOCATION)
+endif()
+
+append_libs(libs BLAS_LIBRARIES)
+append_libs(libs SCALAPACK_LIBRARY)
 append_libs(libs HPTT_LIBRARY)
 append_incs(incs HPTT_INCLUDE_DIR)
+
+message(STATUS "Cyclops found OpenMP            : ${OpenMP_CXX_FLAGS}")
+message(STATUS "Cyclops found BLAS_LIBRARIES    : ${BLAS_LIBRARIES}")
+message(STATUS "Cyclops found SCALAPACK_LIBRARY : ${SCALAPACK_LIBRARY}")
+message(STATUS "Cyclops found HPTT_LIBRARY      : ${HPTT_LIBRARY}")
+
+append_libs(libs HPTT_LIBRARY)
 string(REPLACE ";" " " libs "${libs}")
 string(REPLACE ";" " " incs "${incs}")
 

@@ -33,8 +33,8 @@ function(pkg_install_dependencies  package_name)
         endif()
 
         if(TB_ENABLE_CYCLOPS)
-            find_package(MPI COMPONENTS CXX REQUIRED)
             pkg_install(hptt)
+            pkg_install(scalapack)
             pkg_install(cyclops)
         endif()
 

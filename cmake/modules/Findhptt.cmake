@@ -2,7 +2,6 @@ function(find_hptt)
     if(NOT BUILD_SHARED_LIBS)
         set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_SHARED_LIBRARY_SUFFIX})
     endif()
-    message(STATUS "hptt: CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
     find_library(HPTT_LIBRARY
                  hptt
                  HINTS ${PKG_INSTALL_DIR}

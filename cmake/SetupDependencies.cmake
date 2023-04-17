@@ -1,6 +1,8 @@
 # Append search paths for find_package and find_library calls
 include(${PROJECT_SOURCE_DIR}/cmake/cmake_dependency_provider/PKGInstall.cmake)
 list(PREPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
+list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" CACHE PATH "find_package module dir" FORCE)
 
 if(NOT TARGET tb-deps)
     add_library(tb-deps INTERFACE)
@@ -64,6 +66,8 @@ if(TB_ENABLE_CYCLOPS)
     find_package(MPI COMPONENTS CXX REQUIRED)
     pkg_install(hptt)
     find_package(hptt REQUIRED)
+    pkg_install(scalapack)
+    find_package(scalapack REQUIRED)
     pkg_install(cyclops)
     find_package(cyclops REQUIRED)
     target_link_libraries(cyclops::cyclops INTERFACE MPI::MPI_CXX)
