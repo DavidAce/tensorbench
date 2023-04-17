@@ -13,20 +13,22 @@ void mpi::barrier() {}
 #else
 
     #include <mpi/mpi.h>
-void mpi::init() {
+void mpi::init(int argc, char *argv[]) {
     // Initialize the MPI environment
-    MPI_Init(nullptr, nullptr);
+    MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &world.id);   // Establish thread number of this worker
     MPI_Comm_size(MPI_COMM_WORLD, &world.size); // Get total number of threads
 
+    mpi::on = true;
     if(world.id == 0) tools::log->info("MPI initialized with {} processes", world.size);
     if(world.size > 1) {
-        mpi::on      = true;
         auto logname = tools::log->name();
         auto width   = fmt::format("{}", world.size - 1).size();
         auto mpiname = fmt::format("{}-{:>{}}", tools::log->name(), world.id, width);
         tools::log   = tools::Logger::setLogger(mpiname, static_cast<size_t>(tools::log->level()));
     }
+    std::atexit(mpi::finalize);
+    std::at_quick_exit(mpi::finalize);
 }
 
 void mpi::finalize() {
@@ -58,7 +60,8 @@ void mpi::scatter(std::vector<h5pp::fs::path> &data, int src) {
 
     // Reserve space to receive data
     std::vector<h5pp::fs::path> srcData; // Elements to keep in src
-    if(world.id != src) data.reserve(counts[world.get_id<size_t>()]);
+    if(world.id != src)
+        data.reserve(counts[world.get_id<size_t>()]);
     else
         srcData.reserve(counts[world.get_id<size_t>()]);
 
@@ -115,7 +118,8 @@ void mpi::scatter_r(std::vector<h5pp::fs::path> &data, int src) {
 
     // Reserve space to receive data
     std::vector<h5pp::fs::path> srcData; // Elements to keep in src
-    if(world.id != src) data.reserve(counts[world.get_id<size_t>()]);
+    if(world.id != src)
+        data.reserve(counts[world.get_id<size_t>()]);
     else
         srcData.reserve(counts[world.get_id<size_t>()]);
 

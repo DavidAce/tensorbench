@@ -13,21 +13,21 @@ namespace tid {
             if(t.is_measuring) t.toc();
             if(not tid::internal::current_scope.empty() and tid::internal::current_scope.back() == temp_prefix) {
                 tid::internal::current_scope.pop_back();
-                fmt::print("token popped [{}] from scope | current scope {}\n", temp_prefix, tid::internal::current_scope);
+//                fmt::print("token popped [{}] from scope | current scope {}\n", temp_prefix, tid::internal::current_scope);
             }
         } catch(const std::exception &ex) { fprintf(stderr, "tid: error in token destructor for tid::ur [%s]: %s", t.get_label().c_str(), ex.what()); }
     }
 
     void token::tic() noexcept {
         tid::internal::current_scope.emplace_back(temp_prefix);
-        fmt::print("token appended [{}] to scope| current scope {}\n", temp_prefix, tid::internal::current_scope);
+//        fmt::print("token appended [{}] to scope | current scope {}\n", temp_prefix, tid::internal::current_scope);
         t.tic();
     }
     void token::toc() noexcept {
         t.toc();
         if(not tid::internal::current_scope.empty() and tid::internal::current_scope.back() == temp_prefix) {
             tid::internal::current_scope.pop_back();
-            fmt::print("token popped [{}] from scope | current scope {}\n", temp_prefix, tid::internal::current_scope);
+//            fmt::print("token popped [{}] from scope | current scope {}\n", temp_prefix, tid::internal::current_scope);
         }
     }
     ur &token::ref() noexcept { return t; }

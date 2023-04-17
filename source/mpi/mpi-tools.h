@@ -34,7 +34,7 @@ namespace mpi {
     };
 
     inline comm world;
-    void        init();
+    void        init(int argc, char *argv[]);
     void        finalize();
     void        barrier();
 

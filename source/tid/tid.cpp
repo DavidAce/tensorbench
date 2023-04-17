@@ -71,13 +71,19 @@ namespace tid {
                 prefix_key = key;
             }
         }
-        fmt::print("prefix_key {} | has_dot {} | current_scope: {}\n", prefix_key, has_dot, tid::internal::current_scope);
+//        fmt::print("prefix_key {} | has_dot {} | current_scope: {}\n", prefix_key, has_dot, tid::internal::current_scope);
         // Now prefix_key is an "absolute path" to an ur that may or may not exist.
         // If it does not exist we insert it
-        fmt::print("tid_db before: [");
-        for(const auto &t : tid::internal::tid_db) fmt::print("{}, ", t.first);
-        fmt::print("]\n");
-        auto  result = tid::internal::tid_db.insert({prefix_key, tid::ur(prefix_key)});
+//        fmt::print("tid_db before: [");
+//        for(const auto &t : tid::internal::tid_db) fmt::print("{}, ", t.first);
+//        fmt::print("]\n");
+        auto result = tid::internal::tid_db.insert({prefix_key, tid::ur(prefix_key)});
+
+        if(tid::internal::tid_db.find(prefix_key) == tid::internal::tid_db.end())
+            throw std::runtime_error("Failed to insert " + prefix_key + " into std::unordered_map: tid::internal::tid_db");
+//        fmt::print("tid_db after : [");
+//        for(const auto &t : tid::internal::tid_db) fmt::print("{}, ", t.first);
+//        fmt::print("]\n");
         auto &ur_ref = result.first->second;
         if(result.second and l != level::parent) ur_ref.set_level(l);
         return ur_ref;
@@ -86,10 +92,7 @@ namespace tid {
     token tic_token(std::string_view key, level l) { return tid::get(key, l).tic_token(); }
 
     token tic_scope(std::string_view key, level l) {
-        auto &u = tid::get(key, l);
-        exit(0);
-        auto ut = u.tic_token(key);
-        return ut;
+        return tid::get(key, l).tic_token(key);
     }
 
     void tic(std::string_view key, level l) { get(key, l).tic(); }

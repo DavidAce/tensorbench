@@ -58,6 +58,12 @@ namespace stat {
     }
 
     template<typename ContainerType>
+    typename ContainerType::value_type sum(ContainerType &X, std::optional<size_t> start_point = std::nullopt, std::optional<size_t> end_point = std::nullopt) {
+        auto [x_it, x_en] = get_start_end_iterators(X, start_point, end_point);
+        return std::accumulate(x_it, x_en, static_cast<typename ContainerType::value_type>(0.0));
+    }
+
+    template<typename ContainerType>
     typename ContainerType::value_type mean(ContainerType &X, std::optional<size_t> start_point = std::nullopt,
                                             std::optional<size_t> end_point = std::nullopt) {
         auto [x_it, x_en] = get_start_end_iterators(X, start_point, end_point);

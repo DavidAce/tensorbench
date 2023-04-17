@@ -18,6 +18,23 @@ if(TB_PROFILE_BUILD)
             "COMPILER_PROFILE_BUILD:BOOL=[TRUE|FALSE]")
 endif()
 
+
+if(TB_ENABLE_ACRO)
+    message(FATAL_ERROR "The option [TB_ENABLE_ACRO] has been deprecated.")
+endif()
+
+if(TB_ENABLE_MKL)
+    message(FATAL_ERROR "The option [TB_ENABLE_MKL] has been deprecated.")
+endif()
+
+if(TB_ENABLE_OPENBLAS)
+    message(FATAL_ERROR "The option [TB_ENABLE_OPENBLAS] has been deprecated.")
+endif()
+
+if(TB_PACKAGE_MANAGER)
+    message(FATAL_ERROR "The option [TB_PACKAGE_MANAGER] has been deprecated.")
+endif()
+
 if(TB_ENABLE_ASAN)
     message(FATAL_ERROR "The option [TB_ENABLE_ASAN] has been deprecated. Replace by:\n"
             "COMPILER_ENABLE_ASAN:BOOL=[TRUE|FALSE]")
@@ -30,7 +47,7 @@ endif()
 
 if(TB_ENABLE_LTO)
     message(FATAL_ERROR "The option [TB_ENABLE_LTO] has been deprecated. Replace by:\n"
-            "COMPILER_ENABLE_LTO:BOOL=[TRUE|FALSE]")
+            "CMAKE_INTERPROCEDURAL_OPTIMIZATION:BOOL=[TRUE|FALSE]")
 endif()
 
 if(TB_ENABLE_PCH)
@@ -48,4 +65,9 @@ if(COMPILER_MARCH)
 endif()
 if(COMPILER_MTUNE)
     message(FATAL_ERROR "The option [COMPILER_MTUNE] has been deprecated.")
+endif()
+
+if(COMPILER_ENABLE_LTO)
+    message(FATAL_ERROR "The option [COMPILER_ENABLE_LTO] has been deprecated.. Replace by:\n"
+            "CMAKE_INTERPROCEDURAL_OPTIMIZATION:BOOL=[TRUE|FALSE]")
 endif()

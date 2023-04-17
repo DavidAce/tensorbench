@@ -1,97 +1,76 @@
+# Append search paths for find_package and find_library calls
+include(${PROJECT_SOURCE_DIR}/cmake/cmake_dependency_provider/PKGInstall.cmake)
+list(PREPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
-#################################################################
-### Preempt Threads::Threads                                   ###
-### It's looked for in dependencies, so we make it right       ###
-### before it's done wrong, i.e. with pthread instead of       ###
-### -lpthread.                                                 ###
-### Here we specify the linking twice                          ###
-### 1) As string to make sure -lpthread gets sandwiched by     ###
-###    -Wl,--whole-archive.... -Wl,--no-whole-archive          ###
-###    -Wl,--whole-archive.... -Wl,--no-whole-archive          ###
-### 2) As usual to make sure that if somebody links            ###
-###    Threads::Threads, then any repeated pthread appended    ###
-###    to the end (the wrong order causes linking errors)      ###
-##################################################################
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+if(NOT TARGET tb-deps)
+    add_library(tb-deps INTERFACE)
+endif()
+
 find_package(Threads REQUIRED)
-target_link_libraries(Threads::Threads INTERFACE rt dl)
 find_package(OpenMP COMPONENTS CXX REQUIRED)
-find_package(Fortran REQUIRED)
-
-if (TB_ENABLE_MKL)
-    if(TB_ENABLE_CYCLOPS)
-        find_package(MKL COMPONENTS blas lapack gf gnu_thread lp64 scalapack blacs_openmpi REQUIRED)
-    else()
-        find_package(MKL COMPONENTS blas lapack gf gnu_thread lp64 REQUIRED)
-    endif()
-    target_compile_definitions(mkl::mkl INTERFACE TB_MKL)
-endif ()
-if(TB_ENABLE_OPENBLAS)
-    find_package(OpenBLAS REQUIRED)
-    target_compile_definitions(OpenBLAS::OpenBLAS INTERFACE TB_OPENBLAS)
-
-endif()
 
 
-include(cmake/SetupDependenciesCMake.cmake)
-include(cmake/SetupDependenciesConan.cmake)
-
-include(cmake/InstallPackage.cmake)
-add_library(tb-deps INTERFACE)
-
-# Acrotensor
-if(TB_ENABLE_ACRO)
-    install_package(acrotensor TARGET_NAME acrotensor::acrotensor_static
-                    CMAKE_ARGS -DACROTENSOR_ENABLE_CUDA:BOOL=${TB_ENABLE_CUDA})
-endif()
-
-if(TB_ENABLE_TBLIS)
-    install_package(tblis MODULE)
-endif()
-if(TB_ENABLE_XTENSOR)
-    find_package(xtensor REQUIRED)
-    install_package(xtensor-blas
-                    CMAKE_ARGS -DUSE_OPENBLAS:BOOL=ON
-                    TARGET_NAME xtensor-blas
-                    DEPENDS xtl xsimd xtensor BLAS::BLAS)
-    target_compile_definitions(xtensor-blas INTERFACE HAVE_CBLAS=1)
-    target_link_libraries(xtensor INTERFACE xtensor-blas)
-endif()
-
-if(TB_ENABLE_CYCLOPS)
-    install_package(cyclops MODULE)
-    target_compile_definitions(tb-flags INTERFACE TB_MPI)
-endif()
+find_package(Eigen3     3.4.0  REQUIRED)    # Eigen3 numerical library
+find_package(h5pp       1.11.0 REQUIRED)    # Writing to file binary HDF5 format
+find_package(fmt        9.0.0  REQUIRED)    # String formatter
+find_package(spdlog     1.10.0 REQUIRED)    # Fast logger
+find_package(CLI11      2.1.1  REQUIRED)    # Command line argument parser
+find_package(Backward   1.6    REQUIRED)    # Pretty stack traces
 
 
 ##################################################################
 ### Link all the things!                                       ###
 ##################################################################
 target_link_libraries(tb-flags INTERFACE OpenMP::OpenMP_CXX)
+target_compile_definitions(tb-flags INTERFACE EIGEN_USE_THREADS) # For Eigen::Tensor parallelization
 target_link_libraries(tb-deps INTERFACE
                       h5pp::h5pp
+                      Eigen3::Eigen
+                      fmt::fmt
+                      spdlog::spdlog
                       CLI11::CLI11
                       Backward::Backward)
 
 
+# Additional optional libraries
 
-if(TB_ENABLE_ACRO)
-    target_link_libraries(tb-deps INTERFACE acrotensor::acrotensor_static)
-endif()
+if (TB_ENABLE_MKL)
+    if(TB_ENABLE_CYCLOPS)
+        find_package(MPI COMPONENTS CXX REQUIRED)
+        find_package(MKL COMPONENTS blas lapack gf gnu_thread lp64 scalapack blacs_openmpi REQUIRED)
+    else()
+        find_package(MKL COMPONENTS blas lapack gf gnu_thread lp64 REQUIRED)
+    endif()
+    target_compile_definitions(mkl::mkl INTERFACE TB_MKL)
+endif ()
+find_package(BLAS REQUIRED)
+
 if(TB_ENABLE_TBLIS)
+    pkg_install(tblis)
+    find_package(tblis REQUIRED MODULE)
     target_link_libraries(tb-deps INTERFACE tblis::tblis)
 endif()
-if(TB_ENABLE_CYCLOPS)
-    target_link_libraries(tb-deps INTERFACE cyclops::cyclops)
-endif()
+
 if(TB_ENABLE_XTENSOR)
+    find_package(xtensor REQUIRED) # Given by pkg or conan already
+    pkg_install(xtensor-blas)  # Does not exist in conan
+    find_package(xtensor-blas REQUIRED)
+    target_compile_definitions(xtensor-blas INTERFACE HAVE_CBLAS=1)
+    target_link_libraries(xtensor INTERFACE xtensor-blas)
     target_link_libraries(tb-deps INTERFACE xtensor)
 endif()
-if(TB_ENABLE_MKL)
-    target_link_libraries(tb-deps INTERFACE mkl::mkl)
+
+if(TB_ENABLE_CYCLOPS)
+    find_package(MPI COMPONENTS CXX REQUIRED)
+    pkg_install(hptt)
+    find_package(hptt REQUIRED)
+    pkg_install(cyclops)
+    find_package(cyclops REQUIRED)
+    target_link_libraries(cyclops::cyclops INTERFACE MPI::MPI_CXX)
+    target_link_libraries(tb-deps INTERFACE cyclops::cyclops)
+    target_compile_definitions(tb-flags INTERFACE TB_MPI)
 endif()
-if(TB_ENABLE_OPENBLAS)
-    target_link_libraries(tb-deps INTERFACE OpenBLAS::OpenBLAS)
-endif()
-target_compile_definitions(tb-flags INTERFACE EIGEN_USE_THREADS) # For Eigen::Tensor parallelization
-set_target_properties(OpenMP::OpenMP_CXX PROPERTIES INTERFACE_LINK_LIBRARIES "") # Use flag only
+
+
+# This fixes a nvcclink issue with libpthread.a being empty on ubuntu 22.04. It's enough to use the -fopenmp flag.
+set_target_properties(OpenMP::OpenMP_CXX PROPERTIES INTERFACE_LINK_LIBRARIES "${OpenMP_CXX_FLAGS}")

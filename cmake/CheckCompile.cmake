@@ -1,24 +1,34 @@
+cmake_minimum_required(VERSION 3.17)
 
-function(check_compile pkg tgt file)
-    if(NOT check_compile_${pkg})
-        list(APPEND CMAKE_REQUIRED_LIBRARIES ${tgt})
-        message(STATUS "Performing Test check_compile_${pkg}")
-        try_compile(check_compile_${pkg}
+function(check_compile pkg tgt)
+    set(options REQUIRED)
+    cmake_parse_arguments(PARSE_ARGV 1 CHECK "${options}" "${oneValueArgs}" "${multiValueArgs}")
+
+
+    if(NOT ${pkg}_compiles_${tgt})
+        #list(APPEND CMAKE_REQUIRED_LIBRARIES ${tgt})
+        message(CHECK_START "Test compile -- ${pkg} [${tgt}]")
+        try_compile(${pkg}_compiles_${tgt}
                 ${CMAKE_BINARY_DIR}
-                ${file}
+                ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/compile/${pkg}.cpp
                 OUTPUT_VARIABLE compile_out
                 LINK_LIBRARIES ${tgt}
                 CXX_STANDARD 17
                 CXX_EXTENSIONS OFF
                 )
-        if(check_compile_${pkg})
+        if(${pkg}_compiles_${tgt})
+            message(CHECK_PASS "Success")
             file(APPEND ${CMAKE_BINARY_DIR}/CMakeFiles/CMakeOutput.log "${compile_out}")
-            message(STATUS "Performing Test check_compile_${pkg} - Success")
-            set(check_compile_${pkg} ${check_compile_${pkg}} CACHE BOOL "")
-            mark_as_advanced(check_compile_${pkg})
+            set(${pkg}_compiles_${tgt} "${${pkg}_compiles_${tgt}}" CACHE BOOL "" FORCE)
+            mark_as_advanced(${pkg}_compiles_${tgt})
         else()
+            message(CHECK_FAIL "Failed")
             file(APPEND ${CMAKE_BINARY_DIR}/CMakeFiles/CMakeError.log "${compile_out}")
-            message(STATUS "Performing Test check_compile_${pkg} - Failed")
+            include(${CMAKE_CURRENT_FUNCTION_LIST_DIR}/PrintTargetInfo.cmake)
+            if(CHECK_REQUIRED)
+                print_target_info_recursive(${tgt})
+                message(FATAL_ERROR "Failed to compile ${pkg} with target [${tgt}]")
+            endif()
         endif()
     endif()
 endfunction()

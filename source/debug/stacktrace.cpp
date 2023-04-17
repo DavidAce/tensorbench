@@ -4,9 +4,9 @@
 #include <cstdlib>
 
 void debug::signal_callback_handler(int status) {
+    if(status != 0) debug::print_stack_trace();
     switch(status) {
         case SIGTERM: {
-            //            debug::print_stack_trace();
             std::fprintf(stderr, "Exit SIGTERM: %d\n", status);
             break;
         }
@@ -35,32 +35,26 @@ void debug::signal_callback_handler(int status) {
             break;
         }
         case SIGABRT: {
-            //            debug::print_stack_trace();
             std::fprintf(stderr, "Exit SIGABRT: %d\n", status);
             break;
         }
         case SIGILL: {
-            //            debug::print_stack_trace();
             std::fprintf(stderr, "Exit SIGILL: %d\n", status);
             break;
         }
         case SIGFPE: {
-            //            debug::print_stack_trace();
             std::fprintf(stderr, "Exit SIGFPE: %d\n", status);
-            break;
+            std::quick_exit(status);
         }
         case SIGSEGV: {
-            //            debug::print_stack_trace();
             std::fprintf(stderr, "Exit SIGSEGV: %d\n", status);
-            break;
+            std::quick_exit(status);
         }
         default: {
-            //            debug::print_stack_trace();
             std::fprintf(stderr, "Exit %d\n", status);
             break;
         }
     }
-    debug::exit_status = status;
     std::exit(status);
 }
 
@@ -102,11 +96,14 @@ void debug::register_callbacks() {
 }
 
 #if __has_include(<backward.hpp>)
+    #if defined(BACKWARD_REDEFINE_DW)
+        #undef BACKWARD_HAS_DW
+        #define BACKWARD_HAS_DW 1
+    #endif
     #include <backward.hpp>
 void debug::print_stack_trace() {
-    if (debug::exit_status == 0) return;
     backward::StackTrace st;
-    st.load_here(64);
+    st.load_here(128);
     // Skip this scope (1) , as well as the signal_callback_handler scope (2)
     st.skip_n_firsts(2);
     backward::Printer p;

@@ -12,54 +12,51 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "TB_ENABLE_MKL": "TRUE",
-        "TB_ENABLE_OPENBLAS": "FALSE",
         "TB_EIGEN3_BLAS": "TRUE",
         "TB_ENABLE_EIGEN1": "TRUE",
-        "TB_ENABLE_EIGEN2": "TRUE",
-        "TB_ENABLE_EIGEN3": "TRUE",
+        "TB_ENABLE_EIGEN2": "FALSE",
+        "TB_ENABLE_EIGEN3": "FALSE",
         "TB_ENABLE_CUDA": "TRUE",
-        "TB_ENABLE_ACRO": "TRUE",
         "TB_ENABLE_CUTE": "TRUE",
         "TB_ENABLE_XTENSOR": "TRUE",
         "TB_ENABLE_TBLIS": "TRUE",
         "TB_ENABLE_CYCLOPS": "TRUE",
         "TB_CMAKE_DEBUG": "TRUE",
-        "TB_PACKAGE_MANAGER": "conan",
-        "COMPILER_ENABLE_LTO": "FALSE",
-        "CMAKE_VERBOSE_MAKEFILE": "TRUE",
-        "CMAKE_MESSAGE_LOG_LEVEL": "DEBUG",
+        "CMAKE_VERBOSE_MAKEFILE": "FALSE",
+        "CMAKE_MESSAGE_LOG_LEVEL": "STATUS",
         "CMAKE_INSTALL_PREFIX": "pkg-install",
-        "CMAKE_C_STANDARD": "17",
         "CMAKE_CXX_STANDARD": "17",
         "CMAKE_CXX_STANDARD_REQUIRED": "TRUE",
         "CMAKE_CXX_EXTENSIONS": "FALSE",
+        "CMAKE_C_STANDARD": "17",
+        "CMAKE_C_STANDARD_REQUIRED": "TRUE",
         "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
-        "CMAKE_CXX_FLAGS": "-fno-strict-aliasing -fdiagnostics-color=always",
-        "CMAKE_CXX_FLAGS_DEBUG": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer",
+        "THREADS_PREFER_PTHREAD_FLAG": "TRUE",
+        "CMAKE_CXX_FLAGS": " -fdiagnostics-color=always",
+        "CMAKE_CXX_FLAGS_DEBUG": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-strict-aliasing -fno-omit-frame-pointer",
         "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer",
-        "CMAKE_C_FLAGS": "-fno-strict-aliasing -fdiagnostics-color=always",
-        "CMAKE_C_FLAGS_DEBUG": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer",
+        "CMAKE_C_FLAGS": "-fdiagnostics-color=always",
+        "CMAKE_C_FLAGS_DEBUG": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-strict-aliasing -fno-omit-frame-pointer",
         "CMAKE_C_FLAGS_RELWITHDEBINFO": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
         "CMAKE_SKIP_BUILD_RPATH": "FALSE",
         "CMAKE_BUILD_WITH_INSTALL_RPATH": "FALSE",
         "CMAKE_INSTALL_RPATH_USE_LINK_PATH": "TRUE",
-        "CMAKE_CUDA_FLAGS": "-Xcompiler -fno-strict-aliasing -Xcompiler -fdiagnostics-color=always --expt-relaxed-constexpr -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored",
+        "CMAKE_CUDA_FLAGS": "--expt-relaxed-constexpr -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored",
         "CMAKE_CUDA_ARCHITECTURES": "75;80;86",
         "CMAKE_CUDA_SEPARABLE_COMPILATION": "TRUE",
-        "CMAKE_CUDA_HOST_COMPILER": "g++-10"
+        "CMAKE_CUDA_COMPILER": "/usr/local/cuda/bin/nvcc"
       },
       "environment": {
-        "NINJA_STATUS": "[run %r|beg %s|fin %f|tot %t|rate %o|time %e]:"
+        "NINJA_STATUS": "[run %r|beg %s|fin %f|tot %t|rate %o|time %e]:",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
       }
     },
     {
       "name": "release",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "COMPILER_ENABLE_LTO": "TRUE"
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
@@ -67,82 +64,369 @@
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_MESSAGE_LOG_LEVEL": "DEBUG",
+        "TB_CMAKE_DEBUG": "TRUE",
         "COMPILER_ENABLE_ASAN": "TRUE",
         "COMPILER_ENABLE_USAN": "TRUE"
+      },
+      "environment": {
+        "ASAN_OPTIONS": "abort_on_error=1"
       }
     },
     {
-      "name": "release-conan",
-      "displayName": "Release|conan|mkl",
-      "inherits": [
-        "default",
-        "release"
-      ],
+      "name": "native",
+      "inherits": "release",
+      "hidden": true,
       "cacheVariables": {
-        "TB_PACKAGE_MANAGER": "conan"
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -g -march=native -mtune=native",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -g -march=native -mtune=native",
+        "CMAKE_CUDA_FLAGS_RELEASE": "-O3 -DNDEBUG -g -Xcompiler -march=native -Xcompiler -mtune=native"
       }
     },
     {
-      "name": "release-gcc-12-static-conan",
-      "displayName": "Release|gcc-12|static|conan|mkl",
-      "inherits": [
-        "default",
-        "release"
-      ],
+      "name": "openblas",
+      "hidden": true,
+      "cacheVariables": {
+        "BLA_VENDOR": "OpenBLAS"
+      },
+      "environment": {
+        "BLA_VENDOR": "OpenBLAS",
+        "CMAKE_PREFIX_PATH": "$penv{OpenBLAS_ROOT}:$penv{BLASROOT}:$penv{EBROOTOPENBLAS}:$penv{CMAKE_PREFIX_PATH}"
+      }
+    },
+    {
+      "name": "mkl",
+      "hidden": true,
+      "cacheVariables": {
+        "BLA_VENDOR": "Intel10_64lp",
+        "MKL_ARCH": "intel64",
+        "MKL_LINK": "dynamic",
+        "MKL_THREADING": "gnu_thread",
+        "MKL_INTERFACE": "lp64",
+        "MKL_MPI": "openmpi",
+        "ENABLE_BLAS95": "ON",
+        "ENABLE_LAPACK95": "ON",
+        "MKL_ROOT": "/opt/intel/oneapi/mkl/latest;$penv{MKLROOT};$penv{EBROOTIMKL}",
+        "CMAKE_VERBOSE_MAKEFILE": "TRUE"
+      },
+      "environment": {
+        "BLA_VENDOR": "Intel10_64lp",
+        "MKLROOT": "/opt/intel/oneapi/mkl/latest;$penv{MKLROOT};$penv{EBROOTIMKL}",
+        "CMAKE_PREFIX_PATH": "/opt/intel/oneapi/mkl/latest:$penv{MKLROOT}:$penv{EBROOTIMKL}:$penv{CMAKE_PREFIX_PATH}",
+        "VERBOSE": "1"
+      }
+    },
+    {
+      "name": "flexiblas",
+      "hidden": true,
+      "cacheVariables": {
+        "BLA_VENDOR": "FlexiBLAS",
+        "BLASROOT": "/opt/flexiblas;$penv{FlexiBLASROOT};$penv{EBROOTFLEXIBLAS}",
+        "CMAKE_VERBOSE_MAKEFILE": "TRUE"
+      },
+      "environment": {
+        "BLA_VENDOR": "FlexiBLAS",
+        "CMAKE_PREFIX_PATH": "/opt/flexiblas:$penv{FlexiBLASROOT}:$penv{EBROOTFLEXIBLAS}:$penv{CMAKE_PREFIX_PATH}",
+        "VERBOSE": "1"
+      }
+    },
+    {
+      "name": "gcc-10",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc-10",
+        "CMAKE_CXX_COMPILER": "g++-10",
+        "CMAKE_CUDA_HOST_COMPILER": "g++-10"
+      }
+    },
+    {
+      "name": "gcc-11",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc-11",
+        "CMAKE_CXX_COMPILER": "g++-11",
+        "CMAKE_CUDA_HOST_COMPILER": "g++-11"
+      }
+    },
+    {
+      "name": "gcc-12",
+      "hidden": true,
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc-12",
         "CMAKE_CXX_COMPILER": "g++-12",
-        "BUILD_SHARED_LIBS": "FALSE",
-        "TB_PACKAGE_MANAGER": "conan"
+        "CMAKE_CUDA_HOST_COMPILER": "g++-12"
       }
     },
     {
-      "name": "release-gcc-12-static-native-conan",
-      "displayName": "Release|gcc-12|static|march=native|conan|mkl",
-      "inherits": [
-        "release-gcc-12-static-conan"
-      ],
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=native -mtune=native",
-        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -march=native -mtune=native"
-      }
-    },
-    {
-      "name": "release-clang-14-static-conan",
-      "displayName": "debug|clang-14|static|conan|mkl",
-      "inherits": [
-        "default",
-        "release"
-      ],
+      "name": "clang-14",
+      "hidden": true,
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang-14",
         "CMAKE_CXX_COMPILER": "clang++-14",
-        "BUILD_SHARED_LIBS": "FALSE",
-        "TB_PACKAGE_MANAGER": "conan"
+        "CMAKE_CUDA_HOST_COMPILER": "g++-10"
       }
     },
     {
-      "name": "debug-gcc-12-shared-cmake",
-      "displayName": "debug|gcc-12|shared|asan|cmake|mkl",
+      "name": "clang-15",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-15",
+        "CMAKE_CXX_COMPILER": "clang++-15",
+        "CMAKE_CUDA_HOST_COMPILER": "g++-10"
+      }
+    },
+    {
+      "name": "find",
+      "hidden": true,
+      "cacheVariables": {
+        "DMRG_PACKAGE_MANAGER": "find"
+      }
+    },
+    {
+      "name": "cmake",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "${sourceDir}/cmake/cmake_dependency_provider/cmake_provider.cmake",
+        "DMRG_PACKAGE_MANAGER": "find",
+        "CMAKE_FIND_PACKAGE_PREFER_CONFIG": "TRUE"
+      }
+    },
+    {
+      "name": "conan",
+      "hidden": true,
+      "cacheVariables": {
+        "DMRG_PACKAGE_MANAGER": "find",
+        "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "${sourceDir}/cmake/conan1_dependency_provider/conan_provider.cmake",
+        "CMAKE_FIND_PACKAGE_PREFER_CONFIG": "TRUE"
+      },
+      "environment": {
+        "PATH": "$env{HOME}/miniconda3/envs/dmrg/bin:$env{HOME}/anaconda3/envs/dmrg/bin:$env{HOME}/miniconda3/bin:$penv{PATH}"
+      }
+    },
+    {
+      "name": "conan2",
+      "hidden": true,
+      "cacheVariables": {
+        "DMRG_PACKAGE_MANAGER": "find",
+        "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "${sourceDir}/cmake/conan2/conan_provider.cmake",
+        "CMAKE_FIND_PACKAGE_PREFER_CONFIG": "TRUE"
+      },
+      "environment": {
+        "PATH": "$env{HOME}/miniconda3/envs/dmrg/bin:$env{HOME}/miniconda3/bin:$penv{PATH}"
+      }
+    },
+    {
+      "name": "release-gcc-10",
+      "displayName": "Release|gcc-10",
+      "hidden": true,
       "inherits": [
-        "default",
-        "debug"
+        "gcc-10",
+        "release",
+        "default"
       ],
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc-12",
-        "CMAKE_CXX_COMPILER": "g++-12",
-        "BUILD_SHARED_LIBS": "TRUE",
-        "TB_PACKAGE_MANAGER": "cmake"
+        "COMPILER_ENABLE_MOLD": "TRUE",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "FALSE"
       }
+    },
+    {
+      "name": "release-gcc-11",
+      "displayName": "Release|gcc-11",
+      "hidden": true,
+      "inherits": [
+        "gcc-11",
+        "release",
+        "default"
+      ],
+      "cacheVariables": {
+        "COMPILER_ENABLE_MOLD": "TRUE",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "FALSE"
+      }
+    },
+    {
+      "name": "release-gcc-12",
+      "displayName": "Release|gcc-12",
+      "hidden": true,
+      "inherits": [
+        "gcc-12",
+        "release",
+        "default"
+      ],
+      "cacheVariables": {
+        "COMPILER_ENABLE_MOLD": "TRUE",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "FALSE"
+      }
+    },
+    {
+      "name": "release-clang-15",
+      "displayName": "Release|clang-15",
+      "hidden": true,
+      "inherits": [
+        "clang-15",
+        "release",
+        "default"
+      ],
+      "cacheVariables": {
+        "COMPILER_ENABLE_MOLD": "TRUE",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "FALSE"
+      }
+    },
+    {
+      "name": "debug-gcc-12",
+      "displayName": "Debug|gcc-12",
+      "hidden": true,
+      "inherits": [
+        "gcc-12",
+        "debug",
+        "default"
+      ]
+    },
+    {
+      "name": "debug-clang-15",
+      "displayName": "Debug|clang-15",
+      "hidden": true,
+      "inherits": [
+        "clang-15",
+        "debug",
+        "default"
+      ]
+    },
+    {
+      "name": "release-gcc-10-conan-flexiblas-native",
+      "displayName": "Release|gcc-10|conan|flexiblas|native",
+      "inherits": [
+        "native",
+        "flexiblas",
+        "conan",
+        "release-gcc-10"
+      ]
+    },
+    {
+      "name": "release-gcc-11-conan-flexiblas-native",
+      "displayName": "Release|gcc-11|conan|flexiblas|native",
+      "inherits": [
+        "native",
+        "flexiblas",
+        "conan",
+        "release-gcc-11"
+      ]
+    },
+    {
+      "name": "release-gcc-12-conan-mkl-native",
+      "displayName": "Release|gcc-12|conan|mkl|native",
+      "inherits": [
+        "native",
+        "mkl",
+        "conan",
+        "release-gcc-12"
+      ]
+    },
+    {
+      "name": "release-gcc-12-conan-flexiblas-native",
+      "displayName": "Release|gcc-12|conan|flexiblas|native",
+      "inherits": [
+        "native",
+        "flexiblas",
+        "conan",
+        "release-gcc-12"
+      ]
+    },
+    {
+      "name": "release-gcc-12-conan-openblas-native",
+      "displayName": "Release|gcc-12|conan|openblas|native",
+      "inherits": [
+        "native",
+        "openblas",
+        "conan",
+        "release-gcc-12"
+      ]
+    },
+    {
+      "name": "release-gcc-12-cmake-flexiblas-native",
+      "displayName": "Release|gcc-12|cmake|flexiblas|native",
+      "inherits": [
+        "native",
+        "flexiblas",
+        "cmake",
+        "release-gcc-12"
+      ]
+    },
+    {
+      "name": "release-clang-15-conan-mkl-native",
+      "displayName": "Release|clang-15|conan|mkl|native",
+      "hidden": true,
+      "inherits": [
+        "native",
+        "mkl",
+        "conan",
+        "release-clang-15"
+      ]
+    },
+    {
+      "name": "release-clang-15-conan-openblas-native",
+      "displayName": "Release|clang-15|conan|openblas|native",
+      "inherits": [
+        "native",
+        "openblas",
+        "conan",
+        "release-clang-15"
+      ]
+    },
+    {
+      "name": "release-clang-15-conan-flexiblas-native",
+      "displayName": "Release|clang-15|conan|flexiblas|native",
+      "inherits": [
+        "native",
+        "flexiblas",
+        "conan",
+        "release-clang-15"
+      ]
+    },
+    {
+      "name": "debug-gcc-12-conan-mkl",
+      "displayName": "Debug|gcc-12|conan|mkl|shared|asan",
+      "inherits": [
+        "mkl",
+        "conan",
+        "debug-gcc-12"
+      ]
+    },
+    {
+      "name": "debug-gcc-12-conan-openblas",
+      "displayName": "Debug|gcc-12|conan|openblas|shared|asan",
+      "inherits": [
+        "openblas",
+        "conan",
+        "debug-gcc-12"
+      ]
+    },
+    {
+      "name": "debug-clang-15-conan-mkl",
+      "displayName": "Debug|clang-15|conan|mkl|shared|asan",
+      "inherits": [
+        "mkl",
+        "conan",
+        "debug-clang-15"
+      ]
+    },
+    {
+      "name": "debug-clang-15-conan-openblas",
+      "displayName": "Debug|clang-15|conan|openblas|shared|asan",
+      "inherits": [
+        "openblas",
+        "conan",
+        "debug-clang-15"
+      ]
     },
     {
       "name": "github-actions",
       "displayName": "Default configuration for github-actions",
       "inherits": [
+        "debug",
+        "openblas",
         "default"
       ],
       "cacheVariables": {
-        "TB_ENABLE_MKL": "FALSE",
         "TB_ENABLE_TESTS": "TRUE",
         "TB_ENABLE_BENCH": "FALSE",
         "TB_ENABLE_TBLIS": "FALSE",
@@ -151,82 +435,156 @@
         "COMPILER_ENABLE_ASAN": "FALSE",
         "COMPILER_ENABLE_USAN": "FALSE",
         "COMPILER_ENABLE_CCACHE": "TRUE"
+      },
+      "environment": {
+        "VERBOSE": "1"
       }
     },
     {
-      "name": "kraken",
-      "displayName": "Release|gcc-11|static|march=haswell|conan|mkl",
+      "name": "github-actions-cmake",
+      "displayName": "CMake package manager configuration for github-actions",
       "inherits": [
-        "default",
-        "release"
+        "cmake",
+        "github-actions"
+      ],
+      "cacheVariables": {
+        "COMPILER_ENABLE_COVERAGE": "TRUE"
+      }
+    },
+    {
+      "name": "github-actions-conan",
+      "displayName": "Conan package manager configuration for github-actions",
+      "inherits": [
+        "conan",
+        "github-actions"
+      ]
+    },
+    {
+      "name": "kraken",
+      "displayName": "Release|gcc-11|march=haswell|conan",
+      "inherits": [
+        "release",
+        "gcc-11",
+        "conan",
+        "default"
       ],
       "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc-11",
-        "CMAKE_CXX_COMPILER": "g++-11",
-        "BUILD_SHARED_LIBS": "FALSE",
-        "TB_PACKAGE_MANAGER": "conan",
         "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=haswell -mtune=haswell",
-        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -march=haswell -mtune=haswell"
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -march=haswell -mtune=haswell",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE"
       }
     },
     {
       "name": "tetralith",
-      "displayName": "Release|gcc-10|static|march=native|conan|mkl",
+      "displayName": "Release|gcc-10|march=native|conan",
       "inherits": [
-        "default",
-        "release"
+        "release",
+        "gcc-10",
+        "native",
+        "conan",
+        "default"
       ],
       "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "gcc-10",
-        "CMAKE_CXX_COMPILER": "g++-10",
-        "BUILD_SHARED_LIBS": "FALSE",
-        "TB_PACKAGE_MANAGER": "conan",
-        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=native -mtune=native",
-        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -march=native -mtune=native"
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "release-conan",
-      "displayName": "Release|march=native|conan|mkl",
-      "configurePreset": "release-conan"
+      "name": "release-gcc-10-conan-flexiblas-native",
+      "configurePreset": "release-gcc-10-conan-flexiblas-native"
     },
     {
-      "name": "release-gcc-12-static-conan",
-      "displayName": "Release|gcc-12|static|conan|mkl",
-      "configurePreset": "release-gcc-12-static-conan"
+      "name": "release-gcc-11-conan-flexiblas-native",
+      "configurePreset": "release-gcc-11-conan-flexiblas-native"
     },
     {
-      "name": "release-gcc-12-static-native-conan",
-      "displayName": "Release|gcc-12|static|march=native|conan|mkl",
-      "configurePreset": "release-gcc-12-static-native-conan"
+      "name": "release-gcc-12-conan-mkl-native",
+      "configurePreset": "release-gcc-12-conan-mkl-native"
+    },
+    {
+      "name": "release-gcc-12-conan-flexiblas-native",
+      "configurePreset": "release-gcc-12-conan-flexiblas-native"
+    },
+    {
+      "name": "release-gcc-12-conan-openblas-native",
+      "configurePreset": "release-gcc-12-conan-openblas-native"
+    },
+    {
+      "name": "release-gcc-12-cmake-flexiblas-native",
+      "configurePreset": "release-gcc-12-conan-openblas-native"
+    },
+    {
+      "name": "release-clang-15-conan-mkl-native",
+      "configurePreset": "release-clang-15-conan-mkl-native"
+    },
+    {
+      "name": "release-clang-15-conan-openblas-native",
+      "configurePreset": "release-clang-15-conan-openblas-native"
+    },
+    {
+      "name": "release-clang-15-conan-flexiblas-native",
+      "configurePreset": "release-clang-15-conan-flexiblas-native"
+    },
+    {
+      "name": "debug-gcc-12-conan-mkl",
+      "configurePreset": "debug-gcc-12-conan-mkl"
+    },
+    {
+      "name": "debug-gcc-12-conan-openblas",
+      "configurePreset": "debug-gcc-12-conan-openblas"
+    },
+    {
+      "name": "debug-clang-15-conan-mkl",
+      "configurePreset": "debug-clang-15-conan-mkl"
+    },
+    {
+      "name": "debug-clang-15-conan-openblas",
+      "configurePreset": "debug-clang-15-conan-openblas"
     },
     {
       "name": "kraken",
-      "displayName": "Release|gcc-11|static|march=haswell|conan|mkl",
       "configurePreset": "kraken"
     },
     {
       "name": "tetralith",
-      "displayName": "Release|gcc-10|static|march=native|conan|mkl",
+      "displayName": "Release|march=native|conan|mkl",
       "configurePreset": "tetralith",
       "jobs": 16
     },
     {
-      "name": "github-actions",
-      "displayName": "Default configuration for github-actions",
-      "configurePreset": "github-actions",
-      "jobs": 2
+      "name": "github-actions-cmake",
+      "displayName": "CMake package manager configuration for github-actions",
+      "configurePreset": "github-actions-cmake"
+    },
+    {
+      "name": "github-actions-conan",
+      "displayName": "Conan package manager configuration for github-actions",
+      "configurePreset": "github-actions-conan"
     }
   ],
   "testPresets": [
     {
-      "name": "default",
-      "configurePreset": "default",
+      "name": "github-actions-cmake",
+      "displayName": "CMake package manager configuration for github-actions",
+      "configurePreset": "github-actions-cmake",
       "output": {
+        "verbosity": "extra",
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": true
+      }
+    },
+    {
+      "name": "github-actions-conan",
+      "displayName": "Conan package manager configuration for github-actions",
+      "configurePreset": "github-actions-conan",
+      "output": {
+        "verbosity": "extra",
         "outputOnFailure": true
       },
       "execution": {

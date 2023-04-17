@@ -1,0 +1,70 @@
+diff --git a/src/interface/set.h b/src/interface/set.h
+index 956603ad..b7e08833 100644
+--- a/src/interface/set.h
++++ b/src/interface/set.h
+@@ -8,11 +8,11 @@
+ #include <inttypes.h>
+ #include "../shared/memcontrol.h"
+ #ifdef _OPENMP
+-#include "omp.h"
++#include <omp.h>
+ #endif
+ 
+ #ifdef _OPENMP
+-#include "omp.h"
++#include <omp.h>
+ #endif
+ namespace CTF {
+   /**
+diff --git a/src/interface/tensor.cxx b/src/interface/tensor.cxx
+index 6ca9970f..a3a63329 100644
+--- a/src/interface/tensor.cxx
++++ b/src/interface/tensor.cxx
+@@ -5,7 +5,7 @@
+ #include "idx_tensor.h"
+ #include "../tensor/untyped_tensor.h"
+ #ifdef _OPENMP
+-#include "omp.h"
++#include <omp.h>
+ #endif
+ 
+ namespace CTF_int {
+diff --git a/src/shared/fompi_wrapper.h b/src/shared/fompi_wrapper.h
+index d39b471e..9583158a 100644
+--- a/src/shared/fompi_wrapper.h
++++ b/src/shared/fompi_wrapper.h
+@@ -12,7 +12,7 @@ typedef foMPI_Win CTF_Win;
+ #define MPI_Put(...) foMPI_Put(__VA_ARGS__)
+ #else
+ #ifdef CRITTER
+-#include "critter.h"
++#include <critter.h>
+ #else
+ #include <mpi.h>
+ #endif
+diff --git a/src/shared/model.h b/src/shared/model.h
+index e9b3a7d8..27ebf612 100644
+--- a/src/shared/model.h
++++ b/src/shared/model.h
+@@ -2,7 +2,7 @@
+ #define __MODEL_H__
+ 
+ #ifdef CRITTER
+-#include "critter.h"
++#include <critter.h>
+ #else
+ #include <mpi.h>
+ #endif
+diff --git a/src/shared/pmpi.h b/src/shared/pmpi.h
+index b55f4b4c..be91d767 100644
+--- a/src/shared/pmpi.h
++++ b/src/shared/pmpi.h
+@@ -2,7 +2,7 @@
+ #define __PMPI_H__
+ 
+ #ifdef CRITTER
+-#include "critter.h"
++#include <critter.h>
+ #else
+ #include <mpi.h>
+ #endif
