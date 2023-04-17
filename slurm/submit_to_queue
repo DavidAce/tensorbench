@@ -2,20 +2,35 @@
 # Submit this file to slurm with "sbatch submit_to_queue"
 
 #SBATCH --job-name=tensorbench          # Job name for this simulation, to display on the queue
-#SBATCH --time=0-02:00:00               # Maximum duration of this job. Slurm kills the job after this time
+#SBATCH --time=0-06:00:00               # Maximum duration of this job. Slurm kills the job after this time
 #SBATCH --nodes=1                       # Minimum nodes required for this job. Normally > 1 is only used for MPI jobs
 #SBATCH --ntasks=1                      # Number of processes to launch.
-#SBATCH --cpus-per-task=64              # Each process is single-threaded
-#SBATCH --mem-per-cpu=1G               # Amount of RAM memory (in megabytes) required for each process
-#SBATCH --cluster=kraken		# Only kraken has gpu-enabled nodes
-#SBATCH --nodelist=kakariko
+#SBATCH --cpus-per-task=32              # Each process is single-threaded
+#SBATCH --mem-per-cpu=1G                # Amount of RAM memory (in megabytes) required for each process
+#SBATCH --cluster=kraken		            # Only kraken has gpu-enabled nodes
+#SBATCH --nodelist=feynman
 #SBATCH --partition=gpu                 # Partition (queue) to select, e.g. 'all','dedicated','gpu','core32'...
 #SBATCH --qos=gpu
-#SBATCH --gres=gpu:1			# Select 1 "generic resource" (gres) of type gpu
+#SBATCH --gres=gpu:1			              # Select 1 "generic resource" (gres) of type gpu
 #SBATCH --output=logs/log.o             # Relative path to log file for normal console output
 #SBATCH --error=logs/log.e              # Relative path to log file specifically for error output
 #SBATCH --exclusive
 
 
 module load CUDA
-srun ../build/Release/tensorbench -n 1 -n 2 -n 4 -n 8 -n 16 -n 32 -B 16 -B 32 -B 64 -B 128 -B 192 -B 256 -B 320 -B 384 -B 448 -B 512 -B 640 -B 768 -B 896 -B 1024  -D 4 -M 5 -i 6
+module load OpenMPI
+export OMP_NUM_THREADS=32
+
+exec=./build/release-gcc-10-conan-flexiblas-native/tensorbench
+types=[fp64]
+mpsbonds=[32,64,128,256]
+mpiflags="--bind-to socket --report-bindings -x OMP_PLACES=sockets -x OMP_PROC_BIND=master"
+fname="tbdb.h5"
+
+$exec -i 10 --facc=REPLACE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cute]  --nomps=[1]
+$exec -i 10 --facc=READWRITE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[eigen1,tblis,xtensor]  --nomps=[1,2,4,8,16,32]
+srun -n 1 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --types=$types --nomps=[1]
+srun -n 2 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 4 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 8 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 16 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
