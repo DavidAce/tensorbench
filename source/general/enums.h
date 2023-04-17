@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-enum class tb_mode { eigen1, eigen2, eigen3, cute, xtensor, tblis, cyclops };
+enum class tb_mode { eigen1, eigen2, eigen3, cutensor, xtensor, tblis, cyclops };
 enum class tb_type { fp32, fp64, cplx };
 
 template<class>
@@ -20,7 +20,7 @@ constexpr std::string_view enum2sv(const T &item) {
             case tb_mode::eigen1: return "eigen1";
             case tb_mode::eigen2: return "eigen2";
             case tb_mode::eigen3: return "eigen3";
-            case tb_mode::cute: return "cute";
+            case tb_mode::cutensor: return "cutensor";
             case tb_mode::xtensor: return "xtensor";
             case tb_mode::tblis: return "tblis";
             case tb_mode::cyclops: return "cyclops";
@@ -66,7 +66,7 @@ constexpr auto sv2enum(std::string_view item) {
         if(item == "eigen1") return tb_mode::eigen1;
         if(item == "eigen2") return tb_mode::eigen2;
         if(item == "eigen3") return tb_mode::eigen3;
-        if(item == "cute") return tb_mode::cute;
+        if(item == "cutensor") return tb_mode::cutensor;
         if(item == "xtensor") return tb_mode::xtensor;
         if(item == "tblis") return tb_mode::tblis;
         if(item == "cyclops") return tb_mode::cyclops;

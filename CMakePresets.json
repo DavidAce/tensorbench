@@ -17,7 +17,7 @@
         "TB_ENABLE_EIGEN2": "FALSE",
         "TB_ENABLE_EIGEN3": "FALSE",
         "TB_ENABLE_CUDA": "TRUE",
-        "TB_ENABLE_CUTE": "TRUE",
+        "TB_ENABLE_CUTENSOR": "TRUE",
         "TB_ENABLE_XTENSOR": "TRUE",
         "TB_ENABLE_TBLIS": "TRUE",
         "TB_ENABLE_CYCLOPS": "TRUE",

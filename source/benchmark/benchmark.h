@@ -12,13 +12,16 @@ struct tb_setup {
     tb_type             type;
     int                 nomp = 0;
     int                 nmpi = 0;
+    int                 gpun = -1;
     Eigen::Tensor<T, 3> envL, envR, psi;
     Eigen::Tensor<T, 4> mpo;
     size_t              iters;
     std::string         dsetname;
 
     mutable std::vector<Eigen::Tensor<T, 3>> psi_check;
-    tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters);
+    mutable std::string                      device; // E.g. graphics card or cpu name
+
+    tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, int gpun, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters);
     std::string string() const;
 };
 
@@ -30,8 +33,7 @@ namespace benchmark {
     using fp32 = float;
     using fp64 = double;
 
-    template<typename T>
-    extern void iterate_benchmarks();
+    void iterate_benchmarks();
 
     template<typename T>
     extern void run_benchmark(const tb_setup<T> &tbs);

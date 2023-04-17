@@ -68,6 +68,8 @@ int main(int argc, char *argv[]) {
     tools::log->info("    commit hash : {}", env::git::commit_hash);
     tools::log->info("    revision    : {}", env::git::revision);
 
+    config::showCpuName();
+    config::showGpuInfo();
     // Initialize MPI if this benchmark was run with mpirun
     mpi::init(argc, argv);
 
@@ -93,15 +95,5 @@ int main(int argc, char *argv[]) {
         mpi::barrier();
     }
     mpi::barrier();
-
-#if defined(TB_CUDA) && __has_include(<cuda.h>)
-    tools::log->info("Initializing CUDA");
-    auto init_result = cudaSetDevice(0);
-    //    auto init_result = cuInit(0);
-    if(init_result != 0) throw std::runtime_error("cuInit returned " + std::to_string(init_result));
-#endif
-
-    benchmark::iterate_benchmarks<benchmark::fp32>();
-    benchmark::iterate_benchmarks<benchmark::fp64>();
-    benchmark::iterate_benchmarks<benchmark::cplx>();
+    benchmark::iterate_benchmarks();
 }

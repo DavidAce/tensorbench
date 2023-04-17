@@ -15,8 +15,8 @@ option(TB_EIGEN3_BLAS              "Enable BLAS backend for Eigen3 (if OpenBLAS/
 option(TB_ENABLE_EIGEN1            "Benchmark contractions on CPU with Eigen mode 1"              OFF)
 option(TB_ENABLE_EIGEN2            "Benchmark contractions on CPU with Eigen mode 2"              OFF)
 option(TB_ENABLE_EIGEN3            "Benchmark contractions on CPU with Eigen mode 3"              OFF)
-option(TB_ENABLE_CUDA              "Benchmark contractions on GPU with Eigen GPU routines"        OFF)
-option(TB_ENABLE_CUTE              "Benchmark contractions on GPU with CUTENSOR"                  OFF)
+option(TB_ENABLE_CUDA              "Benchmark contractions on GPU"                                OFF)
+option(TB_ENABLE_CUTENSOR          "Benchmark contractions on GPU with CUTENSOR"                  OFF)
 option(TB_ENABLE_XTENSOR           "Benchmark contractions on CPU with xtensor"                   OFF)
 option(TB_ENABLE_TBLIS             "Benchmark contractions on CPU with TBLIS"                     OFF)
 option(TB_ENABLE_CYCLOPS           "Benchmark contractions on CPU with CYCLOPS"                   OFF)
@@ -52,6 +52,7 @@ include(cmake/CompilerFlags.cmake)
 add_executable(tensorbench
                source/main.cpp
                source/config/config.cpp
+               source/config/config.cu
                source/debug/exceptions.cxx
                source/debug/info.cpp
                source/debug/stacktrace.cpp
@@ -82,12 +83,12 @@ add_library(tb-eigen3 OBJECT source/benchmark/tensor_product_eigen3.cpp)
 add_library(tb-xtensor OBJECT source/benchmark/tensor_product_xtensor.cpp)
 add_library(tb-tblis OBJECT source/benchmark/tensor_product_tblis.cpp)
 add_library(tb-cyclops OBJECT source/benchmark/tensor_product_cyclops.cpp)
-if(TB_ENABLE_CUTE)
+if(TB_ENABLE_CUTENSOR)
     enable_language(CUDA)
-    add_library(tb-cute OBJECT source/benchmark/tensor_product_cute.cu)
+    add_library(tb-cutensor OBJECT source/benchmark/tensor_product_cute.cu)
 else()
     # Add this dummy that can be compiled without enabling CUDA
-    add_library(tb-cute OBJECT source/benchmark/tensor_product_cute.cpp)
+    add_library(tb-cutensor OBJECT source/benchmark/tensor_product_cute.cpp)
 endif()
 
 
@@ -98,7 +99,7 @@ target_link_libraries(tb-eigen3 PRIVATE tb-flags tb-deps)
 target_link_libraries(tb-xtensor PRIVATE tb-flags tb-deps)
 target_link_libraries(tb-tblis PRIVATE tb-flags tb-deps)
 target_link_libraries(tb-cyclops PRIVATE tb-flags tb-deps)
-target_link_libraries(tb-cute PRIVATE tb-flags tb-deps)
+target_link_libraries(tb-cutensor PRIVATE tb-flags tb-deps)
 
 target_include_directories(tb-eigen1 PRIVATE source)
 target_include_directories(tb-eigen2 PRIVATE source)
@@ -106,7 +107,7 @@ target_include_directories(tb-eigen3 PRIVATE source)
 target_include_directories(tb-xtensor PRIVATE source)
 target_include_directories(tb-tblis PRIVATE source)
 target_include_directories(tb-cyclops PRIVATE source)
-target_include_directories(tb-cute PRIVATE source)
+target_include_directories(tb-cutensor PRIVATE source)
 
 if(TB_ENABLE_EIGEN1)
     target_compile_definitions(tb-eigen1 PUBLIC TB_EIGEN1)
@@ -117,10 +118,9 @@ endif()
 if(TB_ENABLE_EIGEN3)
     target_compile_definitions(tb-eigen3 PUBLIC TB_EIGEN3)
 endif()
-if(TB_ENABLE_CUTE)
-    target_compile_definitions(tb-cute PUBLIC TB_CUTE)
-    target_compile_definitions(tb-cute PUBLIC TB_CUDA)
-    target_link_libraries(tb-cute INTERFACE cuda cutensor cublas cublasLt)
+if(TB_ENABLE_CUTENSOR)
+    target_compile_definitions(tb-cutensor PUBLIC TB_CUTENSOR TB_CUDA)
+    target_link_libraries(tb-cutensor INTERFACE cuda cutensor cublas cublasLt)
 endif()
 if(TB_ENABLE_XTENSOR)
     target_compile_definitions(tb-xtensor PUBLIC TB_XTENSOR)
@@ -141,7 +141,7 @@ target_link_libraries(tensorbench PRIVATE tb-eigen3)
 target_link_libraries(tensorbench PRIVATE tb-xtensor)
 target_link_libraries(tensorbench PRIVATE tb-tblis)
 target_link_libraries(tensorbench PRIVATE tb-cyclops)
-target_link_libraries(tensorbench PRIVATE tb-cute)
+target_link_libraries(tensorbench PRIVATE tb-cutensor)
 target_link_libraries(tensorbench PRIVATE tb-deps tb-flags)  # Link everything to main project
 
 if (TARGET mold::mold)

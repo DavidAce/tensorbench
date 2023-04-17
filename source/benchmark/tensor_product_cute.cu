@@ -3,7 +3,7 @@
 using fp32 = benchmark::fp32;
 using fp64 = benchmark::fp64;
 using cplx = benchmark::cplx;
-#if defined(TB_CUTE)
+#if defined(TB_CUTENSOR)
     #include "tid/tid.h"
     #include "tools/fmt.h"
     #include "tools/log.h"
@@ -58,6 +58,19 @@ long get_ops_cute_L(long d, long chiL, long chiR, long m) {
         long step3 = chiL * chiR * chiR * d * m * (m + 1);
         return step1 + step2 + step3;
     }
+}
+
+std::string getGpuName(int deviceNumber) {
+    int nDevices;
+    cudaGetDeviceCount(&nDevices);
+    if(deviceNumber + 1 > nDevices) tools::log->warn("requested cuda device number {} out of bounds | detected {} devices", deviceNumber, nDevices);
+    if(nDevices >= 1) {
+        deviceNumber        = std::clamp<int>(deviceNumber, 0, nDevices - 1);
+        cudaDeviceProp prop = {};
+        cudaGetDeviceProperties(&prop, deviceNumber);
+        return prop.name;
+    } else
+        return "";
 }
 
 template<typename Scalar>
@@ -230,8 +243,9 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
 template<typename T>
 benchmark::ResultType<T> benchmark::tensor_product_cute([[maybe_unused]] const tb_setup<T> &tbs) {
 #if defined(TB_CUTE)
-    auto                   t_cute = tid::tic_scope("cute");
+    auto                   t_cutensor = tid::tic_scope("cutensor");
     Eigen::DSizes<long, 3> dsizes = tbs.psi.dimensions();
+    tbs.device                    = getGpuName(tbs.gpun);
 
     // Extents
     std::unordered_map<int, int64_t> ext;
@@ -244,7 +258,7 @@ benchmark::ResultType<T> benchmark::tensor_product_cute([[maybe_unused]] const t
     ext['o'] = tbs.envL.dimension(1);
     ext['p'] = tbs.envR.dimension(1);
 
-    tools::log->trace("cute: ext {}", ext);
+    tools::log->trace("cutensor: ext {}", ext);
     tools::log->trace("Define cuda tensor meta objects");
     Meta<T> cu_psi_envL({'i', 'k', 'l', 'o'}, {ext['i'], ext['k'], ext['l'], ext['o']});
     Meta<T> cu_psi_envL_mpo({'k', 'o', 'm', 'n'}, {ext['k'], ext['o'], ext['m'], ext['n']});

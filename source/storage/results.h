@@ -9,8 +9,10 @@ class tb_results {
         using vlen_type      = h5pp::vstr_t;
         h5pp::vstr_t mode    = "";
         h5pp::vstr_t type    = "";
+        h5pp::vstr_t device  = "";
         int          nomp    = 0;
         int          nmpi    = 0;
+        int          gpun    = -1;
         long         spin    = 0;
         long         chiL    = 0;
         long         chiR    = 0;

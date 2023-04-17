@@ -19,8 +19,8 @@
 #endif
 
 template<typename T>
-tb_setup<T>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters)
-    : mode(mode), type(type), nomp(nomp), nmpi(nmpi), iters(iters) {
+tb_setup<T>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, int gpun, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters)
+    : mode(mode), type(type), nomp(nomp), nmpi(nmpi), gpun(gpun), iters(iters) {
     if(chiL == -1l) chiL = chi;
     if(chiR == -1l) chiR = chi;
     if(mpi::world.id == 0) {
@@ -39,14 +39,14 @@ using fp32 = benchmark::fp32;
 using fp64 = benchmark::fp64;
 using cplx = benchmark::cplx;
 
-template tb_setup<fp32>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters);
-template tb_setup<fp64>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters);
-template tb_setup<cplx>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters);
+template tb_setup<fp32>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, int gpun, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters);
+template tb_setup<fp64>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, int gpun, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters);
+template tb_setup<cplx>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, int gpun, long spin, long chi, long chiL, long chiR, long mpoD, size_t iters);
 
 template<typename T>
 std::string tb_setup<T>::string() const {
-    return fmt::format("{} | {} | nomp {:2} | nmpi {:2} | psi {} = {} | mpo {} = {}", enum2sv(mode), enum2sv(type), nomp, nmpi, psi.dimensions(), psi.size(),
-                       mpo.dimensions(), mpo.size());
+    return fmt::format("{} | {} | nomp {:2} | nmpi {:2} | gpun {:2}| psi {} = {} | mpo {} = {}", enum2sv(mode), enum2sv(type), nomp, nmpi, gpun,
+                       psi.dimensions(), psi.size(), mpo.dimensions(), mpo.size());
 }
 
 template<typename T>
@@ -60,11 +60,12 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
 #if defined(_OPENMP)
     omp_set_num_threads(tbs.nomp);
 #endif
+    tbs.device = config::getCpuName();
     tenx::threads::setNumThreads(static_cast<unsigned int>(tbs.nomp));
 
     if(mpi::world.id == 0) {
-        tools::log->info("Running Tensor Benchmark | mode {} | type {} | nomp {} | nmpi {} | iter {}", enum2sv(tbs.mode), enum2sv(tbs.mode), tbs.nomp, tbs.nmpi,
-                         tbs.iters);
+        tools::log->info("Running Tensor Benchmark | mode {} | type {} | nomp {} | nmpi {} | gpun {} | iter {}", enum2sv(tbs.mode), enum2sv(tbs.mode), tbs.nomp,
+                         tbs.nmpi, tbs.gpun, tbs.iters);
         tbs.psi_check.resize(tbs.iters);
     }
     for(size_t iter = 0; iter < tbs.iters; iter++) {
@@ -73,7 +74,7 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
             if(tbs.mode == tb_mode::eigen1) psi_out = benchmark::tensor_product_eigen1(tbs);
             if(tbs.mode == tb_mode::eigen2) psi_out = benchmark::tensor_product_eigen2(tbs);
             if(tbs.mode == tb_mode::eigen3) psi_out = benchmark::tensor_product_eigen3(tbs);
-            if(tbs.mode == tb_mode::cute) psi_out = benchmark::tensor_product_cute(tbs);
+            if(tbs.mode == tb_mode::cutensor) psi_out = benchmark::tensor_product_cute(tbs);
             if(tbs.mode == tb_mode::xtensor) psi_out = benchmark::tensor_product_xtensor(tbs);
             if(tbs.mode == tb_mode::tblis) psi_out = benchmark::tensor_product_tblis(tbs);
         }
@@ -86,8 +87,7 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
             if(tbs.iters > 100) freq = 10;
             if(tbs.iters > 1000) freq = 100;
             if(num::mod<size_t>(iter + 1, freq) == 0)
-                tools::log->info("{} | iter {:>3}/{:<3} | time {:9.3e}s + {:9.3e}s overhead", tbs.string(), iter + 1, tbs.iters, t_contr,
-                                 t_total - t_contr);
+                tools::log->info("{} | iter {:>3}/{:<3} | time {:9.3e}s + {:9.3e}s overhead", tbs.string(), iter + 1, tbs.iters, t_contr, t_total - t_contr);
 
             if(tbs.psi_check[iter].size() == 0)
                 tbs.psi_check[iter] = psi_out;
@@ -107,8 +107,8 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
         tbdb.createTable(tb_results::h5_type, config::tb_dsetname, "TensorBenchmark", std::nullopt, 6);
         std::vector<double> ops;
         for(const auto &t : t_vec) ops.emplace_back(1.0 / t);
-        tools::log->info(FMT_STRING("{} | time {:.4e}s avg {:.4e} +- {:.4e}s | op/s: {:.4f} +- {:.4f}"),
-                         enum2sv(tbs.mode), stat::sum(t_vec), stat::mean(t_vec), stat::sterr(t_vec), stat::mean(ops), stat::sterr(ops));
+        tools::log->info(FMT_STRING("{} | time {:.4e}s avg {:.4e} +- {:.4e}s | op/s: {:.4f} +- {:.4f}"), enum2sv(tbs.mode), stat::sum(t_vec), stat::mean(t_vec),
+                         stat::sterr(t_vec), stat::mean(ops), stat::sterr(ops));
         tbdb.appendTableRecords(tb, config::tb_dsetname);
     }
     mpi::barrier();
@@ -118,7 +118,6 @@ template void benchmark::run_benchmark(const tb_setup<fp32> &tbs);
 template void benchmark::run_benchmark(const tb_setup<fp64> &tbs);
 template void benchmark::run_benchmark(const tb_setup<cplx> &tbs);
 
-template<typename T>
 void benchmark::iterate_benchmarks() {
     if(mpi::world.id == 0) {
         // Initialize the output file
@@ -145,25 +144,31 @@ void benchmark::iterate_benchmarks() {
                         for(auto mpoD : config::v_mpoD) {
                             for(auto spin : config::v_spin) {
                                 for(auto nomp : config::v_nomp) {
-                                    if(mode == tb_mode::cute and nomp > 1) {
-                                        tools::log->info("skipping benchmark in [cute] mode because nomp > 1");
-                                        continue;
-                                    }
-                                    switch(type) {
-                                        case tb_type::fp32: {
-                                            auto tbs = tb_setup<fp32>(mode, type, nomp, nmpi, spin, chi, chiL, chiR, mpoD, config::n_iter);
-                                            benchmark::run_benchmark(tbs);
-                                            break;
+                                    for(auto gpun : config::v_gpun) {
+                                        if(mode == tb_mode::cutensor) {
+                                            if(nomp > 1) {
+                                                tools::log->info("skipping benchmark in [cutensor] mode because nomp > 1");
+                                                continue;
+                                            } else {
+                                                config::initializeCuda(gpun);
+                                            }
                                         }
-                                        case tb_type::fp64: {
-                                            auto tbs = tb_setup<fp64>(mode, type, nomp, nmpi, spin, chi, chiL, chiR, mpoD, config::n_iter);
-                                            benchmark::run_benchmark(tbs);
-                                            break;
-                                        }
-                                        case tb_type::cplx: {
-                                            auto tbs = tb_setup<cplx>(mode, type, nomp, nmpi, spin, chi, chiL, chiR, mpoD, config::n_iter);
-                                            benchmark::run_benchmark(tbs);
-                                            break;
+                                        switch(type) {
+                                            case tb_type::fp32: {
+                                                auto tbs = tb_setup<fp32>(mode, type, nomp, nmpi, gpun, spin, chi, chiL, chiR, mpoD, config::n_iter);
+                                                benchmark::run_benchmark(tbs);
+                                                break;
+                                            }
+                                            case tb_type::fp64: {
+                                                auto tbs = tb_setup<fp64>(mode, type, nomp, nmpi, gpun, spin, chi, chiL, chiR, mpoD, config::n_iter);
+                                                benchmark::run_benchmark(tbs);
+                                                break;
+                                            }
+                                            case tb_type::cplx: {
+                                                auto tbs = tb_setup<cplx>(mode, type, nomp, nmpi, gpun, spin, chi, chiL, chiR, mpoD, config::n_iter);
+                                                benchmark::run_benchmark(tbs);
+                                                break;
+                                            }
                                         }
                                     }
                                 }
@@ -175,7 +180,3 @@ void benchmark::iterate_benchmarks() {
         }
     }
 }
-
-template void benchmark::iterate_benchmarks<benchmark::fp32>();
-template void benchmark::iterate_benchmarks<benchmark::fp64>();
-template void benchmark::iterate_benchmarks<benchmark::cplx>();

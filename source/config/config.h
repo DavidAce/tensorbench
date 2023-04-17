@@ -15,6 +15,10 @@ enum class tb_type;
 namespace config {
     // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
     std::string getCurrentDateTime();
+    void        initializeCuda(int gpun);
+    std::string getCpuName();
+    void        showCpuName();
+    void        showGpuInfo();
     int         parse(int argc, char *argv[]);
 
     inline auto                 loglevel      = static_cast<spdlog::level::level_enum>(2); /*!<    */
@@ -31,4 +35,5 @@ namespace config {
     inline std::vector<long>    v_chiR        = {-1}; /*!<    */
     inline std::vector<tb_mode> tb_modes      = {};   /*!<    */
     inline std::vector<tb_type> tb_types      = {};
+    inline std::vector<int>     v_gpun        = {0};  /*!< There may be more gpus on this machine */
 }

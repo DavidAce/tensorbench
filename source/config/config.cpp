@@ -21,16 +21,50 @@ std::string config::getCurrentDateTime() {
     return buf;
 }
 
+std::string config::getCpuName() {
+    std::string cpu_name;
+    FILE       *fp = fopen("/proc/cpuinfo", "r");
+    assert(fp != NULL);
+    size_t n    = 0;
+    char  *line = nullptr;
+    while(getline(&line, &n, fp) > 0) {
+        if(strstr(line, "model name")) {
+            auto linesv = std::string_view(line);
+            cpu_name    = linesv.substr(linesv.find(':') + 2);
+            break;
+        }
+    }
+    free(line);
+    fclose(fp);
+    return cpu_name;
+}
+
+void config::showCpuName() {
+    FILE *fp = fopen("/proc/cpuinfo", "r");
+    assert(fp != NULL);
+    size_t n    = 0;
+    char  *line = nullptr;
+    while(getline(&line, &n, fp) > 0) {
+        if(strstr(line, "model name")) {
+            auto linesv = std::string_view(line);
+            printf("CPU: %s", linesv.substr(linesv.find(':') + 2).data());
+            break;
+        }
+    }
+    free(line);
+    fclose(fp);
+}
+
 // MWE: https://godbolt.org/z/jddxod53d
 int config::parse(int argc, char **argv) {
     auto s2e_log = mapStr2Enum<spdlog::level::level_enum>("trace", "debug", "info", "warn", "error", "critical", "off");
     auto s2e_acc = mapStr2Enum<h5pp::FileAccess>("READONLY", "COLLISION_FAIL", "RENAME", "READWRITE", "BACKUP", "REPLACE");
-    auto s2e_tbm = mapStr2Enum<tb_mode>("eigen1", "eigen2", "eigen3", "cute", "xtensor", "tblis", "cyclops");
+    auto s2e_tbm = mapStr2Enum<tb_mode>("eigen1", "eigen2", "eigen3", "cutensor", "xtensor", "tblis", "cyclops");
     auto s2e_tbt = mapStr2Enum<tb_type>("fp32", "fp64", "cplx");
 
     // Set defaults
     config::tb_types = {tb_type::fp32, tb_type::fp64, tb_type::cplx};
-    config::tb_modes = {tb_mode::eigen1, tb_mode::eigen2, tb_mode::eigen3, tb_mode::cute, tb_mode::xtensor, tb_mode::tblis, tb_mode::cyclops};
+    config::tb_modes = {tb_mode::eigen1, tb_mode::eigen2, tb_mode::eigen3, tb_mode::cutensor, tb_mode::xtensor, tb_mode::tblis, tb_mode::cyclops};
 
 #if defined(_OPENMP)
     // This will honor env variable OMP_NUM_THREADS
@@ -66,6 +100,7 @@ int config::parse(int argc, char **argv) {
     app.add_option("-f,--fname", config::tb_filename, "Path to the resulting HDF5 output file");
     app.add_option("-i,--iters", config::n_iter, "Number of times to run each benchmark");
     app.add_option("-n,--nomps", config::v_nomp, "Number(s) of OpenMP threads to test");
+    app.add_option("-g,--gpuns", config::v_gpun, "GPU device numbers");
     app.add_option("-D,--spindims", config::v_spin, "Size(s) of MPS spin dimensions to test");
     app.add_option("-M,--mpobonds", config::v_mpoD, "Size(s) of MPO bond dimensions to test");
     app.add_option("-B,--mpsbonds", config::v_chi, "Size(s) of MPS bond dimensions to test");

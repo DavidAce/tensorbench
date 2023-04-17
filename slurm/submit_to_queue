@@ -11,25 +11,25 @@
 #SBATCH --nodelist=feynman
 #SBATCH --partition=gpu                 # Partition (queue) to select, e.g. 'all','dedicated','gpu','core32'...
 #SBATCH --qos=gpu
-#SBATCH --gres=gpu:1			              # Select 1 "generic resource" (gres) of type gpu
+#SBATCH --gres=gpu:2			              # Select 1 "generic resource" (gres) of type gpu
 #SBATCH --output=logs/log.o             # Relative path to log file for normal console output
 #SBATCH --error=logs/log.e              # Relative path to log file specifically for error output
 #SBATCH --exclusive
 
 
 module load CUDA
+module load cuTENSOR
 module load OpenMPI
 export OMP_NUM_THREADS=32
 
 exec=./build/release-gcc-10-conan-flexiblas-native/tensorbench
-types=[fp64]
-mpsbonds=[32,64,128,256]
+mpsbonds=[32,64,128,256,512,1024]
 mpiflags="--bind-to socket --report-bindings -x OMP_PLACES=sockets -x OMP_PROC_BIND=master"
 fname="tbdb.h5"
 
-$exec -i 10 --facc=REPLACE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cute]  --nomps=[1]
-$exec -i 10 --facc=READWRITE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[eigen1,tblis,xtensor]  --nomps=[1,2,4,8,16,32]
-srun -n 1 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --types=$types --nomps=[1]
+srun -n 1 $exec -i 10 --facc=REPLACE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cute]  --nomps=[1] --gpuns=[0,1]
+srun -n 1 $exec -i 10 --facc=READWRITE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[eigen1,tblis,xtensor]  --nomps=[1,2,4,8,16,32]
+srun -n 1 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
 srun -n 2 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
 srun -n 4 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
 srun -n 8 $mpiflags $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
