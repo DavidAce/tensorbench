@@ -60,19 +60,6 @@ long get_ops_cute_L(long d, long chiL, long chiR, long m) {
     }
 }
 
-std::string getGpuName(int deviceNumber) {
-    int nDevices;
-    cudaGetDeviceCount(&nDevices);
-    if(deviceNumber + 1 > nDevices) tools::log->warn("requested cuda device number {} out of bounds | detected {} devices", deviceNumber, nDevices);
-    if(nDevices >= 1) {
-        deviceNumber        = std::clamp<int>(deviceNumber, 0, nDevices - 1);
-        cudaDeviceProp prop = {};
-        cudaGetDeviceProperties(&prop, deviceNumber);
-        return prop.name;
-    } else
-        return "";
-}
-
 template<typename Scalar>
 class Meta {
     private:
@@ -245,7 +232,6 @@ benchmark::ResultType<T> benchmark::tensor_product_cute([[maybe_unused]] const t
 #if defined(TB_CUTE)
     auto                   t_cutensor = tid::tic_scope("cutensor");
     Eigen::DSizes<long, 3> dsizes = tbs.psi.dimensions();
-    tbs.device                    = getGpuName(tbs.gpun);
 
     // Extents
     std::unordered_map<int, int64_t> ext;

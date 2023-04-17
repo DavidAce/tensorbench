@@ -17,6 +17,7 @@ namespace config {
     std::string getCurrentDateTime();
     void        initializeCuda(int gpun);
     std::string getCpuName();
+    std::string getGpuName(int gpun);
     void        showCpuName();
     void        showGpuInfo();
     int         parse(int argc, char *argv[]);

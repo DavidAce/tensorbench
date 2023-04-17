@@ -13,6 +13,24 @@ void config::initializeCuda(int gpun) {
 #endif
 }
 
+std::string config::getGpuName(int deviceNumber) {
+#if defined(TB_CUDA)
+    if(deviceNumber < 0) return {};
+    int nDevices;
+    cudaGetDeviceCount(&nDevices);
+    if(deviceNumber + 1 > nDevices) tools::log->warn("requested cuda device number {} out of bounds | detected {} devices", deviceNumber, nDevices);
+    if(nDevices >= 1) {
+        deviceNumber        = std::clamp<int>(deviceNumber, 0, nDevices - 1);
+        cudaDeviceProp prop = {};
+        cudaGetDeviceProperties(&prop, deviceNumber);
+        return prop.name;
+    } else
+        return {};
+#else
+    return {};
+#endif
+}
+
 void config::showGpuInfo() {
 #if defined(TB_CUDA)
     int nDevices;

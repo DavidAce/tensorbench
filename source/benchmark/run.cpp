@@ -34,6 +34,7 @@ tb_setup<T>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi, int gpun, 
         mpo.setRandom();
         psi.setRandom();
     }
+    if(mode != tb_mode::cutensor) this->gpun = -1;
 }
 using fp32 = benchmark::fp32;
 using fp64 = benchmark::fp64;
@@ -45,7 +46,7 @@ template tb_setup<cplx>::tb_setup(tb_mode mode, tb_type type, int nomp, int nmpi
 
 template<typename T>
 std::string tb_setup<T>::string() const {
-    return fmt::format("{} | {} | nomp {:2} | nmpi {:2} | gpun {:2}| psi {} = {} | mpo {} = {}", enum2sv(mode), enum2sv(type), nomp, nmpi, gpun,
+    return fmt::format("{} | {} | nomp {:2} | nmpi {:2} | gpun {:2} | psi {} = {} | mpo {} = {}", enum2sv(mode), enum2sv(type), nomp, nmpi, gpun,
                        psi.dimensions(), psi.size(), mpo.dimensions(), mpo.size());
 }
 
@@ -60,12 +61,16 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
 #if defined(_OPENMP)
     omp_set_num_threads(tbs.nomp);
 #endif
-    tbs.device = config::getCpuName();
+    if(tbs.mode == tb_mode::cutensor)
+        tbs.device = config::getGpuName(tbs.gpun);
+    else
+        tbs.device = config::getCpuName();
+
     tenx::threads::setNumThreads(static_cast<unsigned int>(tbs.nomp));
 
     if(mpi::world.id == 0) {
-        tools::log->info("Running Tensor Benchmark | mode {} | type {} | nomp {} | nmpi {} | gpun {} | iter {}", enum2sv(tbs.mode), enum2sv(tbs.mode), tbs.nomp,
-                         tbs.nmpi, tbs.gpun, tbs.iters);
+        tools::log->info("Running Tensor Benchmark | mode {} | type {} | nomp {} | nmpi {} | gpu {} ({}) | iter {}", enum2sv(tbs.mode), enum2sv(tbs.type),
+                         tbs.nomp, tbs.nmpi, tbs.device, tbs.gpun, tbs.iters);
         tbs.psi_check.resize(tbs.iters);
     }
     for(size_t iter = 0; iter < tbs.iters; iter++) {
