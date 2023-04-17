@@ -461,18 +461,20 @@
     },
     {
       "name": "kraken",
-      "displayName": "Release|gcc-11|march=haswell|conan",
+      "displayName": "Release|march=haswell|conan|mkl",
       "inherits": [
-        "release",
-        "gcc-11",
+        "flexiblas",
+        "haswell",
         "conan",
+        "release",
         "default"
       ],
       "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=haswell -mtune=haswell",
-        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -march=haswell -mtune=haswell",
-        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE"
+        "CMAKE_INSTALL_PREFIX": "$env{HOME}/tensorbench-pkg-install",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE",
+        "CMAKE_CUDA_COMPILER": "nvcc",
+        "COMPILER_ENABLE_MOLD": "TRUE"
       }
     },
     {
