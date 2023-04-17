@@ -84,6 +84,26 @@
       }
     },
     {
+      "name": "haswell",
+      "inherits": "release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=haswell -mtune=haswell",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -march=haswell -mtune=haswell",
+        "CMAKE_CUDA_FLAGS_RELEASE": "-O3 -DNDEBUG -g -Xcompiler -march=haswell -Xcompiler -mtune=haswell"
+      }
+    },
+    {
+      "name": "znver2",
+      "inherits": "release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -march=znver2 -mtune=znver2",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -march=znver2 -mtune=znver2",
+        "CMAKE_CUDA_FLAGS_RELEASE": "-O3 -DNDEBUG -g -Xcompiler -march=znver2 -Xcompiler -mtune=znver2"
+      }
+    },
+    {
       "name": "openblas",
       "hidden": true,
       "cacheVariables": {
@@ -461,10 +481,10 @@
     },
     {
       "name": "kraken",
-      "displayName": "Release|march=haswell|conan|mkl",
+      "displayName": "Release|march=znver2|conan|mkl",
       "inherits": [
         "flexiblas",
-        "haswell",
+        "znver2",
         "conan",
         "release",
         "default"
