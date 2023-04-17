@@ -20,7 +20,7 @@ namespace config {
     inline auto                 loglevel      = static_cast<spdlog::level::level_enum>(2); /*!<    */
     inline auto                 loglevel_h5pp = static_cast<spdlog::level::level_enum>(2); /*!<    */
     inline std::string          tb_dsetname   = "tbdb";
-    inline std::string          tb_filename   = fmt::format("../output/tbdb-{}.h5", getCurrentDateTime());
+    inline std::string          tb_filename   = fmt::format("tbdb-{}.h5", getCurrentDateTime());
     inline h5pp::FileAccess     tb_fileaccess = h5pp::FileAccess::READWRITE;
     inline unsigned int         n_iter        = 1;    /*!<    */
     inline std::vector<int>     v_nomp        = {1};  /*!<    */
