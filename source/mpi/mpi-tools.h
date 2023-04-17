@@ -1,6 +1,7 @@
 #pragma once
 #include "math/num.h"
 #include "mpi-logger.h"
+#include "tid/tid.h"
 #include "tools/log.h"
 #include <cassert>
 #include <complex>
@@ -8,12 +9,10 @@
 #include <h5pp/details/h5ppFilesystem.h>
 #include <h5pp/details/h5ppFormat.h>
 #include <vector>
-#include "tid/tid.h"
 
 #if defined(TB_MPI)
-    #include <mpi/mpi.h>
+    #include <mpi.h>
 #endif
-
 
 namespace mpi {
 
@@ -91,7 +90,8 @@ namespace mpi {
 
     template<typename T>
     [[nodiscard]] int get_count(const T &data) {
-        if constexpr(sfinae::has_size_v<T> or std::is_array_v<T>) return static_cast<int>(std::size(data));
+        if constexpr(sfinae::has_size_v<T> or std::is_array_v<T>)
+            return static_cast<int>(std::size(data));
         else
             return 1;
     }
@@ -147,7 +147,7 @@ namespace mpi {
     template<typename T>
     void bcast(T &data, int src) {
         auto t_mpi = tid::tic_token("mpi::bcast");
-        int count = mpi::get_count(data);
+        int  count = mpi::get_count(data);
         MPI_Bcast(&count, 1, MPI_INT, src, MPI_COMM_WORLD);       // Send data size, so we can resize the receiving buffers accordingly
         if constexpr(sfinae::has_resize_v<T>) data.resize(count); // Resize receiving buffers. Should not modify the src container
         MPI_Bcast(mpi::get_buffer(data), mpi::get_count(data), mpi::get_dtype<T>(), src, MPI_COMM_WORLD);
@@ -155,7 +155,7 @@ namespace mpi {
 
     template<typename S, typename R>
     void gatherv(const S &send, R &recv, int dst) {
-        auto t_mpi = tid::tic_token("mpi::gatherv");
+        auto             t_mpi = tid::tic_token("mpi::gatherv");
         int              count = mpi::get_count(send);
         std::vector<int> counts(world.size);
         std::vector<int> displs;

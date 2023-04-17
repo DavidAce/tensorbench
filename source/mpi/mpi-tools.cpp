@@ -12,7 +12,7 @@ void mpi::barrier() {}
 
 #else
 
-    #include <mpi/mpi.h>
+    #include <mpi.h>
 void mpi::init(int argc, char *argv[]) {
     // Initialize the MPI environment
     MPI_Init(&argc, &argv);
