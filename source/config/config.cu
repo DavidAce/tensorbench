@@ -37,8 +37,9 @@ void config::showGpuInfo() {
     cudaGetDeviceCount(&nDevices);
 
     printf("GPU: Number of devices: %d\n", nDevices);
+    if(nDevices < 0) return;
 
-    for(int i = 0; i < nDevices; i++) {
+    for(int i = 0; i < std::min(8,nDevices); i++) {
         cudaDeviceProp prop = {};
         cudaGetDeviceProperties(&prop, i);
         printf("     Device Number: %d\n", i);
