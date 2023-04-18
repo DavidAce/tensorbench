@@ -69,8 +69,8 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
     tenx::threads::setNumThreads(static_cast<unsigned int>(tbs.nomp));
 
     if(mpi::world.id == 0) {
-        tools::log->info("Running Tensor Benchmark | mode {} | type {} | nomp {} | nmpi {} | gpu {} ({}) | iter {}", enum2sv(tbs.mode), enum2sv(tbs.type),
-                         tbs.nomp, tbs.nmpi, tbs.device, tbs.gpun, tbs.iters);
+        tools::log->info("Running Tensor Benchmark | mode {} | type {} | nomp {} | nmpi {} | device {} | iter {}", enum2sv(tbs.mode), enum2sv(tbs.type),
+                         tbs.nomp, tbs.nmpi, tbs.device, tbs.iters);
         tbs.psi_check.resize(tbs.iters);
     }
     for(size_t iter = 0; iter < tbs.iters; iter++) {

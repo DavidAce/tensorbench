@@ -36,6 +36,7 @@ std::string config::getCpuName() {
     }
     free(line);
     fclose(fp);
+    cpu_name.erase(std::remove(cpu_name.begin(), cpu_name.end(), '\n'), cpu_name.cend());
     return cpu_name;
 }
 
