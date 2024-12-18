@@ -1,6 +1,6 @@
 import numpy as np
 from src.io.h5ops import *
-from src.plotting.style import *
+#from src.plotting.style import *
 import matplotlib.pyplot as plt
 
 files = [

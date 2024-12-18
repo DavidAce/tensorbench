@@ -53,7 +53,6 @@ add_executable(tensorbench
                source/main.cpp
                source/config/config.cpp
                source/config/config.cu
-               source/debug/exceptions.cxx
                source/debug/info.cpp
                source/debug/stacktrace.cpp
                source/tools/prof.cpp

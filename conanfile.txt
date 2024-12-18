@@ -1,14 +1,14 @@
 [requires]
-h5pp/1.11.0@davidace/dev
-xtensor/0.24.3
+h5pp/1.11.2
+fmt/10.2.1
+xtensor/0.25.0
 backward-cpp/1.6
-cli11/2.2.0
-zlib/1.2.12
+cli11/2.4.2
 
 [generators]
 CMakeDeps
 
 [options]
-*:shared=False
-xtensor:xsimd=True
-xtensor:openmp=True
+#*:shared=False
+xtensor/*:xsimd=True
+xtensor/*:openmp=True

@@ -1,0 +1,189 @@
+# Font sizes
+# xx-small 5.79
+# x-small 6.94
+# small 8.33
+# medium 10.0
+# large 12.0
+# x-large 14.4
+# xx-large 17.28
+# larger 12.0
+# smaller small
+
+
+# In two-column revtex 4-2 we get font sizes
+# tiny 5pt
+# scriptsize 7pt
+# footnotesize 8pt
+# small 9pt
+# normalsize 10pt
+# large 12pt
+# Large 14.4pt
+# LARGE 17.28pt
+# huge 20.74pt
+# Huge 24.88pt
+
+
+figure.facecolor        : 'white'
+
+# In revtex4-2 with a two-column article we get (in inches)
+# \usepackage{xprintlen}
+# \printlen[10][in]{\columnwidth} : 3.4039025050 in
+# \printlen[10][in]{\linewidth}   : 3.4039025050 in
+# \printlen[10][in]{\textwidth}   : 7.0568710470 in
+#
+# Use these sizes with ax.set_box_aspect(true) to get square axes
+
+#figure.figsize       : 3.404,3.404 # 100% column width
+#figure.figsize       : 3.404,3.404 # 100% column width + legend
+#figure.figsize       : 2.553,2.553 # 75% column width
+#figure.figsize       : 9.361,2.553 # 75% column width, 3 subplots wide + legend
+#figure.figsize       : 6.808,2.269 # 66% column width, 3 subplots wide (200% total)
+#figure.figsize       : 1.702,1.702 # 50% column width
+#figure.figsize       : 2.269,2.269 # 66% column width, for 1 subplots wide
+figure.figsize        : 3.404,3.404 # 100% column width, for 2 subplots wide
+
+
+
+grid.alpha              : 0.5
+grid.color              : k
+grid.linestyle          : -
+
+## Dimensions as fraction of font size:
+legend.fontsize         : 9
+legend.title_fontsize   : 9
+legend.frameon          : false      # if true, draw the legend on a background patch
+legend.loc              : center left
+legend.borderpad        : 0.35      # border whitespace
+#legend.labelspacing     : 0.030    # the vertical space between the legend entries
+legend.labelspacing     : 0.15      # the vertical space between the legend entries
+legend.handlelength     : 1.5       # the length of the legend lines
+legend.handletextpad    : 0.25      # the space between the legend line and legend text
+legend.borderaxespad    : 1.0       # the border between the axes and legend edge
+legend.columnspacing    : 0.5       # column separation
+legend.framealpha       : 1.0       # legend patch transparency
+legend.facecolor        : inherit   # inherit from axes.facecolor; or color spec
+legend.edgecolor        : k         # background patch boundary color
+legend.fancybox         : false     # if true, use a rounded box for the
+                                    # legend background, else a rectangle
+legend.shadow           : false     # if true, give background a shadow effect
+
+xtick.direction         : in
+xtick.top               : true
+xtick.bottom            : true
+xtick.major.size        : 3
+xtick.minor.size        : 2
+xtick.major.width       : 1.0
+xtick.minor.width       : 0.5
+xtick.major.pad         : 2.5
+
+ytick.direction         : in
+ytick.left              : true
+ytick.right             : true
+ytick.major.size        : 3
+ytick.minor.size        : 2
+ytick.major.width       : 1.0
+ytick.minor.width       : 0.5
+ytick.major.pad         : 1.0
+# Special sauce
+# Read more about the stix font here https://tex.stackexchange.com/questions/452133/font-used-by-revtex
+
+text.usetex        		: true
+text.latex.preamble     : \usepackage{amsmath}
+font.size               : 9
+font.family             : serif
+font.serif              : cm
+mathtext.fontset        : cm
+pdf.fonttype            : 42
+pdf.use14corefonts      : true
+pgf.rcfonts             : true
+pgf.texsystem           : pdflatex
+
+
+#path.simplify           : True   # When True, simplify paths by removing "invisible" points to reduce file size and increase rendering speed
+
+lines.linewidth         : 0.75
+lines.markersize        : 4.0
+errorbar.capsize        : 1.5  # length of end cap on error bars in pixels
+
+axes.axisbelow          : true
+axes.titlelocation      : center  # alignment of the title: {left, right, center}
+axes.titlesize          : 10      # font size of the axes title
+axes.titleweight        : normal  # font weight of title
+axes.titlecolor         : auto    # color of the axes title, auto falls back to
+                                  # text.color as default value
+axes.titley             : 1.025   # position title (axes relative units).  None implies auto
+axes.titlepad           : 0.00    # pad between axes and title in points
+
+axes.labelsize          : 9
+axes.labelpad           : 0.5     # Spacing in points from the axes bounding box including ticks and tick labels.
+axes.linewidth          : 1.0
+#axes.prop_cycle        : cycler('color', ['0173b2', 'de8f05', '029e73', 'd55e00', 'cc78bc', 'ca9161', 'fbafe4', '949494', 'ece133', '56b4e9'])
+axes.prop_cycle	        : cycler('color', ['000000', 'e69f00', '56b4e9', '009e73', 'f0e442', '0072b2', 'd55e00', 'cc79a7'])
+
+#axes.formatter.limits: -5, 6  # use scientific notation if log10
+                               # of the axis range is smaller than the
+                               # first or larger than the second
+#axes.formatter.use_locale: false  # When true, format tick labels
+                                   # according to the user's locale.
+                                   # For example, use ',' as a decimal
+                                   # separator in the fr_FR locale.
+axes.formatter.use_mathtext: true  # When true, use mathtext for scientific
+                                     # notation.
+#axes.formatter.min_exponent: 0  # minimum exponent to format in scientific notation
+#axes.formatter.useoffset: true  # If true, the tick label formatter
+                                 # will default to labeling ticks relative
+                                 # to an offset when the data range is
+                                 # small compared to the minimum absolute
+                                 # value of the data.
+#axes.formatter.offset_threshold: 4  # When useoffset is true, the offset
+                                     # will be used when it can remove
+                                     # at least this number of significant
+                                     # digits from tick labels.
+
+## The figure subplot parameters.  All dimensions are a fraction of the figure width and height.
+figure.autolayout       : false  # Applies tight_layout
+figure.subplot.top      : 0.99   # the top of the subplots of the figure (Make room for exponent spilling over, or title)
+#figure.subplot.bottom   : 0.10   # the bottom of the subplots of the figure
+figure.subplot.bottom   : 0.05    # the bottom of the subplots of the figure <--- for thin xlabels
+#figure.subplot.left     : 0.185 # the left side of the subplots of the figure <--- for thin ylabels or single plot
+figure.subplot.left     : 0.28    # the left side of the subplots of the figure <--- for ylabels or 2 subplots
+#figure.subplot.left     : 0.22    # the left side of the subplots of the figure <--- for ylabels or 2 subplots
+#figure.subplot.left     : 0.11   # the left side of the subplots of the figure  <--- for wide ylabels
+figure.subplot.right    : 0.99   # the right side of the subplots of the figure
+figure.subplot.wspace   : 0.0    # the amount of width reserved for space between subplots,
+                                 # expressed as a fraction of the average axis width
+figure.subplot.hspace   : 0.0    # the amount of height reserved for space between subplots,
+                                 # expressed as a fraction of the average axis height
+
+#figure.constrained_layout.use: true   # When true, automatically make plot
+                                       # elements fit on the figure. (Not
+                                       # compatible with `autolayout`, above).
+#figure.constrained_layout.h_pad:  0   # Padding around axes objects. Float representing
+#figure.constrained_layout.w_pad:  0   # inches. Default is 3/72 inches (3 points)
+#figure.constrained_layout.hspace: 0   # Space between subplot groups. Float representing
+#figure.constrained_layout.wspace: 0   # a fraction of the subplot widths being separated.
+figure.titlesize : 9
+figure.titleweight : normal
+
+
+
+# Saving figures
+## The default savefig parameters can be different from the display parameters
+## e.g., you may want a higher resolution, or to make the figure
+## background white
+
+savefig.dpi            : 600      # figure dots per inch or 'figure'
+savefig.facecolor      : auto     # figure face color when saving
+savefig.edgecolor      : auto     # figure edge color when saving
+savefig.format         : pdf      # {png, ps, pdf, svg}
+savefig.bbox           : standard # {tight, standard}
+                                  # 'tight' is incompatible with pipe-based animation
+                                  # backends (e.g. 'ffmpeg') but will work with those
+                                  # based on temporary files (e.g. 'ffmpeg_file')
+savefig.pad_inches     : 0.0      # Padding to be used when bbox is set to 'tight'
+
+#savefig.directory      : ~       # default directory in savefig dialog box,
+#                                # leave empty to always use current working directory
+#savefig.transparent: false     # setting that controls whether figures are saved with a
+                                # transparent background by default
+#savefig.orientation: portrait  # Orientation of saved figure

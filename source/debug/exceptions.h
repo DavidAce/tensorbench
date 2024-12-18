@@ -57,7 +57,7 @@ namespace except {
     };
 
 }
-
-#define EXCEPT_EXTERN extern
-#include "exceptions.txx"
-#undef EXCEPT_EXTERN
+//
+// #define EXCEPT_EXTERN extern
+// #include "exceptions.txx"
+// #undef EXCEPT_EXTERN

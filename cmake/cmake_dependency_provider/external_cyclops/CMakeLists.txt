@@ -67,9 +67,10 @@ message(STATUS "ldflags : ${ldflags}")
 
 ExternalProject_Add(external_cyclops
                     GIT_REPOSITORY https://github.com/cyclops-community/ctf.git
-                    GIT_TAG 8f1c19954613189528ee0243fad6c636f4b9033b # master on August 31, 2022
+#                    GIT_TAG 8f1c19954613189528ee0243fad6c636f4b9033b # master on August 31, 2022
+                    GIT_TAG c3f95829628c381dc9bf631c69f08a7b17580b53 # master on November 16, 2023
                     GIT_PROGRESS TRUE
-                    PATCH_COMMAND patch  --forward -p1 -i ${PROJECT_SOURCE_DIR}/ctf.8f1c199.patch || true # Include omp and critter headers with <> instead of ""
+                    PATCH_COMMAND patch  --forward -p1 -i ${PROJECT_SOURCE_DIR}/ctf.c3f9582.patch || true # Include omp and critter headers with <> instead of ""
                     PREFIX ${CMAKE_BINARY_DIR}
                     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
 

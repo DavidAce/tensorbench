@@ -1,10 +1,9 @@
 #!/bin/bash
-# Submit this file to slurm with "sbatch submit_to_queue"
 
 #SBATCH --job-name=tensorbench          # Job name for this simulation, to display on the queue
 #SBATCH --time=0-06:00:00               # Maximum duration of this job. Slurm kills the job after this time
 #SBATCH --nodes=1                       # Minimum nodes required for this job. Normally > 1 is only used for MPI jobs
-#SBATCH --ntasks=1                      # Number of processes to launch.
+#SBATCH --ntasks=1                     # Number of processes to launch.
 #SBATCH --cpus-per-task=32              # Each process is single-threaded
 #SBATCH --mem-per-cpu=1G                # Amount of RAM memory (in megabytes) required for each process
 #SBATCH --cluster=kraken                # Only kraken has gpu-enabled nodes
@@ -28,12 +27,11 @@ mpsbonds=[32,64,128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024]
 fname="tbdb.h5"
 
 echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
-#srun -n 1 $exec -i 10 --facc=READWRITE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cutensor]  --nomps=[1] --gpuns=[0,1]
-#srun -n 1 $exec -i 10 --facc=READWRITE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[eigen1,tblis,xtensor]  --nomps=[1,2,4,8,16,32]
-#srun -n 1 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
-#srun -n 2 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
-srun -n 4 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
-srun -n 8 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
-#srun -n 16 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
-#srun -n 32 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
-
+srun -n 1 --cpus-per-task=1 $exec -i 10 --facc=READWRITE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cutensor]  --nomps=[1] --gpuns=[0,1]
+srun -n 1 --cpus-per-task=1 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 2 --cpus-per-task=1 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 4 --cpus-per-task=1 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 8 --cpus-per-task=1 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 16 --cpus-per-task=1 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 32 --cpus-per-task=1 $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[1]
+srun -n 1 --cpus-per-task=32 $exec -i 10 --facc=READWRITE --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[eigen1,tblis,xtensor]  --nomps=[1,2,4,8,16,32]
