@@ -26,6 +26,7 @@ target_compile_options(tb-flags INTERFACE $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/W4>
 ###  Enable c++17 support
 target_compile_features(tb-flags INTERFACE cxx_std_17)
 
+
 # Settings for sanitizers
 if(COMPILER_ENABLE_ASAN)
     target_compile_options(tb-flags INTERFACE $<$<COMPILE_LANGUAGE:CXX>:-fsanitize=address>) #-fno-omit-frame-pointer
@@ -53,35 +54,5 @@ function(target_enable_static_libgcc tgt)
                         )
 endfunction()
 
-
-### Enable link time optimization
-if(CMAKE_INTERPROCEDURAL_OPTIMIZATION)
-    include(CheckIPOSupported)
-    check_ipo_supported(RESULT lto_supported OUTPUT lto_error)
-    if(lto_supported)
-        message(STATUS "LTO enabled")
-    else()
-        message(FATAL_ERROR "LTO is not supported: ${lto_error}")
-    endif()
-endif()
-
-
-# Try to use the mold linker (incompatible with LTO!)
-function(target_enable_mold tgt)
-    if(COMPILER_ENABLE_MOLD)
-        get_target_property(LTO_IS_ON ${tgt} INTERPROCEDURAL_OPTIMIZATION)
-        if(LTO_IS_ON)
-            message(STATUS "Cannot set mold linker: LTO is enabled on target [${tgt}]")
-            return()
-        endif()
-        include(CheckLinkerFlag)
-        check_linker_flag(CXX "-fuse-ld=mold" LINK_MOLD)
-        if(LINK_MOLD)
-            target_link_options(${tgt} PUBLIC -fuse-ld=mold)
-        else()
-            message(STATUS "Cannot set mold linker: -fuse-ld=mold is not supported")
-        endif()
-    endif()
-endfunction()
 
 
