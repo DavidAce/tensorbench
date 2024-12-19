@@ -53,7 +53,9 @@
         "CMAKE_Fortran_FLAGS_RELEASE_INIT": "-fdiagnostics-color=always",
         "CMAKE_Fortran_FLAGS_DEBUG_INIT": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_Fortran_FLAGS_RELWITHDEBINFO_INIT": "-DNDEBUG -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold -Wl,--enable-new-dtags",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold"
       },
       "environment": {
         "NINJA_STATUS": "[run %r|beg %s|fin %f|tot %t|rate %o|time %e]:",
@@ -64,7 +66,8 @@
       "name": "release",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE"
       }
     },
     {
@@ -251,11 +254,7 @@
         "gcc-10",
         "release",
         "default"
-      ],
-      "cacheVariables": {
-        "COMPILER_ENABLE_MOLD": "TRUE",
-        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "FALSE"
-      }
+      ]
     },
     {
       "name": "release-gcc-11",
@@ -265,11 +264,7 @@
         "gcc-11",
         "release",
         "default"
-      ],
-      "cacheVariables": {
-        "COMPILER_ENABLE_MOLD": "TRUE",
-        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "FALSE"
-      }
+      ]
     },
     {
       "name": "release-gcc-12",
@@ -279,11 +274,7 @@
         "gcc-12",
         "release",
         "default"
-      ],
-      "cacheVariables": {
-        "COMPILER_ENABLE_MOLD": "TRUE",
-        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "FALSE"
-      }
+      ]
     },
     {
       "name": "release-clang-15",
@@ -293,11 +284,7 @@
         "clang-15",
         "release",
         "default"
-      ],
-      "cacheVariables": {
-        "COMPILER_ENABLE_MOLD": "TRUE",
-        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "FALSE"
-      }
+      ]
     },
     {
       "name": "debug-gcc-12",
@@ -500,9 +487,7 @@
       "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
         "CMAKE_INSTALL_PREFIX": "$env{HOME}/tensorbench-pkg-install",
-        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE",
-        "CMAKE_CUDA_COMPILER": "nvcc",
-        "COMPILER_ENABLE_MOLD": "TRUE"
+        "CMAKE_CUDA_COMPILER": "nvcc"
       }
     },
     {

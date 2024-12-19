@@ -69,7 +69,6 @@ add_executable(tensorbench
 
 target_include_directories(tensorbench PRIVATE source)
 target_enable_static_libgcc(tensorbench)
-target_enable_mold(tensorbench)
 
 ###########################################
 ### Fetch or find all the dependencies  ###
