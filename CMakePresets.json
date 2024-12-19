@@ -43,7 +43,7 @@
         "CMAKE_CXX_FLAGS_DEBUG_INIT": "-g -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT": "-DNDEBUG -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_CUDA_FLAGS": "--expt-relaxed-constexpr -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored",
-        "CMAKE_CUDA_ARCHITECTURES": "75;80;86",
+        "CMAKE_CUDA_ARCHITECTURES": "75;80;86;87;90",
         "CMAKE_CUDA_SEPARABLE_COMPILATION": "TRUE",
         "CMAKE_CUDA_COMPILER": "/usr/local/cuda/bin/nvcc",
         "CMAKE_CUDA_FLAGS_INIT": "-g -fdiagnostics-color=always",
