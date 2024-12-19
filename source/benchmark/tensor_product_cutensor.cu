@@ -130,19 +130,19 @@ template<typename Scalar>
 void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scalar> &tensor_B) {
     auto t_con = tid::tic_token("contract");
     // CUDA types
-    cudaDataType_t        typeCutensor;
-    cutensorComputeType_t typeCompute;
-    if(std::is_same_v<Scalar, fp32>) {
-        typeCutensor = CUDA_R_32F;
-        typeCompute  = CUTENSOR_COMPUTE_32F;
+    cutensorDataType_t          typeCompute;
+    cutensorComputeDescriptor_t descCompute;
+    if constexpr (std::is_same_v<Scalar, fp32>) {
+        typeCompute = CUTENSOR_R_32F;
+        descCompute = CUTENSOR_COMPUTE_DESC_32F;
         tools::log->trace("Detected type fp32");
     } else if constexpr(std::is_same_v<Scalar, fp64>) {
-        typeCutensor = CUDA_R_64F;
-        typeCompute  = CUTENSOR_COMPUTE_64F;
+        typeCompute = CUTENSOR_R_64F;
+        descCompute = CUTENSOR_COMPUTE_DESC_64F;
         tools::log->trace("Detected type fp64");
-    } else if(std::is_same_v<Scalar, cplx>) {
-        typeCutensor = CUDA_C_64F;
-        typeCompute  = CUTENSOR_COMPUTE_64F;
+    } else if constexpr (std::is_same_v<Scalar, cplx>) {
+        typeCompute = CUTENSOR_C_64F;
+        descCompute = CUTENSOR_COMPUTE_DESC_64F;
         tools::log->trace("Detected type cplx");
 
     } else
@@ -151,77 +151,141 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
     Scalar alpha = 1.0;
     Scalar beta  = 0.0;
 
+    const uint32_t kAlignment = 128; // Alignment of the global-memory device pointers (bytes)
+    assert(uintptr_t(A_d) % kAlignment == 0);
+    assert(uintptr_t(B_d) % kAlignment == 0);
+    assert(uintptr_t(C_d) % kAlignment == 0);
+
     // Initialize cuTENSOR library
-    cutensorHandle_t *handle;
+    cutensorHandle_t handle;
     HANDLE_ERROR(cutensorCreate(&handle));
 
     // Create Tensor Descriptors
     cutensorTensorDescriptor_t desc_A;
     cutensorTensorDescriptor_t desc_B;
     cutensorTensorDescriptor_t desc_R;
-    HANDLE_ERROR(cutensorInitTensorDescriptor(handle, &desc_A, tensor_A.rank(), tensor_A.extent.data(), nullptr, typeCutensor, CUTENSOR_OP_IDENTITY));
-    HANDLE_ERROR(cutensorInitTensorDescriptor(handle, &desc_B, tensor_B.rank(), tensor_B.extent.data(), nullptr, typeCutensor, CUTENSOR_OP_IDENTITY));
-    HANDLE_ERROR(cutensorInitTensorDescriptor(handle, &desc_R, tensor_R.rank(), tensor_R.extent.data(), nullptr, typeCutensor, CUTENSOR_OP_IDENTITY));
+    HANDLE_ERROR(cutensorCreateTensorDescriptor(handle, &desc_A, tensor_A.rank(), tensor_A.extent.data(), nullptr, typeCompute, kAlignment));
+    HANDLE_ERROR(cutensorCreateTensorDescriptor(handle, &desc_B, tensor_B.rank(), tensor_B.extent.data(), nullptr, typeCompute, kAlignment));
+    HANDLE_ERROR(cutensorCreateTensorDescriptor(handle, &desc_R, tensor_R.rank(), tensor_R.extent.data(), nullptr, typeCompute, kAlignment));
 
     tools::log->trace("Initialize cuTENSOR and tensor descriptors");
 
-    // Retrieve the memory alignment for each tensor
-    uint32_t alignmentRequirement_A;
-    uint32_t alignmentRequirement_B;
-    uint32_t alignmentRequirement_R;
-    HANDLE_ERROR(cutensorGetAlignmentRequirement(handle, tensor_A.data_d(), &desc_A, &alignmentRequirement_A));
-    HANDLE_ERROR(cutensorGetAlignmentRequirement(handle, tensor_B.data_d(), &desc_B, &alignmentRequirement_B));
-    HANDLE_ERROR(cutensorGetAlignmentRequirement(handle, tensor_R.data_d(), &desc_R, &alignmentRequirement_R));
-
-    tools::log->trace("Query best alignment requirement for our pointers");
-
     // Create the Contraction Descriptor
-    cutensorContractionDescriptor_t desc;
-    HANDLE_ERROR(cutensorInitContractionDescriptor(handle, &desc, &desc_A, tensor_A.mode.data(), alignmentRequirement_A, &desc_B, tensor_B.mode.data(),
-                                                   alignmentRequirement_B, &desc_R, tensor_R.mode.data(), alignmentRequirement_R, &desc_R, tensor_R.mode.data(),
-                                                   alignmentRequirement_R, typeCompute));
+    cutensorOperationDescriptor_t desc;
+    HANDLE_ERROR(cutensorCreateContraction(handle,
+                &desc,
+                desc_A, tensor_A.mode.data(), /* unary operator A*/CUTENSOR_OP_IDENTITY,
+                desc_B, tensor_B.mode.data(), /* unary operator B*/CUTENSOR_OP_IDENTITY,
+                desc_R, tensor_R.mode.data(), /* unary operator C*/CUTENSOR_OP_IDENTITY,
+                desc_R, tensor_R.mode.data(),
+                descCompute));
+
 
     tools::log->trace("Initialize contraction descriptor");
 
+
+    /*****************************
+     * Optional (but recommended): ensure that the scalar type is correct.
+     *****************************/
+
+    cutensorDataType_t scalarType;
+    HANDLE_ERROR(cutensorOperationDescriptorGetAttribute(handle,
+                desc,
+                CUTENSOR_OPERATION_DESCRIPTOR_SCALAR_TYPE,
+                (void*)&scalarType,
+                sizeof(scalarType)));
+
+    assert(scalarType == CUTENSOR_R_32F);
     /* ***************************** */
 
-    // Set the algorithm to use
-    cutensorContractionFind_t find;
-    HANDLE_ERROR(cutensorInitContractionFind(handle, &find, CUTENSOR_ALGO_DEFAULT));
+    /**************************
+     * Set the algorithm to use
+     ***************************/
 
-    tools::log->trace("Initialize settings to find algorithm");
+    const cutensorAlgo_t algo = CUTENSOR_ALGO_DEFAULT;
 
-    /* ***************************** */
+    cutensorPlanPreference_t planPref;
+    HANDLE_ERROR(cutensorCreatePlanPreference(
+                handle,
+                &planPref,
+                algo,
+                CUTENSOR_JIT_MODE_NONE));
 
-    // Query workspace
-    size_t worksize = 0;
-    HANDLE_ERROR(cutensorContractionGetWorkspaceSize(handle, &desc, &find, CUTENSOR_WORKSPACE_RECOMMENDED, &worksize));
+    tools::log->trace("Initialize settings to algorithm");
 
-    // Allocate workspace
-    void *work = nullptr;
-    if(worksize > 0) HANDLE_CUDA_ERROR(cudaMalloc(&work, worksize));
+    /**********************
+    * Query workspace estimate
+    **********************/
+
+    uint64_t workspaceSizeEstimate = 0;
+    const cutensorWorksizePreference_t workspacePref = CUTENSOR_WORKSPACE_DEFAULT;
+    HANDLE_ERROR(cutensorEstimateWorkspaceSize(handle,
+                desc,
+                planPref,
+                workspacePref,
+                &workspaceSizeEstimate));
+
 
     tools::log->trace("Query recommended workspace size and allocate it");
 
-    /* ***************************** */
+    /**************************
+         * Create Contraction Plan
+         **************************/
 
-    // Create Contraction Plan
-    cutensorContractionPlan_t plan;
-    HANDLE_ERROR(cutensorInitContractionPlan(handle, &plan, &desc, &find, worksize));
+    cutensorPlan_t plan;
+    HANDLE_ERROR(cutensorCreatePlan(handle,
+                &plan,
+                desc,
+                planPref,
+                workspaceSizeEstimate));
 
-    tools::log->trace("Create plan for contraction");
+    /**************************
+     * Optional: Query information about the created plan
+     **************************/
 
-    /* ***************************** */
+    // query actually used workspace
+    uint64_t actualWorkspaceSize = 0;
+    HANDLE_ERROR(cutensorPlanGetAttribute(handle,
+                plan,
+                CUTENSOR_PLAN_REQUIRED_WORKSPACE,
+                &actualWorkspaceSize,
+                sizeof(actualWorkspaceSize)));
 
-    cudaStream_t stream = nullptr;
-    // Execute the tensor contraction
-    HANDLE_ERROR(cutensorContraction(handle, &plan, (void *) &alpha, tensor_A.data_d(), tensor_B.data_d(), (void *) &beta, tensor_R.data_d(), tensor_R.data_d(),
-                                     work, worksize, stream));
-    cudaDeviceSynchronize();
+    // At this point the user knows exactly how much memory is need by the operation and
+    // only the smaller actual workspace needs to be allocated
+    assert(actualWorkspaceSize <= workspaceSizeEstimate);
+
+    void *work = nullptr;
+    if (actualWorkspaceSize > 0)
+    {
+        HANDLE_CUDA_ERROR(cudaMalloc(&work, actualWorkspaceSize));
+        assert(uintptr_t(work) % 128 == 0); // workspace must be aligned to 128 byte-boundary
+    }
 
     tools::log->trace("Execute contraction from plan");
+    /**********************
+    * Execute
+    **********************/
 
+    cudaStream_t stream;
+    HANDLE_CUDA_ERROR(cudaStreamCreate(&stream));
+
+    HANDLE_ERROR(cutensorContract(handle,
+                plan,
+                (void*) &alpha, tensor_A.data_d(), tensor_B.data_d(),
+                (void*) &beta,  tensor_R.data_d(), tensor_R.data_d(),
+                work, actualWorkspaceSize, stream));
+
+    /**********************
+     * Free allocated data
+     **********************/
     HANDLE_ERROR(cutensorDestroy(handle));
+    HANDLE_ERROR(cutensorDestroyPlan(plan));
+    HANDLE_ERROR(cutensorDestroyOperationDescriptor(desc));
+    HANDLE_ERROR(cutensorDestroyTensorDescriptor(desc_A));
+    HANDLE_ERROR(cutensorDestroyTensorDescriptor(desc_B));
+    HANDLE_ERROR(cutensorDestroyTensorDescriptor(desc_R));
+    HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
     HANDLE_CUDA_ERROR(cudaFree(work));
     tools::log->trace("Successful completion");
 }

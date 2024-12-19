@@ -53,9 +53,7 @@
         "CMAKE_Fortran_FLAGS_RELEASE_INIT": "-fdiagnostics-color=always",
         "CMAKE_Fortran_FLAGS_DEBUG_INIT": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_Fortran_FLAGS_RELWITHDEBINFO_INIT": "-DNDEBUG -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
-        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold -Wl,--enable-new-dtags",
-        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
       },
       "environment": {
         "NINJA_STATUS": "[run %r|beg %s|fin %f|tot %t|rate %o|time %e]:",
@@ -185,7 +183,9 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc-12",
         "CMAKE_CXX_COMPILER": "g++-12",
-        "CMAKE_CUDA_HOST_COMPILER": "g++-12"
+        "CMAKE_CUDA_HOST_COMPILER": "g++-12",
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold -Wl,--enable-new-dtags",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold"
       }
     },
     {
