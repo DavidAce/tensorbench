@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-enum class tb_mode { eigen1, eigen2, eigen3, cutensor, xtensor, tblis, cyclops };
+enum class tb_mode { eigen1, eigen2, eigen3, cutensor, xtensor, tblis, cyclops, matx};
 enum class tb_type { fp32, fp64, cplx };
 
 template<class>
@@ -24,6 +24,7 @@ constexpr std::string_view enum2sv(const T &item) {
             case tb_mode::xtensor: return "xtensor";
             case tb_mode::tblis: return "tblis";
             case tb_mode::cyclops: return "cyclops";
+            case tb_mode::matx: return "matx";
             default: throw std::runtime_error("enum2sv: invalid enum case for tb_mode");
         }
     } else if constexpr(std::is_same_v<T, tb_type>) {
@@ -70,6 +71,7 @@ constexpr auto sv2enum(std::string_view item) {
         if(item == "xtensor") return tb_mode::xtensor;
         if(item == "tblis") return tb_mode::tblis;
         if(item == "cyclops") return tb_mode::cyclops;
+        if(item == "matx") return tb_mode::matx;
     } else if constexpr(std::is_same_v<T, tb_type>) {
         if(item == "fp32") return tb_type::fp32;
         if(item == "fp64") return tb_type::fp64;

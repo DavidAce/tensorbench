@@ -23,10 +23,10 @@ std::string config::getCurrentDateTime() {
 
 std::string config::getCpuName() {
     std::string cpu_name;
-    FILE       *fp = fopen("/proc/cpuinfo", "r");
+    FILE *      fp = fopen("/proc/cpuinfo", "r");
     assert(fp != NULL);
     size_t n    = 0;
-    char  *line = nullptr;
+    char * line = nullptr;
     while(getline(&line, &n, fp) > 0) {
         if(strstr(line, "model name")) {
             auto linesv = std::string_view(line);
@@ -44,7 +44,7 @@ void config::showCpuName() {
     FILE *fp = fopen("/proc/cpuinfo", "r");
     assert(fp != NULL);
     size_t n    = 0;
-    char  *line = nullptr;
+    char * line = nullptr;
     while(getline(&line, &n, fp) > 0) {
         if(strstr(line, "model name")) {
             auto linesv = std::string_view(line);
@@ -60,17 +60,18 @@ void config::showCpuName() {
 int config::parse(int argc, char **argv) {
     auto s2e_log = mapStr2Enum<spdlog::level::level_enum>("trace", "debug", "info", "warn", "error", "critical", "off");
     auto s2e_acc = mapStr2Enum<h5pp::FileAccess>("READONLY", "COLLISION_FAIL", "RENAME", "READWRITE", "BACKUP", "REPLACE");
-    auto s2e_tbm = mapStr2Enum<tb_mode>("eigen1", "eigen2", "eigen3", "cutensor", "xtensor", "tblis", "cyclops");
+    auto s2e_tbm = mapStr2Enum<tb_mode>("eigen1", "eigen2", "eigen3", "cutensor", "xtensor", "tblis", "cyclops", "matx");
     auto s2e_tbt = mapStr2Enum<tb_type>("fp32", "fp64", "cplx");
 
     // Set defaults
     config::tb_types = {tb_type::fp32, tb_type::fp64, tb_type::cplx};
-    config::tb_modes = {tb_mode::eigen1, tb_mode::eigen2, tb_mode::eigen3, tb_mode::cutensor, tb_mode::xtensor, tb_mode::tblis, tb_mode::cyclops};
+    config::tb_modes = {tb_mode::eigen1, tb_mode::eigen2, tb_mode::eigen3, tb_mode::cutensor, tb_mode::xtensor, tb_mode::tblis, tb_mode::cyclops,
+                        tb_mode::matx};
 
-#if defined(_OPENMP)
+    #if defined(_OPENMP)
     // This will honor env variable OMP_NUM_THREADS
     v_nomp = {omp_get_max_threads()};
-#endif
+    #endif
 
     CLI::App app;
     app.description("Tensorbench: Benchmark tensor contractions");
@@ -82,20 +83,20 @@ int config::parse(int argc, char **argv) {
         "-v", [](int count) { count == 1 ? config::loglevel = spdlog::level::debug : config::loglevel = spdlog::level::trace; },
         "Set log level to debug (-vv for trace)");
     app.add_option("--loglevel", config::loglevel, "Log level of tensorbench")
-        ->transform(CLI::CheckedTransformer(s2e_log, CLI::ignore_case))
-        ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_log)));
+       ->transform(CLI::CheckedTransformer(s2e_log, CLI::ignore_case))
+       ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_log)));
     app.add_option("--logh5pp", config::loglevel_h5pp, "Log level of h5pp library")
-        ->transform(CLI::CheckedTransformer(s2e_log, CLI::ignore_case))
-        ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_log)));
+       ->transform(CLI::CheckedTransformer(s2e_log, CLI::ignore_case))
+       ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_log)));
     app.add_option("-m,--modes", config::tb_modes, "List of benchmark modes (libraries)")
-        ->transform(CLI::CheckedTransformer(s2e_tbm, CLI::ignore_case))
-        ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_tbm)));
+       ->transform(CLI::CheckedTransformer(s2e_tbm, CLI::ignore_case))
+       ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_tbm)));
     app.add_option("-t,--types", config::tb_types, "List of benchmark types (arithmetic)")
-        ->transform(CLI::CheckedTransformer(s2e_tbt, CLI::ignore_case))
-        ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_tbt)));
+       ->transform(CLI::CheckedTransformer(s2e_tbt, CLI::ignore_case))
+       ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_tbt)));
     app.add_option("-a,--facc", config::tb_fileaccess, "File access to the output file")
-        ->transform(CLI::CheckedTransformer(s2e_acc, CLI::ignore_case))
-        ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_acc)));
+       ->transform(CLI::CheckedTransformer(s2e_acc, CLI::ignore_case))
+       ->option_text(fmt::format("ENUM:{}", mapPairs2Str(s2e_acc)));
 
     app.add_option("-d,--dname", config::tb_dsetname, "Name (or path) to the dataset in the resulting HDF5 output file");
     app.add_option("-f,--fname", config::tb_filename, "Path to the resulting HDF5 output file");
@@ -111,9 +112,7 @@ int config::parse(int argc, char **argv) {
     mpsbondL->needs(mpsbondR);
     mpsbondR->needs(mpsbondL);
     app.get_formatter()->label("--loglevel", "trace");
-    try {
-        app.parse(argc, argv);
-    } catch(const CLI::ParseError &e) { std::exit(app.exit(e)); }
+    try { app.parse(argc, argv); } catch(const CLI::ParseError &e) { std::exit(app.exit(e)); }
 
     return 0;
 }

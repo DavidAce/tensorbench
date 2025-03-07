@@ -21,6 +21,7 @@
         "TB_ENABLE_XTENSOR": "TRUE",
         "TB_ENABLE_TBLIS": "TRUE",
         "TB_ENABLE_CYCLOPS": "TRUE",
+        "TB_ENABLE_MATX": "TRUE",
         "TB_CMAKE_DEBUG": "TRUE",
         "CMAKE_VERBOSE_MAKEFILE": "FALSE",
         "CMAKE_MESSAGE_LOG_LEVEL": "STATUS",
@@ -42,11 +43,11 @@
         "CMAKE_CXX_FLAGS_RELEASE_INIT": "-DNDEBUG -O3",
         "CMAKE_CXX_FLAGS_DEBUG_INIT": "-g -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT": "-DNDEBUG -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
-        "CMAKE_CUDA_FLAGS": "--expt-relaxed-constexpr -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored",
-        "CMAKE_CUDA_ARCHITECTURES": "75;80;86;87;90",
+        "CMAKE_CUDA_ARCHITECTURES": "75",
         "CMAKE_CUDA_SEPARABLE_COMPILATION": "TRUE",
-        "CMAKE_CUDA_COMPILER": "/usr/local/cuda/bin/nvcc",
+        "CMAKE_CUDA_COMPILER": "/usr/local/cuda-12.8/bin/nvcc",
         "CMAKE_CUDA_FLAGS_INIT": "-g -fdiagnostics-color=always",
+        "CMAKE_CUDA_FLAGS": "--expt-relaxed-constexpr",
         "CMAKE_CUDA_FLAGS_RELEASE_INIT": "-DNDEBUG -O3",
         "CMAKE_CUDA_FLAGS_DEBUG_INIT": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_CUDA_FLAGS_RELWITHDEBINFO_INIT": "-DNDEBUG -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
@@ -58,6 +59,17 @@
       "environment": {
         "NINJA_STATUS": "[run %r|beg %s|fin %f|tot %t|rate %o|time %e]:",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
+      }
+    },
+    {
+      "name": "asan",
+      "hidden": true,
+      "cacheVariables": {
+        "COMPILER_ENABLE_ASAN": "TRUE",
+        "COMPILER_ENABLE_USAN": "TRUE"
+      },
+      "environment": {
+        "ASAN_OPTIONS": "abort_on_error=1"
       }
     },
     {
@@ -74,12 +86,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_MESSAGE_LOG_LEVEL": "DEBUG",
-        "TB_CMAKE_DEBUG": "TRUE",
-        "COMPILER_ENABLE_ASAN": "TRUE",
-        "COMPILER_ENABLE_USAN": "TRUE"
-      },
-      "environment": {
-        "ASAN_OPTIONS": "abort_on_error=1"
+        "TB_CMAKE_DEBUG": "TRUE"
       }
     },
     {
@@ -287,6 +294,16 @@
       ]
     },
     {
+      "name": "debug-gcc-11",
+      "displayName": "Debug|gcc-11",
+      "hidden": true,
+      "inherits": [
+        "gcc-11",
+        "debug",
+        "default"
+      ]
+    },
+    {
       "name": "debug-gcc-12",
       "displayName": "Debug|gcc-12",
       "hidden": true,
@@ -398,8 +415,27 @@
       ]
     },
     {
+      "name": "debug-gcc-11-conan-flexiblas",
+      "displayName": "Debug|gcc-11|conan|flexiblas",
+      "inherits": [
+        "flexiblas",
+        "conan",
+        "debug-gcc-11"
+      ]
+    },
+    {
+      "name": "debug-gcc-11-conan-flexiblas-asan",
+      "displayName": "Debug|gcc-11|conan|flexiblas|asan",
+      "inherits": [
+        "asan",
+        "flexiblas",
+        "conan",
+        "debug-gcc-11"
+      ]
+    },
+    {
       "name": "debug-gcc-12-conan-mkl",
-      "displayName": "Debug|gcc-12|conan|mkl|shared|asan",
+      "displayName": "Debug|gcc-12|conan|mkl|shared",
       "inherits": [
         "mkl",
         "conan",
@@ -408,7 +444,7 @@
     },
     {
       "name": "debug-gcc-12-conan-openblas",
-      "displayName": "Debug|gcc-12|conan|openblas|shared|asan",
+      "displayName": "Debug|gcc-12|conan|openblas|shared",
       "inherits": [
         "openblas",
         "conan",
@@ -417,7 +453,7 @@
     },
     {
       "name": "debug-clang-15-conan-mkl",
-      "displayName": "Debug|clang-15|conan|mkl|shared|asan",
+      "displayName": "Debug|clang-15|conan|mkl|shared",
       "inherits": [
         "mkl",
         "conan",
@@ -507,6 +543,14 @@
     }
   ],
   "buildPresets": [
+    {
+      "name": "debug-gcc-11-conan-flexiblas",
+      "configurePreset": "debug-gcc-11-conan-flexiblas"
+    },
+        {
+      "name": "debug-gcc-11-conan-flexiblas-asan",
+      "configurePreset": "debug-gcc-11-conan-flexiblas-asan"
+    },
     {
       "name": "release-gcc-10-conan-flexiblas-native",
       "configurePreset": "release-gcc-10-conan-flexiblas-native"

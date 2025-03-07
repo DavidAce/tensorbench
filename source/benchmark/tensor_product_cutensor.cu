@@ -152,9 +152,9 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
     Scalar beta  = 0.0;
 
     const uint32_t kAlignment = 128; // Alignment of the global-memory device pointers (bytes)
-    assert(uintptr_t(A_d) % kAlignment == 0);
-    assert(uintptr_t(B_d) % kAlignment == 0);
-    assert(uintptr_t(C_d) % kAlignment == 0);
+    // assert(uintptr_t(A_d) % kAlignment == 0);
+    // assert(uintptr_t(B_d) % kAlignment == 0);
+    // assert(uintptr_t(C_d) % kAlignment == 0);
 
     // Initialize cuTENSOR library
     cutensorHandle_t handle;

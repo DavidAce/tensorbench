@@ -76,6 +76,13 @@ if(TB_ENABLE_CYCLOPS)
     target_compile_definitions(tb-flags INTERFACE TB_MPI)
 endif()
 
+if(TB_ENABLE_MATX)
+    find_package(cuTENSOR REQUIRED)
+    find_package(cuTensorNet REQUIRED)
+    pkg_install(matx)
+    find_package(matx REQUIRED)
+    target_link_libraries(tb-deps INTERFACE matx::matx)
+endif()
 
 # This fixes a nvcclink issue with libpthread.a being empty on ubuntu 22.04. It's enough to use the -fopenmp flag.
 set_target_properties(OpenMP::OpenMP_CXX PROPERTIES INTERFACE_LINK_LIBRARIES "${OpenMP_CXX_FLAGS}")

@@ -36,7 +36,7 @@ namespace benchmark {
     void iterate_benchmarks();
 
     template<typename T>
-    extern void run_benchmark(const tb_setup<T> &tbs);
+    extern void run_benchmark(tb_setup<T> &tbs);
 
     template<typename T>
     [[nodiscard]] ResultType<T> tensor_product_eigen1(const tb_setup<T> &tbs);
@@ -58,4 +58,8 @@ namespace benchmark {
 
     template<typename T>
     [[nodiscard]] ResultType<T> tensor_product_cyclops(const tb_setup<T> &tbs);
+
+    template<typename T>
+    [[nodiscard]] ResultType<T> tensor_product_matx(tb_setup<T> &tbs);
+
 }

@@ -9,7 +9,7 @@ void config::initializeCuda(int gpun) {
 #if defined(TB_CUDA)
     tools::log->info("Initializing CUDA device {}", gpun);
     auto init_result = cudaSetDevice(gpun);
-    if(init_result != 0) throw std::runtime_error("cuInit returned " + std::to_string(init_result));
+    if(init_result != 0) throw std::runtime_error("cudaSetDevice returned " + std::to_string(init_result));
 #endif
 }
 

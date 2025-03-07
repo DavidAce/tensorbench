@@ -88,7 +88,12 @@ else()
     # Add this dummy that can be compiled without enabling CUDA
     add_library(tb-cutensor OBJECT source/benchmark/tensor_product_cutensor.cpp)
 endif()
-
+if(TB_ENABLE_MATX)
+    add_library(tb-matx OBJECT source/benchmark/tensor_product_matx.cu)
+else()
+    # Add this dummy that can be compiled without enabling CUDA
+    add_library(tb-matx OBJECT source/benchmark/tensor_product_matx.cpp)
+endif()
 
 
 target_link_libraries(tb-eigen1 PRIVATE tb-flags tb-deps)
@@ -98,6 +103,7 @@ target_link_libraries(tb-xtensor PRIVATE tb-flags tb-deps)
 target_link_libraries(tb-tblis PRIVATE tb-flags tb-deps)
 target_link_libraries(tb-cyclops PRIVATE tb-flags tb-deps)
 target_link_libraries(tb-cutensor PRIVATE tb-flags tb-deps)
+target_link_libraries(tb-matx PRIVATE tb-flags tb-deps)
 
 target_include_directories(tb-eigen1 PRIVATE source)
 target_include_directories(tb-eigen2 PRIVATE source)
@@ -106,6 +112,7 @@ target_include_directories(tb-xtensor PRIVATE source)
 target_include_directories(tb-tblis PRIVATE source)
 target_include_directories(tb-cyclops PRIVATE source)
 target_include_directories(tb-cutensor PRIVATE source)
+target_include_directories(tb-matx PRIVATE source)
 
 if(TB_ENABLE_EIGEN1)
     target_compile_definitions(tb-eigen1 PUBLIC TB_EIGEN1)
@@ -129,7 +136,10 @@ endif()
 if(TB_ENABLE_CYCLOPS)
     target_compile_definitions(tb-cyclops PUBLIC TB_CYCLOPS)
 endif()
-
+if(TB_ENABLE_MATX)
+    target_compile_definitions(tb-cutensor PUBLIC TB_CUTENSOR TB_CUDA)
+    target_compile_definitions(tb-matx PUBLIC TB_MATX)
+endif()
 ##################################################################
 ### Link all the things!                                       ###
 ##################################################################
@@ -140,6 +150,7 @@ target_link_libraries(tensorbench PRIVATE tb-xtensor)
 target_link_libraries(tensorbench PRIVATE tb-tblis)
 target_link_libraries(tensorbench PRIVATE tb-cyclops)
 target_link_libraries(tensorbench PRIVATE tb-cutensor)
+target_link_libraries(tensorbench PRIVATE tb-matx)
 target_link_libraries(tensorbench PRIVATE tb-deps tb-flags)  # Link everything to main project
 
 if (TARGET mold::mold)

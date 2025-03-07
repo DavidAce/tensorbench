@@ -38,6 +38,11 @@ function(pkg_install_dependencies  package_name)
             pkg_install(cyclops)
         endif()
 
+        if(TB_ENABLE_MATX)
+            pkg_install(matx)
+        endif()
+
+
 
         set(PKG_INSTALL_SUCCESS TRUE CACHE BOOL "PKG dependency install has been invoked and was successful")
         set(PKG_IS_RUNNING FALSE CACHE INTERNAL "" FORCE)

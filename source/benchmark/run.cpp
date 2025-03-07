@@ -51,7 +51,7 @@ std::string tb_setup<T>::string() const {
 }
 
 template<typename T>
-void benchmark::run_benchmark(const tb_setup<T> &tbs) {
+void benchmark::run_benchmark( tb_setup<T> &tbs) {
     mpi::barrier();
     auto t_run   = tid::tic_scope("run");
     auto t_vec   = std::vector<double>();
@@ -82,6 +82,7 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
             if(tbs.mode == tb_mode::cutensor) psi_out = benchmark::tensor_product_cutensor(tbs);
             if(tbs.mode == tb_mode::xtensor) psi_out = benchmark::tensor_product_xtensor(tbs);
             if(tbs.mode == tb_mode::tblis) psi_out = benchmark::tensor_product_tblis(tbs);
+            if(tbs.mode == tb_mode::matx) psi_out = benchmark::tensor_product_matx(tbs);
         }
         if(tbs.mode == tb_mode::cyclops) psi_out = benchmark::tensor_product_cyclops(tbs);
         if(mpi::world.id == 0) {
@@ -119,9 +120,9 @@ void benchmark::run_benchmark(const tb_setup<T> &tbs) {
     mpi::barrier();
 }
 
-template void benchmark::run_benchmark(const tb_setup<fp32> &tbs);
-template void benchmark::run_benchmark(const tb_setup<fp64> &tbs);
-template void benchmark::run_benchmark(const tb_setup<cplx> &tbs);
+template void benchmark::run_benchmark(tb_setup<fp32> &tbs);
+template void benchmark::run_benchmark(tb_setup<fp64> &tbs);
+template void benchmark::run_benchmark(tb_setup<cplx> &tbs);
 
 void benchmark::iterate_benchmarks() {
     if(mpi::world.id == 0) {
@@ -150,9 +151,9 @@ void benchmark::iterate_benchmarks() {
                             for(auto spin : config::v_spin) {
                                 for(auto nomp : config::v_nomp) {
                                     for(auto gpun : config::v_gpun) {
-                                        if(mode == tb_mode::cutensor) {
+                                        if(mode == tb_mode::cutensor or mode == tb_mode::matx) {
                                             if(nomp > 1) {
-                                                tools::log->info("skipping benchmark in [cutensor] mode because nomp > 1");
+                                                tools::log->info("skipping benchmark in [{}] mode because nomp > 1", enum2sv(mode));
                                                 continue;
                                             } else {
                                                 config::initializeCuda(gpun);
