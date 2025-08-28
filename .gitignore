@@ -6,3 +6,5 @@ build/
 output/
 slurm/logs
 CMakeUserPresets.json
+analysis/
+*.h5
