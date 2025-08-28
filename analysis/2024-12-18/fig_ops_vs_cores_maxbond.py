@@ -64,11 +64,11 @@ tbdb_typedict = {
 palette = [x for x in sns.color_palette(palette='Dark2', n_colors=5)]
 print(palette)
 tbdb_libdict = {
-    'eigen1':   {'color': palette[0],'name': 'eigen', 'tag': 'eigen',},
-    'tblis':    {'color': palette[1],'name': 'tblis', 'tag': 'tblis',},
-    'xtensor':  {'color': palette[2],'name': 'xtensor', 'tag': 'xtensor',},
-    'cyclops':  {'color': palette[3],'name': 'cyclops', 'tag': 'cyclops',},
-    'cutensor': {'color': palette[4],'name': 'cutensor', 'tag': 'cutensor',},
+    'eigen1':   {'color': palette[0],'name': 'eigen', 'tag': 'eigen 3.3.4 \t (OMP)',},
+    'tblis':    {'color': palette[1],'name': 'tblis', 'tag': 'tblis 1.2.0 \t (OMP)',},
+    'xtensor':  {'color': palette[2],'name': 'xtensor', 'tag': 'xtensor 0.25.0 \t (OMP)',},
+    'cyclops':  {'color': palette[3],'name': 'cyclops', 'tag': 'cyclops 1.5.5 \t (MPI)',},
+    'cutensor': {'color': palette[4],'name': 'cutensor', 'tag': 'cutensor 2.0.2.5 \t (GPU)',},
 }
 
 tbdb_gpudict = {
@@ -193,16 +193,16 @@ def create_plot(ax, tbdb_vals, leglibs=None, legtype=None, legcpus=None, leggpus
     legend_gpus['handle'] = list(np.asarray(legend_gpus['handle'])[arg])
 
     if leglibs is True:
-        legend_libs = ax.legend(handles=legend_libs['handle'], loc='upper left', fontsize=11, bbox_to_anchor=(1.1, 1.1))
+        legend_libs = ax.legend(handles=legend_libs['handle'], loc='upper left', fontsize=11, bbox_to_anchor=(1.1, 1.12))
         ax.add_artist(legend_libs)
     if legtype is True:
         legend_type = ax.legend(handles=legend_type['handle'], loc='lower right', handlelength=0, handleheight=0, handletextpad=0)
         ax.add_artist(legend_type)
     if legcpus is True:
-        legend_cpus = ax.legend(handles=legend_cpus['handle'], loc='lower left', fontsize=10, bbox_to_anchor=(1.1, -0.17))
+        legend_cpus = ax.legend(handles=legend_cpus['handle'], loc='lower left', fontsize=10, bbox_to_anchor=(1.1, -0.19))
         ax.add_artist(legend_cpus)
     if leggpus is True:
-        legend_gpus = ax.legend(handles=legend_gpus['handle'], loc='center left', fontsize=10, bbox_to_anchor=(1.1, 0.40))
+        legend_gpus = ax.legend(handles=legend_gpus['handle'], loc='center left', fontsize=10, bbox_to_anchor=(1.1, 0.39))
         ax.add_artist(legend_gpus)
 
 
@@ -302,10 +302,11 @@ axes['A'].set_box_aspect(aspect=1)
 axes['B'].set_box_aspect(aspect=1)
 axes['C'].set_box_aspect(aspect=1)
 axes['L'].set_box_aspect(aspect=2)
-fig.suptitle('Bond dimension $\chi = 1024$', y = 0.95)
+fig.suptitle('Bond dimension $\\chi = 1024$', y = 0.95)
 create_plot(axes['A'], tbdb_fp32, leglibs=False, legtype=True, legcpus=False, leggpus=False)
 create_plot(axes['B'], tbdb_fp64, leglibs=False, legtype=True, legcpus=False, leggpus=False)
 create_plot(axes['C'], tbdb_cplx, leglibs=True, legtype=True, legcpus=True, leggpus=True)
 
 plt.savefig('ops_vs_cores_libs:all_cpus:all_prec:all.pdf', format='pdf')
+plt.savefig('ops_vs_cores_libs:all_cpus:all_prec:all.png', format='png', dpi=600)
 plt.show()

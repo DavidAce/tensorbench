@@ -191,6 +191,7 @@ tbdb_values = {
     'spin': [2],
     'chiL': [32,64,128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024],
     'chiR': [32,64,128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024],
+    'bond': 1024,
     'mpoD': [14],
     'itrn': None,
     'itrs': None,
@@ -316,11 +317,11 @@ for f in files:
             gpus = []
             for type, lstyle in zip(tbdb_values['type'], lstyles):
                 if mode == 'cutensor':
-                    line = tbdb_plot(ax, table=h5f['tbdb'], fields=['mode', 'type', 'chiL', 'gpun'], values=[mode, type, 1024, 0], xkey='nomp', ykey='t_contr', yinv=True, hline=True, color=color,linestyle=lstyle, marker='o')
+                    line = tbdb_plot(ax, table=h5f['tbdb'], fields=['mode', 'type', 'chiL', 'gpun'], values=[mode, type, tbdb_values['bond'], 0], xkey='nomp', ykey='t_contr', yinv=True, hline=True, color=color,linestyle=lstyle, marker='o')
                     gpus.append('TITAN V')
                     # legend1['handle'].append(Line2D([0], [0], color=color, label=f'{mode}-TITAN V'))
                     # legend1['labels'].append(f'{mode} TITAN V')
-                    line = tbdb_plot(ax, table=h5f['tbdb'], fields=['mode', 'type', 'chiL', 'gpun'], values=[mode, type, 1024, 1], xkey='nomp', ykey='t_contr', yinv=True, hline=True, color=color, linestyle=lstyle, marker='v')
+                    line = tbdb_plot(ax, table=h5f['tbdb'], fields=['mode', 'type', 'chiL', 'gpun'], values=[mode, type, tbdb_values['bond'], 1], xkey='nomp', ykey='t_contr', yinv=True, hline=True, color=color, linestyle=lstyle, marker='v')
                     gpus.append('RTX 2080 TI')
                     for gpu,mrk in zip(gpus, ['o','v']):
                         modegpu = f'{mode} {gpu}'
@@ -331,10 +332,10 @@ for f in files:
                 else:
                     mode_lbl = mode if mode != 'eigen1' else 'eigen'
                     if mode == 'cyclops':
-                        line = tbdb_plot(ax=ax, table=h5f['tbdb'], fields=['mode', 'type', 'chiL'], values=[mode, type, 1024],
+                        line = tbdb_plot(ax=ax, table=h5f['tbdb'], fields=['mode', 'type', 'chiL'], values=[mode, type, tbdb_values['bond']],
                                   xkey='nmpi', ykey='t_contr', yinv=True, color=color,linestyle=lstyle)
                     else:
-                        line = tbdb_plot(ax=ax, table=h5f['tbdb'], fields=['mode', 'type', 'chiL'], values=[mode, type, 1024],
+                        line = tbdb_plot(ax=ax, table=h5f['tbdb'], fields=['mode', 'type', 'chiL'], values=[mode, type, tbdb_values['bond']],
                                   xkey='nomp', ykey='t_contr', yinv=True, color=color,linestyle=lstyle)
                     if not mode_lbl in legend1['labels']:
                         legend1['labels'].append(mode_lbl)
@@ -419,5 +420,5 @@ for f in files:
                         legend_mode_artist = ax.legend(handles=legend_mode['handle'], loc='lower left')
                         ax.add_artist(legend_mode_artist)
 
-plt.savefig('2023-04-18/bond1024-fp64-cplx.pdf', format='pdf', backend='pgf')
+plt.savefig(f'2024-12-18/bond{tbdb_values['bond']}-type{tbdb_values['type']}.pdf', format='pdf', backend='pgf')
 plt.show()
