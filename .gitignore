@@ -8,3 +8,4 @@ slurm/logs
 CMakeUserPresets.json
 analysis/
 *.h5
+results/
