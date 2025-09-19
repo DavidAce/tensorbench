@@ -1,10 +1,10 @@
 function(find_hptt)
-    if(NOT BUILD_SHARED_LIBS)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_SHARED_LIBRARY_SUFFIX})
-    endif()
+#    if(NOT BUILD_SHARED_LIBS)
+#        set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_SHARED_LIBRARY_SUFFIX})
+#    endif()
     find_library(HPTT_LIBRARY
                  hptt
-                 HINTS ${PKG_INSTALL_DIR}
+                 HINTS ${TB_DEPS_INSTALL_DIR} ${PKG_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}
                  PATH_SUFFIXES lib hptt/lib
                  NO_CMAKE_ENVIRONMENT_PATH
                  NO_SYSTEM_ENVIRONMENT_PATH
@@ -13,7 +13,7 @@ function(find_hptt)
                  )
     find_path(HPTT_INCLUDE_DIR
               hptt.h
-              HINTS ${TB_DEPS_INSTALL_DIR}
+              HINTS ${TB_DEPS_INSTALL_DIR} ${PKG_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}
               PATH_SUFFIXES include hptt/include
               NO_CMAKE_ENVIRONMENT_PATH
               NO_SYSTEM_ENVIRONMENT_PATH

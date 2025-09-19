@@ -24,6 +24,7 @@ option(COMPILER_ENABLE_ASAN        "Enable sanitizer -fsanitize=address"        
 option(COMPILER_ENABLE_USAN        "Enable sanitizer -fsanitize=undefined"                        OFF)
 option(THREADS_PREFER_PTHREAD_FLAG "Prefer -pthread flag over -lpthread or similar"               ON)
 
+find_package(CUDAToolkit)
 
 ################################################################
 ### Get environment, host, build, exec and git details       ###
@@ -132,6 +133,7 @@ if(TB_ENABLE_XTENSOR)
 endif()
 if(TB_ENABLE_TBLIS)
     target_compile_definitions(tb-tblis PUBLIC TB_TBLIS)
+    target_compile_features(tb-tblis PRIVATE cxx_std_20)
 endif()
 if(TB_ENABLE_CYCLOPS)
     target_compile_definitions(tb-cyclops PUBLIC TB_CYCLOPS)

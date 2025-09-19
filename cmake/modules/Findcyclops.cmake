@@ -1,12 +1,12 @@
 function(find_cyclops)
-    if(NOT BUILD_SHARED_LIBS)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_SHARED_LIBRARY_SUFFIX})
-    endif()
+#    if(NOT BUILD_SHARED_LIBS)
+#        set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX} ${CMAKE_SHARED_LIBRARY_SUFFIX})
+#    endif()
     unset(CYCLOPS_LIBRARY)
     unset(CYCLOPS_LIBRARY CACHE)
     find_library(CYCLOPS_LIBRARY
                  ctf
-                 HINTS ${TB_DEPS_INSTALL_DIR}
+                 HINTS ${TB_DEPS_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}
                  PATH_SUFFIXES lib ctf/lib cyclops/lib
                  NO_CMAKE_ENVIRONMENT_PATH
                  NO_SYSTEM_ENVIRONMENT_PATH
@@ -15,7 +15,7 @@ function(find_cyclops)
                  )
     find_path(CYCLOPS_INCLUDE_DIR
               ctf.hpp
-              HINTS ${TB_DEPS_INSTALL_DIR}
+              HINTS ${TB_DEPS_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}
               PATH_SUFFIXES include cyclops/include ctf/include
               NO_CMAKE_ENVIRONMENT_PATH
               NO_SYSTEM_ENVIRONMENT_PATH

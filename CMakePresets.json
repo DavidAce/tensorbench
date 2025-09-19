@@ -12,6 +12,7 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
+        "BUILD_SHARED_LIBS": "TRUE",
         "TB_EIGEN3_BLAS": "TRUE",
         "TB_ENABLE_EIGEN1": "TRUE",
         "TB_ENABLE_EIGEN2": "FALSE",
@@ -21,8 +22,9 @@
         "TB_ENABLE_XTENSOR": "TRUE",
         "TB_ENABLE_TBLIS": "TRUE",
         "TB_ENABLE_CYCLOPS": "TRUE",
-        "TB_ENABLE_MATX": "TRUE",
+        "TB_ENABLE_MATX": "FALSE",
         "TB_CMAKE_DEBUG": "TRUE",
+        "TBLIS_THREAD_MODEL": "openmp",
         "CMAKE_VERBOSE_MAKEFILE": "FALSE",
         "CMAKE_MESSAGE_LOG_LEVEL": "STATUS",
         "CMAKE_INSTALL_PREFIX": "pkg-install",
@@ -44,8 +46,9 @@
         "CMAKE_CXX_FLAGS_DEBUG_INIT": "-g -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT": "-DNDEBUG -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_CUDA_ARCHITECTURES": "75",
+        "CMAKE_CUDA_RUNTIME_LIBRARY": "Shared",
         "CMAKE_CUDA_SEPARABLE_COMPILATION": "TRUE",
-        "CMAKE_CUDA_COMPILER": "/usr/local/cuda-12.8/bin/nvcc",
+        "CMAKE_CUDA_COMPILER": "/usr/local/cuda/bin/nvcc",
         "CMAKE_CUDA_FLAGS_INIT": "-g -fdiagnostics-color=always",
         "CMAKE_CUDA_FLAGS": "--expt-relaxed-constexpr",
         "CMAKE_CUDA_FLAGS_RELEASE_INIT": "-DNDEBUG -O3",
@@ -54,7 +57,8 @@
         "CMAKE_Fortran_FLAGS_RELEASE_INIT": "-fdiagnostics-color=always",
         "CMAKE_Fortran_FLAGS_DEBUG_INIT": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_Fortran_FLAGS_RELWITHDEBINFO_INIT": "-DNDEBUG -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
+        "cuTensorNet_ROOT": "/opt/nvidia/cuquantum"
       },
       "environment": {
         "NINJA_STATUS": "[run %r|beg %s|fin %f|tot %t|rate %o|time %e]:",
@@ -172,7 +176,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc-10",
         "CMAKE_CXX_COMPILER": "g++-10",
-        "CMAKE_CUDA_HOST_COMPILER": "g++-10"
+        "CMAKE_CUDA_HOST_COMPILER": "g++-10",
+        "CMAKE_Fortran_COMPILER": "gfortran-10"
       }
     },
     {
@@ -181,7 +186,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc-11",
         "CMAKE_CXX_COMPILER": "g++-11",
-        "CMAKE_CUDA_HOST_COMPILER": "g++-11"
+        "CMAKE_CUDA_HOST_COMPILER": "g++-11",
+        "CMAKE_Fortran_COMPILER": "gfortran-11"
       }
     },
     {
@@ -191,6 +197,7 @@
         "CMAKE_C_COMPILER": "gcc-12",
         "CMAKE_CXX_COMPILER": "g++-12",
         "CMAKE_CUDA_HOST_COMPILER": "g++-12",
+        "CMAKE_Fortran_COMPILER": "gfortran-12",
         "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold -Wl,--enable-new-dtags",
         "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold"
       }
@@ -452,6 +459,15 @@
       ]
     },
     {
+      "name": "debug-gcc-12-conan-flexiblas",
+      "displayName": "Debug|gcc-12|conan|flexiblas|shared",
+      "inherits": [
+        "flexiblas",
+        "conan",
+        "debug-gcc-12"
+      ]
+    },
+    {
       "name": "debug-clang-15-conan-mkl",
       "displayName": "Debug|clang-15|conan|mkl|shared",
       "inherits": [
@@ -594,6 +610,10 @@
     {
       "name": "debug-gcc-12-conan-openblas",
       "configurePreset": "debug-gcc-12-conan-openblas"
+    },
+    {
+      "name": "debug-gcc-12-conan-flexiblas",
+      "configurePreset": "debug-gcc-12-conan-flexiblas"
     },
     {
       "name": "debug-clang-15-conan-mkl",

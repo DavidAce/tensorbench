@@ -9,8 +9,6 @@
 #include "math/tenx.h"
 #include "mpi/mpi-tools.h"
 #include "storage/results.h"
-#include "tblis/util/configs.h"
-#include "tblis/util/thread.h"
 #include "tid/tid.h"
 #include "tools/log.h"
 #include "tools/prof.h"

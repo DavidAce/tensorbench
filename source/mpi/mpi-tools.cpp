@@ -1,4 +1,3 @@
-
 #include "mpi-tools.h"
 #include "general/iter.h"
 #include "math/num.h"
@@ -6,13 +5,13 @@
 
 #if !defined(TB_MPI)
 
-void mpi::init() {}
+void mpi::init([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {}
 void mpi::finalize() {}
 void mpi::barrier() {}
 
 #else
 
-    #include <mpi.h>
+#include <mpi.h>
 void mpi::init(int argc, char *argv[]) {
     // Initialize the MPI environment
     MPI_Init(&argc, &argv);
@@ -31,13 +30,9 @@ void mpi::init(int argc, char *argv[]) {
     std::at_quick_exit(mpi::finalize);
 }
 
-void mpi::finalize() {
-    if(world.size > 1 or mpi::on) MPI_Finalize();
-}
+void mpi::finalize() { if(world.size > 1 or mpi::on) MPI_Finalize(); }
 
-void mpi::barrier() {
-    if(world.size > 1 or mpi::on) MPI_Barrier(MPI_COMM_WORLD);
-}
+void mpi::barrier() { if(world.size > 1 or mpi::on) MPI_Barrier(MPI_COMM_WORLD); }
 
 void mpi::scatter(std::vector<h5pp::fs::path> &data, int src) {
     if(world.size == 1) return; // No need to scatter
@@ -77,9 +72,7 @@ void mpi::scatter(std::vector<h5pp::fs::path> &data, int src) {
                     mpi::recv(tmp, src, 0);
                     data.emplace_back(tmp);
                 } else if(world.id == src) {
-                    if(dst == src) {
-                        srcData.emplace_back(data[srcidx]);
-                    } else
+                    if(dst == src) { srcData.emplace_back(data[srcidx]); } else
                         mpi::send(data[srcidx].string(), dst, 0);
                     srcidx++;
                 }
@@ -133,9 +126,7 @@ void mpi::scatter_r(std::vector<h5pp::fs::path> &data, int src) {
                 mpi::recv(tmp, src, 0);
                 data.emplace_back(tmp);
             } else if(world.id == src) {
-                if(dst == src) {
-                    srcData.emplace_back(data[srcidx]);
-                } else
+                if(dst == src) { srcData.emplace_back(data[srcidx]); } else
                     mpi::send(data[srcidx].string(), dst, 0);
             }
         }

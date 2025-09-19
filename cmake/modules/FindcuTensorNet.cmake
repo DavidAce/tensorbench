@@ -70,29 +70,29 @@ include(${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
 
 if(cuTensorNet_IS_HEADER_ONLY)
   find_package_handle_standard_args(cuTensorNet
-                                    REQUIRED_VARS cuTensorNet_INCLUDE_DIR
-                                    VERSION_VAR )
+          REQUIRED_VARS cuTensorNet_INCLUDE_DIR
+          VERSION_VAR )
 else()
   find_package_handle_standard_args(cuTensorNet
-                                    REQUIRED_VARS cuTensorNet_LIBRARY cuTensorNet_INCLUDE_DIR
-                                    VERSION_VAR )
+          REQUIRED_VARS cuTensorNet_LIBRARY cuTensorNet_INCLUDE_DIR
+          VERSION_VAR )
 endif()
 
 if(NOT cuTensorNet_FOUND)
   message(STATUS "cuTensorNet not found. Downloading library. By continuing this download you accept to the license terms of cuQuantum SDK")
 
   set(CUTENSORNET_FILENAME cuquantum-linux-x86_64-${CUTENSORNET_VERSION}_cuda${CUDAToolkit_VERSION_MAJOR}-archive)
-  
+
   CPMAddPackage(
-               NAME cutensornet
-               VERSION ${CUTENSORNET_VERSION}
-               URL https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/${CUTENSORNET_FILENAME}.tar.xz
-               # Eigen's CMakelists are not intended for library use
-               DOWNLOAD_ONLY YES 
-               )
-      
-  set(cuTensorNet_LIBRARY ${cutensornet_SOURCE_DIR}/lib/libcutensornet.so) 
-  set(cuTensorNet_INCLUDE_DIR ${cutensornet_SOURCE_DIR}/include) 
+          NAME cutensornet
+          VERSION ${CUTENSORNET_VERSION}
+          URL https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/${CUTENSORNET_FILENAME}.tar.xz
+          # Eigen's CMakelists are not intended for library use
+          DOWNLOAD_ONLY YES
+  )
+
+  set(cuTensorNet_LIBRARY ${cutensornet_SOURCE_DIR}/lib/libcutensornet.so)
+  set(cuTensorNet_INCLUDE_DIR ${cutensornet_SOURCE_DIR}/include)
 
   set(cuTensorNet_FOUND TRUE)
 endif()
@@ -107,25 +107,25 @@ if(cuTensorNet_FOUND)
   if(NOT TARGET cuTensorNet::cuTensorNet)
     add_library(cuTensorNet::cuTensorNet UNKNOWN IMPORTED)
     set_target_properties(cuTensorNet::cuTensorNet PROPERTIES
-      INTERFACE_INCLUDE_DIRECTORIES "${cuTensorNet_INCLUDE_DIRS}")
+            INTERFACE_INCLUDE_DIRECTORIES "${cuTensorNet_INCLUDE_DIRS}")
 
     if(cuTensorNet_LIBRARY_RELEASE)
       set_property(TARGET cuTensorNet::cuTensorNet APPEND PROPERTY
-        IMPORTED_CONFIGURATIONS RELEASE)
+              IMPORTED_CONFIGURATIONS RELEASE)
       set_target_properties(cuTensorNet::cuTensorNet PROPERTIES
-        IMPORTED_LOCATION_RELEASE "${cuTensorNet_LIBRARY_RELEASE}")
+              IMPORTED_LOCATION_RELEASE "${cuTensorNet_LIBRARY_RELEASE}")
     endif()
 
     if(cuTensorNet_LIBRARY_DEBUG)
       set_property(TARGET cuTensorNet::cuTensorNet APPEND PROPERTY
-        IMPORTED_CONFIGURATIONS DEBUG)
+              IMPORTED_CONFIGURATIONS DEBUG)
       set_target_properties(cuTensorNet::cuTensorNet PROPERTIES
-        IMPORTED_LOCATION_DEBUG "${cuTensorNet_LIBRARY_DEBUG}")
+              IMPORTED_LOCATION_DEBUG "${cuTensorNet_LIBRARY_DEBUG}")
     endif()
 
     if(NOT cuTensorNet_LIBRARY_RELEASE AND NOT cuTensorNet_LIBRARY_DEBUG)
       set_property(TARGET cuTensorNet::cuTensorNet APPEND PROPERTY
-        IMPORTED_LOCATION "${cuTensorNet_LIBRARY}")
+              IMPORTED_LOCATION "${cuTensorNet_LIBRARY}")
     endif()
   endif()
 endif()

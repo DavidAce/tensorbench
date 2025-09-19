@@ -1,7 +1,7 @@
 [requires]
 h5pp/1.11.2
-fmt/10.2.1
-xtensor/0.25.0
+spdlog/1.13.0
+xtensor/0.26.0
 backward-cpp/1.6
 cli11/2.4.2
 

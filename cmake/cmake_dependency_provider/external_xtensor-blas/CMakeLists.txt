@@ -11,7 +11,7 @@ option(CXXBLAS_DEBUG "" OFF)
 
 ExternalProject_Add(external_xtensor-blas
         GIT_REPOSITORY https://github.com/xtensor-stack/xtensor-blas.git
-        GIT_TAG 0.19.1
+        GIT_TAG 0.22.0
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 

@@ -23,7 +23,7 @@ function(pkg_install_dependencies  package_name)
 
 
         if(TB_ENABLE_TBLIS)
-            pkg_install(tblis)
+            pkg_install(TBLIS)
         endif()
         if(TB_ENABLE_XTENSOR)
             pkg_install(xsimd)

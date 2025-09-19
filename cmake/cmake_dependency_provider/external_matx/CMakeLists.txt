@@ -8,7 +8,8 @@ include(GNUInstallDirs)
 include(ExternalProject)
 ExternalProject_Add(external_matx
         GIT_REPOSITORY https://github.com/NVIDIA/MatX.git
-        GIT_TAG dc2bb4d3da92c7b5ceba278f301e36ddcc7ad29e # 2025-03-06
+#        GIT_TAG dc2bb4d3da92c7b5ceba278f301e36ddcc7ad29e # 2025-03-06
+        GIT_TAG v0.9.2 # 2025-08-29
         GIT_PROGRESS TRUE
         GIT_SHALLOW TRUE
         BUILD_ALWAYS TRUE
@@ -34,5 +35,7 @@ ExternalProject_Add(external_matx
         -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON
         # matx flags
         -DMATX_EN_CUTENSOR=ON
+        -DTHREADS_PREFER_PTHREAD_FLAG:BOOL=TRUE
+        -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
         -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=${CMAKE_POSITION_INDEPENDENT_CODE}
         )

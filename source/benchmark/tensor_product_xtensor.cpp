@@ -5,8 +5,7 @@
     #endif
     #include <complex>
     #include <xtensor-blas/xlinalg.hpp>
-    #include <xtensor/xadapt.hpp>
-    #include <xtensor/xtensor.hpp>
+    #include <xtensor.hpp>
 #endif
 // include blas first
 #include "benchmark.h"

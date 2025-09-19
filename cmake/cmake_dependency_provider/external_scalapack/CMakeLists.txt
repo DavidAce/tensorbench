@@ -6,8 +6,12 @@ endif()
 include(GNUInstallDirs)
 include(ExternalProject)
 ExternalProject_Add(external_scalapack
-                    URL https://github.com/Reference-ScaLAPACK/scalapack/archive/refs/tags/v2.2.0.tar.gz
-                    URL_MD5 9ff561fb6c47d8649597d3b70b5ef0cb
+                    GIT_REPOSITORY https://github.com/Reference-ScaLAPACK/scalapack.git
+                    GIT_TAG 6423f17933eb9a2522814b78ab3c0d6da25ee85a
+                    GIT_SHALLOW TRUE
+                    GIT_PROGRESS TRUE
+#                    URL https://github.com/Reference-ScaLAPACK/scalapack/archive/refs/tags/v2.2.2.tar.gz
+#                    URL_MD5 e3c3d8be031425663c14f1790dc87784
                     BUILD_ALWAYS TRUE
                     PREFIX          ${CMAKE_BINARY_DIR}
                     INSTALL_DIR     ${CMAKE_INSTALL_PREFIX}

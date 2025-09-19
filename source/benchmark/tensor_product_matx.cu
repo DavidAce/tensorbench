@@ -13,6 +13,7 @@ benchmark::ResultType<T> benchmark::tensor_product_matx([[maybe_unused]] tb_setu
     auto                t_matx = tid::tic_scope("matx");
     cudaStream_t        stream = nullptr;
     matx::cudaExecutor  exec{stream};
+
     Eigen::Tensor<T, 3> res_host(tbs.psi.dimensions());
 
     long I              = tbs.psi.dimension(0);
@@ -39,6 +40,7 @@ benchmark::ResultType<T> benchmark::tensor_product_matx([[maybe_unused]] tb_setu
     (matx_mpo_dev  = matx_mpo_host).run(exec);
     (matx_envL_dev = matx_envL_host).run(exec);
     (matx_envR_dev = matx_envR_host).run(exec);
+    exec.sync();
     auto t_contract = tid::tic_scope("contract");
     (matx_res_host  = matx::cutensor::einsum("ijk,jlm,mnio,kpn->olp", matx_psi_dev, matx_envL_dev, matx_mpo_dev, matx_envR_dev)).run(exec);
     t_contract.toc();

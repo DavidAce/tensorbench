@@ -29,4 +29,5 @@ ExternalProject_Add(external_hptt
                     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON
                     -DCMAKE_INSTALL_MESSAGE=LAZY
                     -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON
+                    -DBUILD_SHARED_LIBS:BOOL=ON
                     )

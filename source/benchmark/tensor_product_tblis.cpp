@@ -1,47 +1,26 @@
 #include "benchmark.h"
 #include "general/enums.h"
 #if defined(TB_TBLIS)
-    #include "tid/tid.h"
-    #include <complex>
-    #include <tblis/tblis.h>
-    #include <tblis/util/thread.h>
-template<typename T, auto N>
-tblis::short_vector<tblis::len_type, N> dim2len(const Eigen::DSizes<T, N> &dims) {
-    tblis::short_vector<tblis::len_type, N> len = {};
-    for(size_t i = 0; i < N; i++) len[i] = dims[i];
-    return len;
-}
-template<typename T, auto N>
-tblis::short_vector<tblis::stride_type, N> dim2stride(const Eigen::DSizes<T, N> &dims) {
-    tblis::short_vector<tblis::stride_type, N> stride = {};
-    stride[0]                                         = 1;
-    for(size_t i = 1; i < N; i++) stride[i] = stride[i - 1] * dims[i - 1];
-    return stride;
-}
+#include "tid/tid.h"
+#include <complex>
+#include <tblis/tblis.h>
+
 
 template<typename Scalar, auto NA, auto NB, auto NC>
 void contract_tblis(const Eigen::Tensor<Scalar, NA> &ea, const Eigen::Tensor<Scalar, NB> &eb, Eigen::Tensor<Scalar, NC> &ec, const tblis::label_vector &la,
-                    const tblis::label_vector &lb, const tblis::label_vector &lc) {
-    tblis::len_vector da, db, dc;
-    da.assign(ea.dimensions().begin(), ea.dimensions().end());
-    db.assign(eb.dimensions().begin(), eb.dimensions().end());
-    dc.assign(ec.dimensions().begin(), ec.dimensions().end());
-    auto                         ta    = tblis::varray_view<const Scalar>(da, ea.data(), tblis::COLUMN_MAJOR);
-    auto                         tb    = tblis::varray_view<const Scalar>(db, eb.data(), tblis::COLUMN_MAJOR);
-    auto                         tc    = tblis::varray_view<Scalar>(dc, ec.data(), tblis::COLUMN_MAJOR);
-    Scalar                       alpha = 1.0;
-    Scalar                       beta  = 0.0;
-    tblis::tblis_tensor          A_s(alpha, ta);
-    tblis::tblis_tensor          B_s(tb);
-    tblis::tblis_tensor          C_s(beta, tc);
-    const tblis::tblis_config_s *tblis_config = tblis::tblis_get_config("zen");
-    tblis_tensor_mult(nullptr, tblis_config, &A_s, la.c_str(), &B_s, lb.c_str(), &C_s, lc.c_str());
+                    const tblis::label_vector &      lb, const tblis::label_vector &      lc) {
+    auto   ta    = tblis::tensor_wrapper(ea);
+    auto   tb    = tblis::tensor_wrapper(eb);
+    auto   tc    = tblis::tensor_wrapper(ec);
+    Scalar alpha = 1.0;
+    Scalar beta  = 0.0;
+    tblis::mult(alpha, ta, la, tb, lb, beta, tc, lc);
 }
 #endif
 
 template<typename T>
 benchmark::ResultType<T> benchmark::tensor_product_tblis([[maybe_unused]] const tb_setup<T> &tbs) {
-#if defined(TB_TBLIS)
+    #if defined(TB_TBLIS)
     #if defined(TCI_USE_OPENMP_THREADS) && defined(_OPENMP)
     tblis_set_num_threads(static_cast<unsigned int>(tbs.nomp));
     #endif
@@ -65,9 +44,9 @@ benchmark::ResultType<T> benchmark::tensor_product_tblis([[maybe_unused]] const 
         contract_tblis(psi_envR_mpo, tbs.envL, ham_sq_psi, "qkri", "qjr", "ijk");
     }
     return ham_sq_psi;
-#else
+    #else
     return {};
-#endif
+    #endif
 }
 
 using fp32 = benchmark::fp32;
