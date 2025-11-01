@@ -33,7 +33,7 @@
 #endif
 
 void print_timers() {
-    //    for(const auto &t : tid::get_tree("main", tid::level::normal)) tools::log->info("{}", t.str());
+    for(const auto &t : tid::get_tree("", tid::level::detailed)) tools::log->info("{}", t.str());
 }
 
 /*
@@ -57,29 +57,37 @@ void print_timers() {
  */
 
 int main(int argc, char *argv[]) {
-    auto t_main = tid::tic_scope("mains");
+    auto t_main = tid::tic_scope("main");
     config::parse(argc, argv);
     tools::log = tools::Logger::setLogger("tensorbench", config::loglevel);
-    tools::log->info("Hostname        : {}", debug::hostname());
-    tools::log->info("Build hostname  : {}", env::build::hostname);
-    tools::log->info("Git branch      : {}", env::git::branch);
-    tools::log->info("    commit hash : {}", env::git::commit_hash);
-    tools::log->info("    revision    : {}", env::git::revision);
 
-    config::showCpuName();
-    config::showGpuInfo();
     // Initialize MPI if this benchmark was run with mpirun
     mpi::init(argc, argv);
 
     // Register termination codes and what to do on exit
     debug::register_callbacks();
     if(mpi::world.id == 0) {
+        tools::log->info("Hostname        : {}", debug::hostname());
+        tools::log->info("Build hostname  : {}", env::build::hostname);
+        tools::log->info("Git branch      : {}", env::git::branch);
+        tools::log->info("    commit hash : {}", env::git::commit_hash);
+        tools::log->info("    revision    : {}", env::git::revision);
+
+        config::showCpuName();
+        config::showGpuInfo();
+
         std::atexit(debug::print_mem_usage);
         std::atexit(print_timers);
         std::at_quick_exit(debug::print_mem_usage);
         std::at_quick_exit(print_timers);
     }
-
+#pragma omp parallel
+    {
+        int t = omp_get_thread_num();
+        int n = omp_get_num_threads();
+#pragma omp critical
+        printf("PID %d rank-thread %d/%d on CPU %d\n", (int) getpid(), t, n, sched_getcpu());
+    }
 
     for(int id = 0; id < mpi::world.size; ++id) {
         if(id == mpi::world.id) {

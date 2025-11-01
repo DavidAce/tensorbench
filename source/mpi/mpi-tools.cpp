@@ -41,7 +41,6 @@ void mpi::scatter(std::vector<h5pp::fs::path> &data, int src) {
     // Every path is constructable from a string, so we can simply send the string data around.
 
     // First we need to decide how to split the data into even chunks
-    // First we need to decide how to split the data into even chunks
     std::vector<size_t> counts(world.get_size<size_t>(), 0);
     size_t              sum_counts = 0;
     if(world.id == src) {

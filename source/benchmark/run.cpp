@@ -84,6 +84,7 @@ void benchmark::run_benchmark( tb_setup<T> &tbs) {
             if(tbs.mode == tb_mode::tblis) psi_out = benchmark::tensor_product_tblis(tbs);
             if(tbs.mode == tb_mode::matx) psi_out = benchmark::tensor_product_matx(tbs);
         }
+        mpi::barrier();
         if(tbs.mode == tb_mode::cyclops) psi_out = benchmark::tensor_product_cyclops(tbs);
         if(mpi::world.id == 0) {
             double t_total = tid::get(fmt::format("{}", enum2sv(tbs.mode))).get_last_interval();
@@ -114,7 +115,7 @@ void benchmark::run_benchmark( tb_setup<T> &tbs) {
         std::vector<double> ops;
         for(const auto &t : t_vec) ops.emplace_back(1.0 / t);
         tools::log->info(FMT_STRING("{} | time {:.4e}s avg {:.4e} +- {:.4e}s | op/s: {:.4f} +- {:.4f}"), enum2sv(tbs.mode), stat::sum(t_vec), stat::mean(t_vec),
-                         stat::sterr(t_vec), stat::mean(ops), stat::sterr(ops));
+                         stat::stdev(t_vec), stat::mean(ops), stat::stdev(ops));
         tbdb.appendTableRecords(tb, config::tb_dsetname);
     }
     mpi::barrier();

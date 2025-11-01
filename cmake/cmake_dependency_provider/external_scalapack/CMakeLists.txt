@@ -7,7 +7,7 @@ include(GNUInstallDirs)
 include(ExternalProject)
 ExternalProject_Add(external_scalapack
                     GIT_REPOSITORY https://github.com/Reference-ScaLAPACK/scalapack.git
-                    GIT_TAG 6423f17933eb9a2522814b78ab3c0d6da25ee85a
+                    GIT_TAG 46d1837e0f6f20aed6c94dcc5033b60844c7a3c8
                     GIT_SHALLOW TRUE
                     GIT_PROGRESS TRUE
 #                    URL https://github.com/Reference-ScaLAPACK/scalapack/archive/refs/tags/v2.2.2.tar.gz

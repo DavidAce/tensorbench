@@ -99,6 +99,7 @@ ExternalProject_Add(external_cyclops
                             --build-dir=<BINARY_DIR>
                             --install-dir=<INSTALL_DIR>
                             --with-lapack
+                            --with-scalapack
                             --with-hptt
                             --verbose
                             ${build_scalapack}

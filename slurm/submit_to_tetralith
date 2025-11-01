@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#SBATCH --job-name=tensorbench          # Job name for this simulation, to display on the queue
+#SBATCH --time=0-06:00:00               # Maximum duration of this job. Slurm kills the job after this time
+#SBATCH --nodes=8                       # Minimum nodes required for this job. Normally > 1 is only used for MPI jobs
+#SBATCH --ntasks=8                      # Number of processes to launch.
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=32              # Each MPI process uses 20 OpenMP threads
+#SBATCH --mem-per-cpu=2000M             # Amount of RAM memory (in megabytes) required for each process
+#SBATCH --cluster=tetralith                # Only kraken has gpu-enabled nodes
+#SBATCH --partition=dedicated           # Partition (queue) to select, e.g. 'all','dedicated','gpu','core32'..
+#SBATCH --output=logs/log-tetralith.o      # Relative path to log file for normal console output
+#SBATCH --error=logs/log-tetralith.e       # Relative path to log file specifically for error output
+
+
+module load CUDA
+module load cuTENSOR
+module load OpenMPI
+
+export FLEXIBLAS=MKLOPENMP
+export FLEXIBLAS_VERBOSE=1
+export OMP_DISPLAY_AFFINITY=true
+export OMP_DISPLAY_ENV=VERBOSE
+export OMP_MAX_ACTIVE_LEVELS=1
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export OMP_PLACES=cores
+export OMP_PROC_BIND=spread
+export OMPI_MCA_hwloc_base_binding_policy=none
+
+exec=../build/Release/tensorbench
+fname="tbdb-tetralith.h5"
+mpsbonds=[32,64,128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024]
+SRUNBIND="--cpu-bind=cores --distribution=block:block --hint=nomultithread"
+
+
+srun -N 1 -n 2  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+srun -N 2 -n 4  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+srun -N 3 -n 6  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+srun -N 4 -n 8  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+srun -N 5 -n 10 $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+srun -N 6 -n 12 $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+srun -N 7 -n 14 $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+srun -N 8 -n 16 $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+

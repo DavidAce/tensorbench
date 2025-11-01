@@ -91,21 +91,18 @@ template<typename T>
 benchmark::ResultType<T> benchmark::tensor_product_cyclops([[maybe_unused]] const tb_setup<T> &tbs) {
 #if defined(TB_CYCLOPS)
 
-    auto t_cyclops = tid::tic_scope("cyclops");
     //    omp_set_num_threads(1); // Make sure we don't use local threads!
+    auto t_cyclops = tid::tic_scope("cyclops");
     auto world  = CTF::World(MPI_COMM_WORLD);
-    auto t_e2c  = class_tic_toc(true, 5, "eigen2ctf");
-    auto t_c2e  = class_tic_toc(true, 5, "ctf2eigen");
-
-    if(mpi::world.id == 0) t_e2c.tic();
     CTF::Tensor<T> mpo_ctf  = get_ctf_tensor(tbs.mpo, world, "mpo");
     CTF::Tensor<T> envL_ctf = get_ctf_tensor(tbs.envL, world, "envL");
     CTF::Tensor<T> envR_ctf = get_ctf_tensor(tbs.envR, world, "envR");
-
-    auto t_contract = tid::tic_scope("contract");
     auto psi_ctf    = get_ctf_tensor(tbs.psi, world, "psi");
     auto res_ctf    = CTF::Tensor<T>(psi_ctf.order, psi_ctf.lens, world); // Same dims as psi_ctf
-    res_ctf["ijk"]  = psi_ctf["abc"] * envL_ctf["bjd"] * mpo_ctf["deai"] * envR_ctf["cke"];
+    {
+        auto t_contract = tid::tic_scope("contract");
+        res_ctf["ijk"]  = psi_ctf["abc"] * envL_ctf["bjd"] * mpo_ctf["deai"] * envR_ctf["cke"];
+    }
     return get_eigen_tensor<T, 3>(res_ctf);
 #else
     return {};
