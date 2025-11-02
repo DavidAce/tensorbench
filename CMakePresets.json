@@ -547,17 +547,18 @@
     },
     {
       "name": "tetralith",
-      "displayName": "Release|gcc-10|march=native|conan",
+      "displayName": "Release|march=native|conan",
       "inherits": [
-        "release",
-        "gcc-10",
+        "flexiblas",
         "native",
         "conan",
+        "release",
         "default"
       ],
       "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
-        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE"
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE",
+        "CMAKE_CUDA_COMPILER": "nvcc"
       }
     }
   ],
