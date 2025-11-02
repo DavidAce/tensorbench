@@ -58,7 +58,10 @@
         "CMAKE_Fortran_FLAGS_DEBUG_INIT": "-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_Fortran_FLAGS_RELWITHDEBINFO_INIT": "-DNDEBUG -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fno-omit-frame-pointer -fdiagnostics-color=always",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
-        "cuTensorNet_ROOT": "/opt/nvidia/cuquantum"
+        "cuTensorNet_ROOT": "/opt/nvidia/cuquantum;$penv{EBROOTCUTENSORNET}",
+        "CUDAToolkit_ROOT":"/opt/nvidia/CUDAToolkit;$penv{EBROOTCUDATOOLKIT}",
+        "cuQuantum_ROOT":"/opt/nvidia/cuquantum;$penv{EBROOTCUQUANTUM}",
+        "cuTENSOR_ROOT":"$penv{EBROOTCUTENSOR};$penv{EBROOTCUTENSOR}/lib/12"
       },
       "environment": {
         "NINJA_STATUS": "[run %r|beg %s|fin %f|tot %t|rate %o|time %e]:",

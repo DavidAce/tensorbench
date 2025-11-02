@@ -10,16 +10,16 @@
 #SBATCH --cluster=draken                # Only kraken has gpu-enabled nodes
 #SBATCH --nodelist=draken[1-8]          # List of nodes
 #SBATCH --partition=dedicated           # Partition (queue) to select, e.g. 'all','dedicated','gpu','core32'..
-#SBATCH --qos=normal                    # Quality of service
+#SBATCH --qos=lowprio                    # Quality of service
 #SBATCH --output=logs/log-draken-2x10.o      # Relative path to log file for normal console output
 #SBATCH --error=logs/log-draken-2x10.e       # Relative path to log file specifically for error output
 
 
-module load CUDA
-module load cuTENSOR
-module load OpenMPI
+#module load CUDA
+#module load cuTENSOR
+#module load OpenMPI
 
-export FLEXIBLAS=MKLOPENMP
+export FLEXIBLAS=IMKL
 export FLEXIBLAS_VERBOSE=1
 export OMP_DISPLAY_AFFINITY=true
 export OMP_DISPLAY_ENV=VERBOSE
@@ -34,13 +34,9 @@ fname="tbdb-draken-2x10.h5"
 mpsbonds=[32,64,128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024]
 SRUNBIND="--cpu-bind=cores --distribution=block:block --hint=nomultithread"
 
+for N in {1..8}; do
+  echo "srun -N "$N" -n "$((2*N))"  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]"
+  srun -N "$N" -n "$((2*N))"  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
+done
 
-srun -N 1 -n 2  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
-srun -N 2 -n 4  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
-srun -N 3 -n 6  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
-srun -N 4 -n 8  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
-srun -N 5 -n 10 $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
-srun -N 6 -n 12 $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
-srun -N 7 -n 14 $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
-srun -N 8 -n 16 $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]
 

@@ -97,12 +97,10 @@ benchmark::ResultType<T> benchmark::tensor_product_cyclops([[maybe_unused]] cons
     CTF::Tensor<T> mpo_ctf  = get_ctf_tensor(tbs.mpo, world, "mpo");
     CTF::Tensor<T> envL_ctf = get_ctf_tensor(tbs.envL, world, "envL");
     CTF::Tensor<T> envR_ctf = get_ctf_tensor(tbs.envR, world, "envR");
+    auto t_contract = tid::tic_scope("contract");
     auto psi_ctf    = get_ctf_tensor(tbs.psi, world, "psi");
     auto res_ctf    = CTF::Tensor<T>(psi_ctf.order, psi_ctf.lens, world); // Same dims as psi_ctf
-    {
-        auto t_contract = tid::tic_scope("contract");
-        res_ctf["ijk"]  = psi_ctf["abc"] * envL_ctf["bjd"] * mpo_ctf["deai"] * envR_ctf["cke"];
-    }
+    res_ctf["ijk"]  = psi_ctf["abc"] * envL_ctf["bjd"] * mpo_ctf["deai"] * envR_ctf["cke"];
     return get_eigen_tensor<T, 3>(res_ctf);
 #else
     return {};

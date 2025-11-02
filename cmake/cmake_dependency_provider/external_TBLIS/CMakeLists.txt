@@ -36,7 +36,7 @@ set(ENV LDFLAGS ${ldflags})
 
 ExternalProject_Add(external_TBLIS
                     GIT_REPOSITORY https://github.com/devinamatthews/tblis.git
-                    GIT_TAG 20cc0bcdb13ddf9fbf619138b6081a16e9e48b7f # develop on 2025-09-19
+                    GIT_TAG origin/develop # develop on 2025-09-19
                     GIT_PROGRESS TRUE
                     GIT_SHALLOW TRUE
                     GIT_SUBMODULES_RECURSE TRUE
