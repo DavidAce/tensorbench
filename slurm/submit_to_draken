@@ -32,7 +32,7 @@ export OMPI_MCA_hwloc_base_binding_policy=none
 exec=../build/Release/tensorbench
 fname="tbdb-draken-2x10.h5"
 mpsbonds=[32,64,128,192,256,320,384,448,512,576,640,704,768,832,896,960,1024]
-SRUNBIND="--cpu-bind=cores --distribution=block:block --hint=nomultithread"
+SRUNBIND="--cpu-bind=cores --distribution=block:block --hint=nomultithread --mem-bind=local"
 
 for N in {1..8}; do
   echo "srun -N "$N" -n "$((2*N))"  $SRUNBIND $exec --facc=READWRITE  -i 10 --mpsbonds=$mpsbonds -D 2 -M 14 --fname=$fname --modes=[cyclops] --nomps=[${SLURM_CPUS_PER_TASK}]"
