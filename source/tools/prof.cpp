@@ -3,6 +3,7 @@
 #include "log.h"
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 
 double tools::prof::mem_usage_in_mb(std::string_view name) {
