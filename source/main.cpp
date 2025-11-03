@@ -74,7 +74,11 @@ int main(int argc, char *argv[]) {
         tools::log->info("    revision    : {}", env::git::revision);
 
         config::showCpuName();
-        config::showGpuInfo();
+
+        bool has_cutensor = std::find(config::tb_modes.begin(), config::tb_modes.end(), tb_mode::cutensor) != config::tb_modes.end();
+        bool has_matx     = std::find(config::tb_modes.begin(), config::tb_modes.end(), tb_mode::matx) != config::tb_modes.end();
+
+        if(has_cutensor or has_matx) config::showGpuInfo();
 
         std::atexit(debug::print_mem_usage);
         std::atexit(print_timers);
