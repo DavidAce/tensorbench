@@ -85,14 +85,6 @@ int main(int argc, char *argv[]) {
         std::at_quick_exit(debug::print_mem_usage);
         std::at_quick_exit(print_timers);
     }
-#pragma omp parallel
-    {
-        int t = omp_get_thread_num();
-        int n = omp_get_num_threads();
-#pragma omp critical
-        printf("PID %d rank-thread %d/%d on CPU %d\n", (int) getpid(), t, n, sched_getcpu());
-    }
-
     for(int id = 0; id < mpi::world.size; ++id) {
         if(id == mpi::world.id) {
 #pragma omp parallel
