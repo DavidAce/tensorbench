@@ -8,7 +8,7 @@
 #include <fmt/ranges.h>
 #include <omp.h>
 #include <spdlog/common.h>
-
+#include <cassert>
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 std::string config::getCurrentDateTime() {
     time_t    now     = time(nullptr);

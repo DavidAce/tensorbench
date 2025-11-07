@@ -14,9 +14,9 @@ find_package(OpenMP COMPONENTS CXX REQUIRED)
 
 find_package(Eigen3     3.4.0  REQUIRED)    # Eigen3 numerical library
 find_package(h5pp       1.11.0 REQUIRED)    # Writing to file binary HDF5 format
-find_package(fmt        10.2.0  REQUIRED)    # String formatter
-find_package(spdlog     1.13.0 REQUIRED)    # Fast logger
-find_package(CLI11      2.4.1  REQUIRED)    # Command line argument parser
+find_package(fmt        12.0.0  REQUIRED)    # String formatter
+find_package(spdlog     1.16.0 REQUIRED)    # Fast logger
+find_package(CLI11      2.6.0  REQUIRED)    # Command line argument parser
 find_package(Backward   1.6    REQUIRED)    # Pretty stack traces
 
 

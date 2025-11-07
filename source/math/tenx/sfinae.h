@@ -1,5 +1,4 @@
 #pragma once
-#include "fwd_decl.h"
 #include <complex>
 
 /*!

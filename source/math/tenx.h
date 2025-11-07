@@ -6,25 +6,29 @@
     #define lapack_complex_double std::complex<double>
 #endif
 
+#include "math/cast.h"
 #include "tenx/eval.h"
 #include "tenx/sfinae.h"
 #include "tenx/span.h"
 #include "tenx/threads.h"
 #include <array>
+#include <cassert>
 #include <complex>
+#include <Eigen/Core>
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <vector>
 
-/*! \brief **Textra** stands for "Tensor Extra". Provides extra functionality to Eigen::Tensor.*/
+/*! \brief **tenx**: "Tensor Extra". Provides extra functionality to Eigen::Tensor.*/
 
 /*!
- *  \namespace Textra
+ *  \namespace tenx
  *  This namespace makes shorthand typedef's to Eigen's unsupported Tensor module, and provides handy functions
  *  to interface between `Eigen::Tensor` and `Eigen::Matrix` objects.
  *  The contents of this namespace is co clear it is self-documenting ;)
  */
 
 /*clang-format off */
+
 namespace tenx {
     template<typename Scalar>
     using MatrixType = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
@@ -34,6 +38,15 @@ namespace tenx {
 
     template<Eigen::Index rank>
     using array = std::array<Eigen::Index, rank>;
+
+    template<typename Scalar>
+    using RealScalar = decltype(std::real(std::declval<Scalar>()));
+    template<typename Derived>
+    using epsilon_t = RealScalar<typename Derived::Scalar>;
+    template<typename Derived>
+    constexpr auto epsilon() {
+        return std::numeric_limits<epsilon_t<Derived>>::epsilon();
+    }
 
     using array8 = array<8>;
     using array7 = array<7>;
@@ -52,23 +65,39 @@ namespace tenx {
     inline constexpr idxlistpair<0> idx() { return {}; }
 
     template<std::size_t N, typename idxType>
-    constexpr idxlistpair<N> idx(const idxType (&list1)[N], const idxType (&list2)[N]) {
-        // Use numpy-style indexing for contraction. Each list contains a list of indices to be contracted for the respective
-        // tensors. This function zips them together into pairs as used in Eigen::Tensor module. This does not sort the indices in decreasing order.
+    constexpr idxlistpair<N> idx(const std::array<idxType, N> &list1, const std::array<idxType, N> &list2) {
+        /*! Use numpy-style indexing for contraction. Each list contains a list of indices to be contracted for the respective
+         * tensors. This function zips them together into pairs as used in Eigen::Tensor module. This does not sort the indices in decreasing order.
+         */
         idxlistpair<N> pairlistOut;
         for(size_t i = 0; i < N; i++) {
-            pairlistOut[i] = Eigen::IndexPair<Eigen::Index>{static_cast<Eigen::Index>(list1[i]), static_cast<Eigen::Index>(list2[i])};
+            if constexpr(std::is_signed_v<idxType>) {
+                assert(list1[i] >= 0);
+                assert(list2[i] >= 0);
+            }
+            pairlistOut[i] = Eigen::IndexPair<Eigen::Index>{
+                static_cast<Eigen::Index>(list1[i]), //
+                static_cast<Eigen::Index>(list2[i])  //
+            };
         }
         return pairlistOut;
     }
 
     template<std::size_t N, typename idxType>
-    constexpr idxlistpair<N> idx(const std::array<idxType, N> &list1, const std::array<idxType, N> &list2) {
-        // Use numpy-style indexing for contraction. Each list contains a list of indices to be contracted for the respective
-        // tensors. This function zips them together into pairs as used in Eigen::Tensor module. This does not sort the indices in decreasing order.
+    constexpr idxlistpair<N> idx(const idxType (&list1)[N], const idxType (&list2)[N]) {
+        /*! Use numpy-style indexing for contraction. Each list contains a list of indices to be contracted for the respective
+         * tensors. This function zips them together into pairs as used in Eigen::Tensor module. This does not sort the indices in decreasing order.
+         */
         idxlistpair<N> pairlistOut;
         for(size_t i = 0; i < N; i++) {
-            pairlistOut[i] = Eigen::IndexPair<Eigen::Index>{static_cast<Eigen::Index>(list1[i]), static_cast<Eigen::Index>(list2[i])};
+            if constexpr(std::is_signed_v<idxType>) {
+                assert(list1[i] >= 0);
+                assert(list2[i] >= 0);
+            }
+            pairlistOut[i] = Eigen::IndexPair<Eigen::Index>{
+                static_cast<Eigen::Index>(list1[i]), //
+                static_cast<Eigen::Index>(list2[i])  //
+            };
         }
         return pairlistOut;
     }
@@ -98,27 +127,84 @@ namespace tenx {
     //    //***************************************//
     //
 
-    template<typename T, typename Device = Eigen::DefaultDevice>
-    auto extractDiagonal(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, const Device &device = Device()) {
-        auto tensor    = tenx::asEval(expr, device);
-        auto tensorMap = tensor.map();
-        auto size      = tensorMap.size();
+    template<typename T>
+    auto extractDiagonal(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr) {
+        auto tensor         = tenx::asEval(expr);
+        using Scalar        = typename decltype(tensor)::Scalar;
+        using DimType       = typename decltype(tensor)::Dimensions;
+        constexpr auto rank = Eigen::internal::array_size<DimType>::value;
+        static_assert(rank == 2 and "extractDiagonal(): expression must be a tensor of rank 2");
+        auto tensorMap = Eigen::TensorMap<const Eigen::Tensor<Scalar, rank>>(tensor.data(), tensor.dimensions());
+        auto size      = tensor.size();
         auto rows      = static_cast<Eigen::Index>(std::floor(std::sqrt(size)));
-        return tensorMap.reshape(array1{size}).stride(array1{rows + 1});
+        return Eigen::Tensor<Scalar, 1>(tensorMap.reshape(array1{size}).stride(array1{rows + 1}));
     }
 
-    template<typename T, typename Device = Eigen::DefaultDevice>
-    auto asDiagonal(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, const Device &device = Device()) {
-        auto tensor    = tenx::asEval(expr, device);
-        auto tensorMap = tensor.map();
-        auto size      = tensorMap.size();
-        using Scalar   = typename decltype(tensorMap)::Scalar;
+    template<typename T>
+    auto asDiagonal(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr) {
+        auto tensor              = tenx::asEval(expr);
+        using Scalar             = typename decltype(tensor)::Scalar;
+        using DimType            = typename decltype(tensor)::Dimensions;
+        constexpr auto rank      = Eigen::internal::array_size<DimType>::value;
+        auto           size      = tensor.size();
+        auto           tensorMap = Eigen::TensorMap<const Eigen::Tensor<Scalar, rank>>(tensor.data(), tensor.dimensions());
         return static_cast<Eigen::Tensor<Scalar, 2>>(tensorMap.inflate(array1{size + 1}).reshape(array2{size, size}));
+    }
+
+    template<typename TensorL, typename TensorM, typename TensorR>
+    void asDiagonalContract(TensorR &R, const TensorL &L, const TensorM &M, long Mdim) {
+        using ScalarL = typename TensorL::Scalar;
+        using ScalarM = typename TensorM::Scalar;
+        using ScalarR = typename TensorR::Scalar;
+        static_assert(std::is_convertible_v<ScalarL, ScalarM>);
+        static_assert(std::is_convertible_v<ScalarM, ScalarR>);
+        static_assert(TensorM::NumDimensions == TensorR::NumDimensions);
+
+        assert(M.dimension(Mdim) == L.size());
+        assert(Mdim < TensorM::NumDimensions);
+        assert(R.dimensions() == M.dimensions());
+        for(long i = 0; i < L.size(); ++i) {
+            R.chip(i, Mdim) = M.chip(i, Mdim).unaryExpr([&](const auto &v) -> ScalarM { return v * static_cast<ScalarM>(L(i)); }).template cast<ScalarR>();
+        }
+    }
+    template<typename TensorL, typename TensorM, typename TensorR>
+    void asDiagonalInverseContract(TensorR &R, const TensorL &L, const TensorM &M, long Mdim) {
+        using ScalarL = typename TensorL::Scalar;
+        using ScalarM = typename TensorM::Scalar;
+        using ScalarR = typename TensorR::Scalar;
+        static_assert(std::is_convertible_v<ScalarL, ScalarM>);
+        static_assert(std::is_convertible_v<ScalarM, ScalarR>);
+        static_assert(TensorM::NumDimensions == TensorR::NumDimensions);
+
+        assert(M.dimension(Mdim) == L.size());
+        assert(Mdim < TensorM::NumDimensions);
+        assert(R.dimensions() == M.dimensions());
+        for(long i = 0; i < L.size(); ++i) {
+            R.chip(i, Mdim) = M.chip(i, Mdim).unaryExpr([&](const auto &v) -> ScalarM { return v / static_cast<ScalarM>(L(i)); }).template cast<ScalarR>();
+        }
+    }
+
+    template<typename TensorL, typename TensorM>
+    auto asDiagonalContract(const TensorL &L, const TensorM &M, long Mdim) {
+        using ScalarM                     = typename TensorM::Scalar;
+        constexpr auto               rank = TensorM::NumDimensions;
+        Eigen::Tensor<ScalarM, rank> R(M.dimensions());
+        asDiagonalContract(R, L, M, Mdim);
+        return R;
+    }
+    template<typename TensorL, typename TensorM>
+    auto asDiagonalInverseContract(const TensorL &L, const TensorM &M, long Mdim) {
+        using ScalarM                     = typename TensorM::Scalar;
+        constexpr auto               rank = TensorM::NumDimensions;
+        Eigen::Tensor<ScalarM, rank> R(M.dimensions());
+        asDiagonalInverseContract(R, L, M, Mdim);
+        return R;
     }
 
     template<typename Scalar>
     Eigen::Tensor<Scalar, 2> asDiagonalSquared(const Eigen::Tensor<Scalar, 1> &tensor) {
-        return tensor.square().inflate(array1{tensor.size() + 1}).reshape(array2{tensor.size(), tensor.size()});
+        auto csquare = [](auto z) -> double { return std::abs(std::conj(z) * z); };
+        return tensor.unaryExpr(csquare).inflate(array1{tensor.size() + 1}).reshape(array2{tensor.size(), tensor.size()});
     }
     template<typename Scalar>
     Eigen::Tensor<Scalar, 2> asDiagonalSqrt(const Eigen::Tensor<Scalar, 1> &tensor) {
@@ -132,34 +218,51 @@ namespace tenx {
 
     template<typename Scalar>
     Eigen::Tensor<Scalar, 2> asDiagonalInversed(const Eigen::Tensor<Scalar, 2> &tensor) {
-        if(not tensor.dimension(0) == tensor.dimension(1)) throw std::runtime_error("tenx::asDiagonalInversed expects a square tensor");
+        if(tensor.dimension(0) != tensor.dimension(1)) throw std::runtime_error("tenx::asDiagonalInversed expects a square tensor");
         return asDiagonalInversed(extractDiagonal(tensor));
     }
-
-    template<typename T, typename Device = Eigen::DefaultDevice>
-    double norm(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, const Device &device = Device()) {
-        return asEval(expr.square().sum().sqrt().abs(), device)->coeff(0);
+    template<typename Scalar>
+    bool isDiagonal(const Eigen::Tensor<Scalar, 2> &tensor, RealScalar<Scalar> threshold = Eigen::NumTraits<Scalar>::dummy_precision()) {
+        if(tensor.dimension(0) != tensor.dimension(1)) return false;
+        for(long col = 0; col < tensor.dimension(1); ++col) {
+            for(long row = 0; row < tensor.dimension(0); ++row) {
+                if(col == row) continue;
+                if(abs(tensor(row, col)) > threshold) return false;
+            }
+        }
+        return true;
     }
 
-//    inline Eigen::Tensor<std::complex<double>, 1> broadcast(Eigen::Tensor<std::complex<double>, 1> &tensor, const std::array<long, 1> &bcast) {
-//        // Use this function to avoid a bug in Eigen when broadcasting complex tensors of rank 1, with compiler option -mfma
-//        // See more here https://gitlab.com/libeigen/eigen/-/issues/2351
-//        std::array<long, 2> bcast2 = {bcast[0], 1};
-//        std::array<long, 2> shape2 = {tensor.size(), 1};
-//        std::array<long, 1> shape1 = {tensor.size() * bcast[0]};
-//        return tensor.reshape(shape2).broadcast(bcast2).reshape(shape1);
-//    }
+    template<typename T, typename Device = Eigen::DefaultDevice>
+    auto norm(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr) {
+        // auto csquare = [](auto z) -> double { return std::abs(std::conj(z) * z); };
+        // return asEval(expr.unaryExpr(csquare).sum().sqrt())->coeff(0);
+        auto tensor  = tenx::asEval(expr);
+        using Scalar = typename decltype(tensor)::Scalar;
+        return Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>>(tensor.data(), tensor.size()).norm();
+    }
+
+    template<typename T>
+    Eigen::Tensor<T, 1> broadcast(Eigen::Tensor<T, 1> &tensor, const std::array<long, 1> &bcast) {
+        // Use this function to avoid a bug in Eigen when broadcasting complex tensors of rank 1, with compiler option -mfma
+        // See more here https://gitlab.com/libeigen/eigen/-/issues/2351
+        std::array<long, 2> bcast2 = {bcast[0], 1};
+        std::array<long, 2> shape2 = {tensor.size(), 1};
+        std::array<long, 1> shape1 = {tensor.size() * bcast[0]};
+        return tensor.reshape(shape2).broadcast(bcast2).reshape(shape1);
+    }
 
     template<typename T, typename Device = Eigen::DefaultDevice>
-    auto asNormalized(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, const Device &device = Device()) {
-        auto           tensor    = tenx::asEval(expr, device);
-        auto           tensorMap = tensor.map();
-        constexpr auto rank      = tensor.rank();
-        using Scalar             = typename decltype(tensorMap)::Scalar;
-        using TensorType         = typename Eigen::Tensor<Scalar, rank>;
-
-        Eigen::Tensor<double, 0> normInverse = tensorMap.square().sum().sqrt().abs().inverse();
-        return static_cast<TensorType>(tensorMap * tensorMap.constant(normInverse.coeff(0)));
+    auto asNormalized(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr) {
+        auto tensor                              = tenx::asEval(expr);
+        using Scalar                             = typename decltype(tensor)::Scalar;
+        using RealScalar                         = typename decltype(tensor)::RealScalar;
+        using DimType                            = typename decltype(tensor)::Dimensions;
+        constexpr auto               rank        = Eigen::internal::array_size<DimType>::value;
+        auto                         tensorMap   = Eigen::TensorMap<const Eigen::Tensor<Scalar, rank>>(tensor.data(), tensor.dimensions());
+        auto                         csquare     = [](auto z) -> RealScalar { return std::abs(std::conj(z) * z); };
+        Eigen::Tensor<RealScalar, 0> normInverse = tensorMap.unaryExpr(csquare).sum().sqrt().inverse();
+        return Eigen::Tensor<Scalar, rank>(tensorMap * tensorMap.constant(normInverse.coeff(0)));
     }
 
     template<typename Scalar, auto rank>
@@ -239,16 +342,63 @@ namespace tenx {
     // Detects if Derived is a plain object, like "MatrixXd" or similar.
     // std::decay removes pointer or ref qualifiers if present
     template<typename Derived>
-    using is_plainObject = std::is_base_of<Eigen::PlainObjectBase<std::decay_t<Derived>>, std::decay_t<Derived>>;
+    using is_plain_object = std::is_base_of<Eigen::PlainObjectBase<std::decay_t<Derived>>, std::decay_t<Derived>>;
+    template<typename Derived>
+    inline constexpr bool is_plain_object_v = is_plain_object<Derived>::value;
+    template<typename Derived>
+    inline constexpr bool is_fixed_size_v = Derived::RowsAtCompileTime != Eigen::Dynamic && Derived::ColsAtCompileTime != Eigen::Dynamic;
+    template<typename Derived>
+    inline constexpr bool is_dynamic_size_v = !is_fixed_size_v<Derived>;
 
     template<typename Derived, typename T, auto rank>
     Eigen::Tensor<typename Derived::Scalar, rank> TensorCast(const Eigen::EigenBase<Derived> &matrix, const std::array<T, rank> &dims) {
-        return Eigen::TensorMap<const Eigen::Tensor<const typename Derived::Scalar, rank>>(matrix.derived().eval().data(), dims);
+        // static_assert(is_dynamic_size_v<Derived>);
+        if constexpr(is_plain_object<Derived>::value) {
+            assert(matrix.size() == Eigen::internal::array_prod(dims));
+            return Eigen::TensorMap<const Eigen::Tensor<const typename Derived::Scalar, rank>>(matrix.derived().data(), dims);
+        } else {
+            return Eigen::TensorMap<const Eigen::Tensor<const typename Derived::Scalar, rank>>(matrix.derived().eval().data(), dims);
+        }
     }
+
+    // template<typename Derived>
+    // auto TensorFixedSizeCast(const Eigen::EigenBase<Derived> &matrix) {
+    //     static_assert(is_fixed_size_v<Derived>);
+    //     if constexpr(is_plain_object<Derived>::value) {
+    //         assert(matrix.size() == Eigen::internal::array_prod(dims));
+    //         return Eigen::TensorMap<
+    //             const Eigen::TensorFixedSize<const typename Derived::Scalar, Eigen::Sizes<Derived::RowsAtCompileTime, Derived::ColsAtCompileTime>>>(
+    //             matrix.derived().data(), Derived::RowsAtCompileTime, Derived::ColsAtCompileTime);
+    //     } else {
+    //         return Eigen::TensorMap<
+    //             const Eigen::TensorFixedSize<const typename Derived::Scalar, Eigen::Sizes<Derived::RowsAtCompileTime, Derived::ColsAtCompileTime>>>(
+    //             matrix.derived().eval().data(), Derived::RowsAtCompileTime, Derived::ColsAtCompileTime);
+    //     }
+    // }
+    // template<typename Dimensions, typename Derived>
+    // auto TensorFixedSizeCast(const Eigen::EigenBase<Derived> &matrix) {
+    //     static_assert(is_fixed_size_v<Derived>);
+    //     if constexpr(is_plain_object<Derived>::value) {
+    //         assert(matrix.size() == Eigen::internal::array_prod(Dimensions{}));
+    //         return Eigen::TensorMap<
+    //             const Eigen::TensorFixedSize<const typename Derived::Scalar, Dimensions>>(
+    //             matrix.derived().data(), Dimensions{});
+    //     } else {
+    //         return Eigen::TensorMap<
+    //             const Eigen::TensorFixedSize<const typename Derived::Scalar, Dimensions>>(
+    //             matrix.derived().eval().data(), Dimensions{});
+    //     }
+    // }
 
     template<typename Derived, typename T, auto rank>
     Eigen::Tensor<typename Derived::Scalar, rank> TensorCast(const Eigen::EigenBase<Derived> &matrix, const Eigen::DSizes<T, rank> &dims) {
-        return Eigen::TensorMap<const Eigen::Tensor<const typename Derived::Scalar, rank>>(matrix.derived().eval().data(), dims);
+        // static_assert(is_dynamic_size_v<Derived>);
+        if constexpr(is_plain_object_v<Derived>) {
+            assert(matrix.size() == Eigen::internal::array_prod(dims));
+            return Eigen::TensorMap<const Eigen::Tensor<const typename Derived::Scalar, rank>>(matrix.derived().data(), dims);
+        } else {
+            return Eigen::TensorMap<const Eigen::Tensor<const typename Derived::Scalar, rank>>(matrix.derived().eval().data(), dims);
+        }
     }
 
     // Helpful overload
@@ -268,15 +418,29 @@ namespace tenx {
     }
 
     template<typename Derived, auto rank>
-    auto TensorMap(const Eigen::PlainObjectBase<Derived> &matrix, const std::array<long, rank> &dims) {
-        return Eigen::TensorMap<const Eigen::Tensor<const typename Derived::Scalar, rank>>(matrix.derived().data(), dims);
+    auto TensorMap(Eigen::PlainObjectBase<Derived> &matrix, const std::array<long, rank> &dims) {
+        return Eigen::TensorMap<Eigen::Tensor<typename Derived::Scalar, rank>>(matrix.derived().data(), dims);
     }
-
+    template<typename Derived, auto rank>
+    auto TensorMap(const Eigen::PlainObjectBase<Derived> &matrix, const std::array<long, rank> &dims) {
+        return Eigen::TensorMap<const Eigen::Tensor<typename Derived::Scalar, rank>>(matrix.derived().data(), dims);
+    }
+    template<typename Derived, typename... Dims>
+    auto TensorMap(Eigen::PlainObjectBase<Derived> &matrix, const Dims... dims) {
+        return TensorMap(matrix, std::array<long, static_cast<long>(sizeof...(Dims))>{dims...});
+    }
     template<typename Derived, typename... Dims>
     auto TensorMap(const Eigen::PlainObjectBase<Derived> &matrix, const Dims... dims) {
-        return TensorMap(matrix, std::array<long, static_cast<int>(sizeof...(Dims))>{dims...});
+        return TensorMap(matrix, std::array<long, static_cast<long>(sizeof...(Dims))>{dims...});
     }
-
+    template<typename Derived>
+    auto TensorMap(Eigen::PlainObjectBase<Derived> &matrix) {
+        if constexpr(Derived::ColsAtCompileTime == 1 or Derived::RowsAtCompileTime == 1) {
+            return TensorMap(matrix, matrix.size());
+        } else {
+            return TensorMap(matrix, matrix.rows(), matrix.cols());
+        }
+    }
     template<typename Derived>
     auto TensorMap(const Eigen::PlainObjectBase<Derived> &matrix) {
         if constexpr(Derived::ColsAtCompileTime == 1 or Derived::RowsAtCompileTime == 1) {
@@ -285,35 +449,39 @@ namespace tenx {
             return TensorMap(matrix, matrix.rows(), matrix.cols());
         }
     }
-
     //
     //    //****************************//
     //    //Tensor to matrix conversions//
     //    //****************************//
     //
-
-    template<typename T, typename sizeType, typename Device = Eigen::DefaultDevice>
-    auto MatrixCast(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, const sizeType rows, const sizeType cols, const Device &device = Device()) {
-        auto tensor    = asEval(expr, device);
-        auto tensorMap = tensor.map();
-        using Scalar   = typename decltype(tensorMap)::Scalar;
-        return static_cast<MatrixType<Scalar>>(Eigen::Map<const MatrixType<Scalar>>(tensorMap.data(), rows, cols));
+    template<typename Scalar>
+    auto MatrixCast(const Eigen::Tensor<Scalar, 2> &tensor) {
+        return static_cast<MatrixType<Scalar>>(Eigen::Map<const MatrixType<Scalar>>(tensor.data(), tensor.dimension(0), tensor.dimension(1)));
+    }
+    template<typename T, typename sizeType>
+    auto MatrixCast(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, const sizeType rows, const sizeType cols) {
+        auto tensor  = asEval(expr);
+        using Scalar = typename decltype(tensor)::Scalar;
+        return MatrixType<Scalar>(Eigen::Map<const MatrixType<Scalar>>(tensor.data(), rows, cols));
     }
 
-    template<typename T, typename Device = Eigen::DefaultDevice>
-    auto VectorCast(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, const Device &device = Device()) {
-        auto tensor    = asEval(expr, device);
-        auto tensorMap = tensor.map();
-        auto size      = Eigen::internal::array_prod(tensorMap.dimensions());
-        using Scalar   = typename decltype(tensorMap)::Scalar;
-        return static_cast<VectorType<Scalar>>(Eigen::Map<const VectorType<Scalar>>(tensorMap.data(), size));
+    template<typename T>
+    auto VectorCast(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr) {
+        auto tensor  = asEval(expr);
+        using Scalar = typename decltype(tensor)::Scalar;
+        //        auto size    = tensor.size();
+        auto size = Eigen::internal::array_prod(tensor.dimensions());
+        return VectorType<Scalar>(Eigen::Map<const VectorType<Scalar>>(tensor.data(), size));
     }
 
     template<typename Scalar, auto rank, typename sizeType>
     auto MatrixMap(const Eigen::Tensor<Scalar, rank> &tensor, const sizeType rows, const sizeType cols) {
         return Eigen::Map<const MatrixType<Scalar>>(tensor.data(), rows, cols);
     }
-
+    template<typename Scalar, auto rank, typename sizeType>
+    auto MatrixMap(Eigen::Tensor<Scalar, rank> &tensor, const sizeType rows, const sizeType cols) {
+        return Eigen::Map<MatrixType<Scalar>>(tensor.data(), rows, cols);
+    }
     template<typename Scalar, auto rank, typename sizeType>
     auto MatrixMap(const Eigen::Tensor<Scalar, rank> &&tensor, const sizeType rows, const sizeType cols) = delete; // Prevent map from temporary
 
@@ -322,11 +490,27 @@ namespace tenx {
         return Eigen::Map<const MatrixType<Scalar>>(tensor.data(), tensor.dimension(0), tensor.dimension(1));
     }
     template<typename Scalar>
+    auto MatrixMap(Eigen::Tensor<Scalar, 2> &tensor) {
+        return Eigen::Map<MatrixType<Scalar>>(tensor.data(), tensor.dimension(0), tensor.dimension(1));
+    }
+    template<typename Scalar>
     auto MatrixMap(const Eigen::Tensor<Scalar, 2> &&tensor) = delete; // Prevent map from temporary
 
     template<typename Scalar, auto rank>
     auto VectorMap(const Eigen::Tensor<Scalar, rank> &tensor) {
         return Eigen::Map<const VectorType<Scalar>>(tensor.data(), tensor.size());
+    }
+    template<typename Scalar, auto rank>
+    auto VectorMap(Eigen::Tensor<Scalar, rank> &tensor) {
+        return Eigen::Map<VectorType<Scalar>>(tensor.data(), tensor.size());
+    }
+    template<typename Derived>
+    auto VectorMap(const Eigen::TensorMap<Derived> &tensor) {
+        return Eigen::Map<const VectorType<typename Derived::Scalar>>(tensor.data(), tensor.size());
+    }
+    template<typename Derived>
+    auto VectorMap(Eigen::TensorMap<Derived> &tensor) {
+        return Eigen::Map<VectorType<typename Derived::Scalar>>(tensor.data(), tensor.size());
     }
     template<typename Scalar, auto rank>
     auto VectorMap(const Eigen::Tensor<Scalar, rank> &&tensor) = delete; // Prevent map from temporary
@@ -379,49 +563,52 @@ namespace tenx {
         return isPositive(vector);
     }
 
-    template<typename Derived>
-    bool isReal(const Eigen::EigenBase<Derived> &obj, double threshold = std::numeric_limits<double>::epsilon()) {
-        using Scalar = typename Derived::Scalar;
-        if constexpr(sfinae::is_std_complex_v<Scalar>) {
-            auto imag_sum = obj.derived().imag().cwiseAbs().sum();
-            threshold *= std::max<double>(1.0, static_cast<double>(obj.derived().size()));
-            //            if(imag_sum >= threshold) {
-            //                std::printf("thr*size : %.20f imag_sum : %.20f | isreal %d \n", threshold, imag_sum, imag_sum < threshold);
-            //            }
-            return imag_sum < threshold;
-
+    template<typename Derived, typename... Args>
+    bool isReal(const Eigen::EigenBase<Derived> &obj, Args &&...args) {
+        using Scalar     = typename Derived::Scalar;
+        using RealScalar = decltype(std::real(std::declval<Scalar>()));
+        if constexpr(sfinae::is_std_complex_v<Scalar> and std::is_arithmetic_v<RealScalar>) {
+            return obj.derived().imag().isZero(std::forward<Args>(args)...);
         } else {
             return true;
         }
     }
 
-    template<typename Scalar, auto rank>
-    bool isReal(const Eigen::Tensor<Scalar, rank> &tensor, double threshold = std::numeric_limits<double>::epsilon()) {
-        Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>> vector(tensor.data(), tensor.size());
-        return isReal(vector, threshold);
+    template<typename T, typename... Args>
+    bool isReal(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, Args &&...args) {
+        auto tensor      = tenx::asEval(expr);
+        using Scalar     = typename decltype(tensor)::Scalar;
+        using RealScalar = decltype(std::real(std::declval<Scalar>()));
+        if constexpr(sfinae::is_std_complex_v<Scalar> and std::is_arithmetic_v<RealScalar>) {
+            auto vector = Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>>(tensor.data(), tensor.size());
+            return vector.imag().isZero(std::forward<Args>(args)...);
+        } else {
+            return true;
+        }
     }
 
-    template<typename Scalar, auto rank>
-    bool isZero(const Eigen::Tensor<Scalar, rank> &tensor, double threshold = std::numeric_limits<double>::epsilon()) {
+    template<typename Scalar, auto rank, typename... Args>
+    bool isZero(const Eigen::Tensor<Scalar, rank> &tensor, Args &&...args) {
         Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>> vector(tensor.data(), tensor.size());
-        return vector.isZero(threshold);
+        return vector.isZero(std::forward<Args>(args)...);
     }
 
-    template<typename Scalar>
-    bool isIdentity(const Eigen::Tensor<Scalar, 2> &tensor, double threshold = std::numeric_limits<double>::epsilon()) {
+    template<typename Scalar, typename... Args>
+    bool isIdentity(const Eigen::Tensor<Scalar, 2> &tensor, Args &&...args) {
         Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>> matrix(tensor.data(), tensor.dimension(0), tensor.dimension(1));
-        return matrix.isIdentity(threshold);
+        return matrix.isIdentity(std::forward<Args>(args)...);
     }
 
-    template<typename T, typename Device = Eigen::DefaultDevice>
-    auto isIdentity(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, double threshold = std::numeric_limits<double>::epsilon(),
-                    const Device &device = Device()) {
-        auto tensor = tenx::asEval(expr, device);
-        static_assert(tensor.rank() == 2 and "isIdentity(): expression must be a tensor of rank 2");
-        auto tensorMap = tensor.map();
-        using Scalar   = typename decltype(tensorMap)::Scalar;
-        Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>> matrix(tensorMap.data(), tensorMap.dimension(0), tensorMap.dimension(1));
-        return matrix.isIdentity(threshold);
+    template<typename T, typename... Args>
+    auto isIdentity(const Eigen::TensorBase<T, Eigen::ReadOnlyAccessors> &expr, Args &&...args) {
+        auto tensor         = tenx::asEval(expr);
+        using Scalar        = typename decltype(tensor)::Scalar;
+        using DimType       = typename decltype(tensor)::Dimensions;
+        constexpr auto rank = Eigen::internal::array_size<DimType>::value;
+        static_assert(rank == 2 and "isIdentity(): expression must be a tensor of rank 2");
+        auto size      = tensor.size();
+        auto matrixMap = Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>>(tensor.data(), tensor.dimension(0), tensor.dimension(1));
+        return matrixMap.isIdentity(std::forward<Args>(args)...);
     }
 
     template<typename Derived>
@@ -437,7 +624,7 @@ namespace tenx {
 
     template<typename Scalar>
     bool hasNaN(const std::vector<Scalar> &vec) {
-        Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>> vector(vec.data(), static_cast<long>(vec.size()));
+        Eigen::Map<const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>> vector(vec.data(), safe_cast<long>(vec.size()));
         return hasNaN(vector);
     }
 
@@ -455,7 +642,7 @@ namespace tenx {
                 Scalar inv_phase     = Scalar(0.0, -1.0) * angles.back();
                 Scalar exp_inv_phase = std::exp(inv_phase);
                 v.col(i) *= exp_inv_phase;
-                v.col(i) = (v.col(i).array().imag().cwiseAbs() > 1e-15).select(v.col(i), v.col(i).real());
+                v.col(i) = (v.col(i).array().imag().cwiseAbs() > 1e-15).select(v.col(i), v.col(i).real().template cast<Scalar>());
             }
         }
         return angles;
@@ -497,5 +684,54 @@ namespace tenx {
         return static_cast<double>((matrix.derived().array() != 0.0).count()) / static_cast<double>(matrix.derived().size());
     }
 
+    //******************************//
+    // BLAS operations with tensors //
+    //******************************//
+    template<typename Scalar>
+    void gemm(Eigen::Tensor<Scalar, 2> &lhs, const Eigen::Tensor<Scalar, 2> &rhs1, const Eigen::Tensor<Scalar, 2> &rhs2) {
+        lhs.resize(rhs1.dimension(0), rhs2.dimension(1));
+        auto lhs_map      = Eigen::Map<MatrixType<Scalar>>(lhs.data(), rhs1.dimension(0), rhs2.dimension(1));
+        auto rhs1_map     = MatrixMap(rhs1);
+        auto rhs2_map     = MatrixMap(rhs2);
+        lhs_map.noalias() = rhs1_map * rhs2_map; // Calls BLAS GEMM
+    }
+    template<typename Scalar>
+    Eigen::Tensor<Scalar, 2> gemm(const Eigen::Tensor<Scalar, 2> &rhs1, const Eigen::Tensor<Scalar, 2> &rhs2) {
+        auto lhs          = Eigen::Tensor<Scalar, 2>(rhs1.dimension(0), rhs2.dimension(1));
+        auto lhs_map      = Eigen::Map<MatrixType<Scalar>>(lhs.data(), rhs1.dimension(0), rhs2.dimension(1));
+        auto rhs1_map     = MatrixMap(rhs1);
+        auto rhs2_map     = MatrixMap(rhs2);
+        lhs_map.noalias() = rhs1_map * rhs2_map; // Calls BLAS GEMM
+        return lhs;
+    }
+    template<typename Scalar>
+    Eigen::Tensor<Scalar, 4> gemm_mpo(const Eigen::Tensor<Scalar, 4> &rhs1, const Eigen::Tensor<Scalar, 4> &rhs2) {
+        /*!       2                2                  1                2                  1    4                  2    3
+         *        |                |                  |                |                  |    |                  |    |
+         * 0---[rhs1]---1    ---[rhs2]---   =  0---[rhs1]---3   0---[rhs2]---1  =   0---[rhs1rhs2]---3   =  0---[rhs1rhs2]---1
+         *        |                |                  |                |                  |    |                  |    |
+         *        3                3                  2                3                  2    5                  4    5
+         */
+        if constexpr(sfinae::is_std_complex_v<Scalar>) {
+            if(isReal(rhs1) and isReal(rhs2)) {
+                // We get a speedup by multiplying reals instead of complex
+                using TensorValueType = Eigen::Tensor<typename Scalar::value_type, 4>;
+                return gemm_mpo(TensorValueType(rhs1.real()), TensorValueType(rhs2.real())).template cast<Scalar>();
+            }
+        }
+        auto dim6     = array6{rhs1.dimension(0), rhs1.dimension(2), rhs1.dimension(3), rhs2.dimension(1), rhs2.dimension(2), rhs2.dimension(3)};
+        auto dim_lhsA = array4{rhs1.dimension(0), rhs1.dimension(2) * rhs1.dimension(3), rhs2.dimension(1), rhs2.dimension(2) * rhs2.dimension(3)};
+        auto dim_lhsB = array4{rhs1.dimension(0), rhs2.dimension(1), rhs1.dimension(2) * rhs2.dimension(2), rhs1.dimension(3) * rhs2.dimension(3)};
+        auto dim_rhs1 = rhs1.dimensions();
+        auto dim_rhs2 = rhs2.dimensions();
+        auto shf6     = tenx::array6{0, 3, 1, 4, 2, 5};
+        Eigen::Tensor<Scalar, 4> lhs(dim_lhsA);
+        Eigen::Tensor<Scalar, 4> rhs1_shf4 = rhs1.shuffle(array4{0, 2, 3, 1}); // Prepare for gemm
+        auto                     lhs_map   = Eigen::Map<MatrixType<Scalar>>(lhs.data(), dim_lhsA[0] * dim_lhsA[1], dim_lhsA[2] * dim_lhsA[3]);
+        auto                     rhs1_map  = MatrixMap(rhs1_shf4, dim_rhs1[0] * dim_rhs1[2] * dim_rhs1[3], dim_rhs1[1]);
+        auto                     rhs2_map  = MatrixMap(rhs2, dim_rhs2[0], dim_rhs2[1] * dim_rhs2[2] * dim_rhs2[3]);
+        lhs_map.noalias()                  = rhs1_map * rhs2_map; // Calls BLAS GEMM
+        return lhs.reshape(dim6).shuffle(shf6).reshape(dim_lhsB);
+    }
 }
 /*clang-format on */

@@ -11,6 +11,7 @@ files = [
     'tbdb-landau-full.h5',
     'tbdb-oppenheimer-full.h5',
     'tbdb-hertz-full.h5',
+    'tbdb-shannon.h5',
 ]
 
 tbdb_values = {
@@ -67,7 +68,7 @@ tbdb_libdict = {
     'eigen1':   {'color': palette[0],'name': 'eigen', 'tag': 'eigen 3.3.4 \t (OMP)',},
     'tblis':    {'color': palette[1],'name': 'tblis', 'tag': 'tblis 1.2.0 \t (OMP)',},
     'xtensor':  {'color': palette[2],'name': 'xtensor', 'tag': 'xtensor 0.25.0 \t (OMP)',},
-    'cyclops':  {'color': palette[3],'name': 'cyclops', 'tag': 'cyclops 1.5.5 \t (MPI)',},
+    'cyclops':  {'color': palette[3],'name': 'cyclops', 'tag': 'cyclops 1.5.5 \t (OMP)',},
     'cutensor': {'color': palette[4],'name': 'cutensor', 'tag': 'cutensor 2.0.2.5 \t (GPU)',},
 }
 
@@ -83,6 +84,7 @@ tbdb_cpudict = {
     'RZ7950-16c': {'tag' : 'RZ7950-16c' , 'color': palette[1], 'linestyle': 'dotted', 'name' : 'AMD Ryzen 9 7950X 16-Core Processor'            ,},
     'TR2990-32c': {'tag' : 'TR2990-32c' , 'color': palette[2], 'linestyle': 'dashed', 'name' : 'AMD Ryzen Threadripper 2990WX 32-Core Processor',},
     'TR3990-64c': {'tag' : 'TR3990-64c' , 'color': palette[3], 'linestyle': 'solid', 'name' : 'AMD Ryzen Threadripper 3990X 64-Core Processor' ,},
+    'EP7543-32c': {'tag' : 'EP7543-32c' , 'color': palette[4], 'linestyle': 'solid', 'name': 'AMD EPYC 7543P 32-Core Processor', },
 }
 
 
@@ -97,14 +99,35 @@ def get_rows(table, fields, values):
     return table[mask].astype(dtype=[dt for dt in tbdb_dtypes.items()])
 
 
+
 def get_rows_stats(table,tbdb_vals, fields,values, xkey, ykey, yinv=False):
     yavg = []
     ystd = []
     yste = []
     xval = []
-    for val in tbdb_vals[xkey]:
-        rows = get_rows(table, fields + [xkey], values + [val])
-        xval.append(val)
+    xkey_internal = xkey
+    if 'cores' in xkey_internal:
+        xkey_internal = 'nmpi'
+    for val in tbdb_vals[xkey_internal]:
+        rows = get_rows(table, fields + [xkey_internal] , values + [val])
+        if len(rows) == 0:
+            xval.append(np.nan)
+            yavg.append(np.nan)
+            ystd.append(np.nan)
+            yste.append(np.nan)
+            continue
+            raise ValueError(f"no rows found in file: {table.file=} : {fields + [xkey_internal]=} , {values + [val] = }")
+        if 'cores' in xkey:
+            nomp_val = rows['nomp'][-1]
+            nmpi_val = rows['nmpi'][-1]
+            xval.append(nomp_val * nmpi_val)
+        elif 'nmpi' in xkey:
+            xval.append(rows['nmpi'][-1])
+        elif 'nmpo' in xkey:
+            xval.append( rows['nomp'][-1])
+        else:
+            xval.append(rows[xkey][-1])
+        # print(f'{rows[xkey]=} | {rows['nomp']}')
         if yinv:
             data = 1.0/rows[ykey]
         else:
@@ -116,9 +139,19 @@ def get_rows_stats(table,tbdb_vals, fields,values, xkey, ykey, yinv=False):
 
 def tbdb_plot(ax, table, tbdb_vals, fields, values, xkey, ykey, yinv=False,hline=False, **kwargs):
     xval, yavg, ystd, yste = get_rows_stats(table=table, tbdb_vals=tbdb_vals,fields=fields,values=values, xkey=xkey, ykey=ykey, yinv=yinv)
-    if hline:
-        yavg = np.asarray([yavg[0]]*len(yavg))
-        yste = np.asarray([yste[0]]*len(yste))
+    if hline and len(yavg) > 0 and len(ystd)>0 and len(yste) > 0:
+        if xkey == 'cores':
+            xval = np.unique([nomp * nmpi for nomp in tbdb_vals['nomp'] for nmpi in tbdb_vals['nmpi']])
+        elif xkey in tbdb_vals:
+            xval = tbdb_vals[xkey]
+        else:
+            raise KeyError(f'{xkey} not in {tbdb_vals.keys()=}')
+        yavg = np.asarray([yavg[0]]*len(xval))
+        yste = np.asarray([yste[0]]*len(xval))
+
+    print(f'{xval=} | {yavg=} | {ystd}')
+    if np.isnan(xval[1]):
+        raise ValueError(f"nans deteced: {xval=}")
     return ax.errorbar(x=xval, y=yavg, yerr=yste, **kwargs)
     # ax.legend()
     # exit(0)
@@ -129,56 +162,70 @@ def create_plot(ax, tbdb_vals, leglibs=None, legtype=None, legcpus=None, leggpus
     legend_type = {'handle': [], 'labels': []}
     legend_cpus = {'handle': [], 'labels': []}
     legend_gpus = {'handle': [], 'labels': []}
-    for f in files:
+    for f in tbdb_vals['file']:
         with h5py.File(f, 'r') as h5f:
             formatter = ScalarFormatter()
             formatter.set_scientific(False)
             ax.set_xscale('log', base=2)
             ax.set_yscale('log', base=2)
-            ax.set_xticks(tbdb_vals['nomp'])
-            ax.set_yticks([ 2**j for j in range(-6,6) ])
+            if 'cores' in tbdb_vals['xkey']:
+                xticks = np.unique([nomp * nmpi for nomp in tbdb_vals['nomp'] for nmpi in tbdb_vals['nmpi']])
+                xlabel = 'cores'
+            if 'omp' in tbdb_vals['xkey']:
+                xticks = tbdb_vals['nomp']
+                xlabel = 'cores'
+            if 'mpi' in tbdb_vals['xkey']:
+                xticks = tbdb_vals['nmpi']
+                xlabel = 'nodes'
+            ax.set_xticks(xticks)
+            ax.set_yticks([2 ** j for j in range(-6, 6)])
             # ax.set_title('Bond dimension 1024')
             ax.set_ylabel('op/s')
-            ax.set_xlabel('cores')
+            ax.set_xlabel(xlabel)
             ax.xaxis.set_major_formatter(formatter)
             ax.yaxis.set_major_formatter(formatter)
             device_list = set(h5f['tbdb']['device'][()])
-            device_list = [ x.decode('utf-8') for x in device_list ]
+            device_list = [x.decode('utf-8') for x in device_list]
             print(f'{device_list=}')
             for lib in tbdb_vals['mode']:
                 for type in tbdb_vals['type']:
-                    for gpu in tbdb_vals['gpus']:
-                        if lib == 'cutensor' and tbdb_gpudict[gpu]['name'] in device_list:
-                            print(f'plotting {lib} {type} {gpu} {f}')
-                            line = tbdb_plot(ax, table=h5f['tbdb'], tbdb_vals=tbdb_vals,
-                                             fields=['mode', 'type', 'chiL', 'device'],
-                                             values=[lib, type, 1024, tbdb_gpudict[gpu]['name']],
-                                             xkey='nomp', ykey='t_contr', yinv=True, hline=True, color=tbdb_gpudict[gpu]['color'],
-                                             linestyle='solid', marker=tbdb_gpudict[gpu]['marker'])
-                            if not gpu in legend_gpus['labels']:
-                                legend_gpus['handle'].append(Line2D([0], [0], color=tbdb_gpudict[gpu]['color'], linestyle='solid', label=tbdb_gpudict[gpu]['tag'], marker=tbdb_gpudict[gpu]['marker']))
-                                legend_gpus['labels'].append(tbdb_gpudict[gpu]['tag'])
-                            if not tbdb_libdict[lib]['tag'] in legend_libs['labels']:
-                                legend_libs['handle'].append(Line2D([0], [0], color=tbdb_libdict[lib]['color'], label=tbdb_libdict[lib]['tag']))
-                                legend_libs['labels'].append(tbdb_libdict[lib]['tag'])
-                    for cpu in tbdb_vals['cpus']:
-                        print(f'plotting {lib} {type} {cpu} {f}')
-                        if lib != 'cutensor' and tbdb_cpudict[cpu]['name'] in device_list:
-                            if lib == 'cyclops':
-                                line = tbdb_plot(ax=ax, table=h5f['tbdb'], tbdb_vals=tbdb_vals,  fields=['mode', 'type', 'chiL', 'device'], values=[lib, type, 1024, tbdb_cpudict[cpu]['name']],
-                                          xkey='nmpi', ykey='t_contr', yinv=True, color=tbdb_libdict[lib]['color'],linestyle=tbdb_cpudict[cpu]['linestyle'])
-                            else:
-                                line = tbdb_plot(ax=ax, table=h5f['tbdb'], tbdb_vals=tbdb_vals,  fields=['mode', 'type', 'chiL', 'device'], values=[lib, type, 1024, tbdb_cpudict[cpu]['name']],
-                                          xkey='nomp', ykey='t_contr', yinv=True, color=tbdb_libdict[lib]['color'],linestyle=tbdb_cpudict[cpu]['linestyle'])
-                            if not tbdb_libdict[lib]['tag'] in legend_libs['labels']:
-                                legend_libs['handle'].append(Line2D([0], [0], color=tbdb_libdict[lib]['color'], label=tbdb_libdict[lib]['tag']))
-                                legend_libs['labels'].append(tbdb_libdict[lib]['tag'])
-                            if not tbdb_typedict[type] in legend_type['labels']:
-                                legend_type['handle'].append(Line2D([0], [0], color='#E5E5E5', linestyle=None, label=tbdb_typedict[type]))
-                                legend_type['labels'].append(tbdb_typedict[type])
-                            if not tbdb_cpudict[cpu]['tag'] in legend_cpus['labels']:
-                                legend_cpus['handle'].append(Line2D([0], [0], color='black', linestyle=tbdb_cpudict[cpu]['linestyle'], label=tbdb_cpudict[cpu]['tag']))
-                                legend_cpus['labels'].append(tbdb_cpudict[cpu]['tag'])
+                    for chiL in tbdb_vals['chiL']:
+                        for gpu in tbdb_vals['gpus']:
+                            if lib == 'cutensor' and tbdb_gpudict[gpu]['name'] in device_list:
+                                print(f'plotting {lib} {type} {gpu} {f}')
+                                line = tbdb_plot(ax, table=h5f['tbdb'], tbdb_vals=tbdb_vals,
+                                                 fields=['mode', 'type', 'chiL', 'device'],
+                                                 values=[lib, type, chiL, tbdb_gpudict[gpu]['name']],
+                                                 xkey=tbdb_vals['xkey'], ykey='t_contr', yinv=True, hline=True,
+                                                 color=tbdb_gpudict[gpu]['color'],
+                                                 linestyle='solid', marker=tbdb_gpudict[gpu]['marker'])
+                                if not gpu in legend_gpus['labels']:
+                                    legend_gpus['handle'].append(
+                                        Line2D([0], [0], color=tbdb_gpudict[gpu]['color'], linestyle='solid',
+                                               label=tbdb_gpudict[gpu]['tag'], marker=tbdb_gpudict[gpu]['marker']))
+                                    legend_gpus['labels'].append(tbdb_gpudict[gpu]['tag'])
+                                if not tbdb_libdict[lib]['tag'] in legend_libs['labels']:
+                                    legend_libs['handle'].append(Line2D([0], [0], color=tbdb_libdict[lib]['color'],
+                                                                        label=tbdb_libdict[lib]['tag']))
+                                    legend_libs['labels'].append(tbdb_libdict[lib]['tag'])
+                        for cpu in tbdb_vals['cpus']:
+                            print(f'plotting {lib} {type} {cpu} {f}')
+                            if lib != 'cutensor' and tbdb_cpudict[cpu]['name'] in device_list:
+                                # if lib == 'cyclops':
+                                #     line = tbdb_plot(ax=ax, table=h5f['tbdb'], tbdb_vals=tbdb_vals,  fields=['mode', 'type', 'chiL', 'device'], values=[lib, type, 1024, tbdb_cpudict[cpu]['name']],
+                                #               xkey='nmpi', ykey='t_contr', yinv=True, color=tbdb_libdict[lib]['color'],linestyle=tbdb_cpudict[cpu]['linestyle'])
+                                # else:
+                                line = tbdb_plot(ax=ax, table=h5f['tbdb'], tbdb_vals=tbdb_vals, fields=['mode', 'type', 'chiL', 'device'], values=[lib, type, chiL, tbdb_cpudict[cpu]['name']], xkey=tbdb_vals['xkey'], ykey='t_contr', yinv=True, color=tbdb_libdict[lib]['color'], linestyle=tbdb_cpudict[cpu]['linestyle'])
+
+                                if not tbdb_libdict[lib]['tag'] in legend_libs['labels']:
+                                    legend_libs['handle'].append(Line2D([0], [0], color=tbdb_libdict[lib]['color'], label=tbdb_libdict[lib]['tag']))
+                                    legend_libs['labels'].append(tbdb_libdict[lib]['tag'])
+                                if not tbdb_typedict[type] in legend_type['labels']:
+                                    legend_type['handle'].append(Line2D([0], [0], color='#E5E5E5', linestyle=None, label=tbdb_typedict[type]))
+                                    legend_type['labels'].append(tbdb_typedict[type])
+                                if not tbdb_cpudict[cpu]['tag'] in legend_cpus['labels']:
+                                    legend_cpus['handle'].append(Line2D([0], [0], color='black', linestyle=tbdb_cpudict[cpu]['linestyle'], label=tbdb_cpudict[cpu]['tag']))
+                                    legend_cpus['labels'].append(tbdb_cpudict[cpu]['tag'])
 
     arg = np.argsort(legend_libs['labels'])
     legend_libs['labels'] = list(np.asarray(legend_libs['labels'])[arg])
@@ -240,13 +287,15 @@ fig, axes = plt.subplot_mosaic('''
 
 
 tbdb_fp32 = {
-    'mode': ['cutensor','tblis', 'eigen1', 'xtensor', 'cyclops'],
+    'file' : ['tbdb.h5', 'tbdb-landau-full.h5', 'tbdb-oppenheimer-full.h5', 'tbdb-hertz-full.h5',],
+    'mode': ['cutensor','tblis', 'eigen1', 'xtensor'],
     'type': ['fp32'],
     'cpus': ['RZ5950-16c', 'RZ7950-16c','TR2990-32c', 'TR3990-64c'],
     'gpus': ['RTX2080', 'RTX3090', 'RTX4090', 'TITANV'],
     'device': None,
+    'xkey': 'nomp',
     'nomp': [1, 2, 4, 8, 16, 32, 64],
-    'nmpi': [1, 2, 4, 8, 16, 32, 64],
+    'nmpi': [1],
     'gpun': [0, 1],
     'spin': [2],
     'chiL': [1024],
@@ -258,14 +307,38 @@ tbdb_fp32 = {
     't_total': None,
 }
 
+
+tbdb_fp32_shannon = {
+    'file':['tbdb-shannon.h5'],
+    'mode': ['cyclops'],
+    'type': ['fp32'],
+    'cpus': ['EP7543-32c'],
+    'gpus': [-1],
+    'device': None,
+    'xkey': 'nomp',
+    'nomp': [1, 2, 4, 8, 16, 32],
+    'nmpi': [1],
+    'gpun': [-1],
+    'spin': [2],
+    'chiL': [1024],
+    'chiR': [1024],
+    'mpoD': [14],
+    'itrn': None,
+    'itrs': None,
+    't_contr': None,
+    't_total': None,
+}
+
 tbdb_fp64 = {
-    'mode': ['cutensor','tblis', 'eigen1', 'xtensor', 'cyclops'],
+    'file': ['tbdb.h5', 'tbdb-landau-full.h5', 'tbdb-oppenheimer-full.h5', 'tbdb-hertz-full.h5', ],
+    'mode': ['cutensor','tblis', 'eigen1', 'xtensor'],
     'type': ['fp64'],
-    'cpus': ['RZ5950-16c', 'RZ7950-16c','TR2990-32c', 'TR3990-64c'],
+    'cpus': ['RZ5950-16c', 'RZ7950-16c','TR2990-32c', 'TR3990-64c', 'EP7543-32c'],
     'gpus': ['RTX2080', 'RTX3090', 'RTX4090', 'TITANV'],
     'device': None,
+    'xkey': 'nomp',
     'nomp': [1, 2, 4, 8, 16, 32, 64],
-    'nmpi': [1, 2, 4, 8, 16, 32, 64],
+    'nmpi': [1],
     'gpun': [0, 1],
     'spin': [2],
     'chiL': [1024],
@@ -277,13 +350,15 @@ tbdb_fp64 = {
     't_total': None,
 }
 tbdb_cplx = {
-    'mode': ['cutensor','tblis', 'eigen1', 'xtensor', 'cyclops'],
+    'file': ['tbdb.h5', 'tbdb-landau-full.h5', 'tbdb-oppenheimer-full.h5', 'tbdb-hertz-full.h5', ],
+    'mode': ['cutensor','tblis', 'eigen1', 'xtensor'],
     'type': ['cplx'],
-    'cpus': ['RZ5950-16c', 'RZ7950-16c','TR2990-32c', 'TR3990-64c'],
+    'cpus': ['RZ5950-16c', 'RZ7950-16c','TR2990-32c', 'TR3990-64c', 'EP7543-32c'],
     'gpus': ['RTX2080', 'RTX3090', 'RTX4090', 'TITANV'],
     'device': None,
+    'xkey': 'nomp',
     'nomp': [1, 2, 4, 8, 16, 32, 64],
-    'nmpi': [1, 2, 4, 8, 16, 32, 64],
+    'nmpi': [1],
     'gpun': [0, 1],
     'spin': [2],
     'chiL': [1024],
@@ -303,9 +378,10 @@ axes['B'].set_box_aspect(aspect=1)
 axes['C'].set_box_aspect(aspect=1)
 axes['L'].set_box_aspect(aspect=2)
 fig.suptitle('Large bond dimension $\\chi = 1024$', y = 0.95)
-create_plot(axes['A'], tbdb_fp32, leglibs=False, legtype=True, legcpus=False, leggpus=False)
-create_plot(axes['B'], tbdb_fp64, leglibs=False, legtype=True, legcpus=False, leggpus=False)
-create_plot(axes['C'], tbdb_cplx, leglibs=True, legtype=True, legcpus=True, leggpus=True)
+create_plot(axes['A'], tbdb_fp32, leglibs=False, legtype=False, legcpus=False, leggpus=False)
+create_plot(axes['A'], tbdb_fp32_shannon, leglibs=False, legtype=False, legcpus=False, leggpus=False)
+# create_plot(axes['B'], tbdb_fp64, leglibs=False, legtype=True, legcpus=False, leggpus=False)
+# create_plot(axes['C'], tbdb_cplx, leglibs=True, legtype=True, legcpus=True, leggpus=True)
 
 plt.savefig('ops_vs_cores_libs:all_cpus:all_prec:all-chi1024.pdf', format='pdf')
 plt.savefig('ops_vs_cores_libs:all_cpus:all_prec:all-chi1024.png', format='png', dpi=600)

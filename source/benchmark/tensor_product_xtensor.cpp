@@ -26,9 +26,9 @@ benchmark::ResultType<T> benchmark::tensor_product_xtensor([[maybe_unused]] cons
     auto enR_xt          = xt::adapt<xt::layout_type::column_major>(tbs.envR.data(), static_cast<size_t>(tbs.envR.size()), xt::no_ownership(), envR_shape);
     auto t_contract      = tid::tic_token("contract");
     auto psi_xt          = xt::adapt<xt::layout_type::column_major>(tbs.psi.data(), static_cast<size_t>(tbs.psi.size()), xt::no_ownership(), psi_shape);
-    auto psienL_xt       = xt::linalg::tensordot(psi_xt, enL_xt, {1}, {0});
-    auto psienLmpo_xt    = xt::linalg::tensordot(psienL_xt, mpo_xt, {0, 3}, {2, 0});
-    auto psienLmpoenR_xt = xt::linalg::tensordot(psienLmpo_xt, enR_xt, {0, 2}, {0, 2});
+    auto psienL_xt       = xt::linalg::tensordot(enL_xt, psi_xt, {0}, {1});
+    auto psienLmpo_xt    = xt::linalg::tensordot(psienL_xt, mpo_xt, {2, 1}, {2, 0});
+    auto psienLmpoenR_xt = xt::linalg::tensordot(psienLmpo_xt, enR_xt, {1, 2}, {0, 2});
     xt::xtensor<T, 3, xt::layout_type::column_major> hamsqpsi = xt::transpose(psienLmpoenR_xt, {1, 0, 2});
     return Eigen::TensorMap<Eigen::Tensor<T, 3>>(hamsqpsi.data(), dsizes);
 #else

@@ -61,6 +61,30 @@ int main(int argc, char *argv[]) {
     config::parse(argc, argv);
     tools::log = tools::Logger::setLogger("tensorbench", config::loglevel);
 
+#if defined(_OPENMP) and defined(EIGEN_USE_THREADS)
+    bool has_eigen1 = std::find(config::tb_modes.begin(), config::tb_modes.end(), tb_mode::eigen1) != config::tb_modes.end();
+    bool has_eigen2 = std::find(config::tb_modes.begin(), config::tb_modes.end(), tb_mode::eigen2) != config::tb_modes.end();
+    bool has_eigen3 = std::find(config::tb_modes.begin(), config::tb_modes.end(), tb_mode::eigen3) != config::tb_modes.end();
+
+    if(has_eigen1 or has_eigen2 or has_eigen3) {
+        auto get_omp_proc_bind = []() -> std::string {
+            switch(omp_get_proc_bind()) {
+                case 0: return "false";
+                case 1: return "true";
+                case 2: return "primary";
+                case 3: return "close";
+                case 4: return "spread";
+                default: return "unknown";
+            }
+        };
+        if(auto omp_proc_bind = get_omp_proc_bind(); omp_proc_bind != "false") {
+            throw except::runtime_error("\n \t Detected OMP_PROC_BIND: {}.\n"
+                                        "\t OpenMP core pinning interacts poorly with std::thread in Eigen::Tensor when EIGEN_USE_THREADS is defined.\n"
+                                        "\t Please unset environment variables OMP_PROC_BIND and OMP_PLACES, or unset preprocessor variable EIGEN_USE_THREADS",
+                                        omp_proc_bind);
+        }
+    }
+#endif
     // Initialize MPI if this benchmark was run with mpirun
     mpi::init(argc, argv);
 
@@ -85,6 +109,7 @@ int main(int argc, char *argv[]) {
         std::at_quick_exit(debug::print_mem_usage);
         std::at_quick_exit(print_timers);
     }
+
     for(int id = 0; id < mpi::world.size; ++id) {
         if(id == mpi::world.id) {
 #pragma omp parallel
