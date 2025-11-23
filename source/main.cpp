@@ -15,6 +15,10 @@
 #include <env/environment.h>
 #include <omp.h>
 
+#if defined(FLEXIBLAS_AVAILABLE)
+    #include <flexiblas/flexiblas_api.h>
+#endif
+
 #if defined(TB_OPENBLAS)
     #include <openblas/cblas.h>
     #include <openblas/openblas_config.h>
@@ -96,7 +100,16 @@ int main(int argc, char *argv[]) {
         tools::log->info("Git branch      : {}", env::git::branch);
         tools::log->info("    commit hash : {}", env::git::commit_hash);
         tools::log->info("    revision    : {}", env::git::revision);
+        #if defined(FLEXIBLAS_AVAILABLE)
+        char buffer[32] = {0};
+        int  size       = flexiblas_current_backend(buffer, 32);
+        if(size > 0) {
+            tools::log->info("Flexiblas backend [{}] | num_threads {}", buffer, flexiblas_get_num_threads());
+        } else {
+            tools::log->info("Flexiblas backend read failed: size {}", size);
+        }
 
+        #endif
         config::showCpuName();
 
         bool has_cutensor = std::find(config::tb_modes.begin(), config::tb_modes.end(), tb_mode::cutensor) != config::tb_modes.end();
@@ -104,10 +117,12 @@ int main(int argc, char *argv[]) {
 
         if(has_cutensor or has_matx) config::showGpuInfo();
 
+
         std::atexit(debug::print_mem_usage);
         std::atexit(print_timers);
         std::at_quick_exit(debug::print_mem_usage);
         std::at_quick_exit(print_timers);
+
     }
 
     for(int id = 0; id < mpi::world.size; ++id) {
