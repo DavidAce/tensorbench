@@ -91,7 +91,7 @@ template<typename T>
 benchmark::ResultType<T> benchmark::tensor_product_cyclops([[maybe_unused]] const tb_setup<T> &tbs) {
 #if defined(TB_CYCLOPS)
 
-    //    omp_set_num_threads(1); // Make sure we don't use local threads!
+    omp_set_num_threads(tbs.nomp); // Make sure to set openmp parallelization for hybrid mpi/openmp
     auto t_cyclops = tid::tic_scope("cyclops");
     auto world  = CTF::World(MPI_COMM_WORLD);
     CTF::Tensor<T> mpo_ctf  = get_ctf_tensor(tbs.mpo, world, "mpo");

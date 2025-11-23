@@ -151,6 +151,7 @@ void benchmark::iterate_benchmarks() {
                         for(auto mpoD : config::v_mpoD) {
                             for(auto spin : config::v_spin) {
                                 for(auto nomp : config::v_nomp) {
+                                    omp_set_num_threads(nomp);
                                     for(auto gpun : config::v_gpun) {
                                         if(mode == tb_mode::cutensor or mode == tb_mode::matx) {
                                             if(nomp > 1) {

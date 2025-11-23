@@ -3,7 +3,6 @@ using fp32 = benchmark::fp32;
 using fp64 = benchmark::fp64;
 using cplx = benchmark::cplx;
 
-
 #if defined(NDEBUG)
 static constexpr bool tb_cutensor_ndebug = true;
 #else
@@ -11,19 +10,19 @@ static constexpr bool tb_cutensor_ndebug = false;
 #endif
 
 #if defined(TB_CUTENSOR)
-#include "tid/tid.h"
-#include "tools/fmt.h"
-#include "tools/log.h"
-#include <cstdio>
-#include <cstdlib>
-#include <cuda_runtime.h>
-#include <cutensor.h>
-#include <stdexcept>
-#include <unordered_map>
-#include <vector>
+    #include "tid/tid.h"
+    #include "tools/fmt.h"
+    #include "tools/log.h"
+    #include <cstdio>
+    #include <cstdlib>
+    #include <cuda_runtime.h>
+    #include <cutensor.h>
+    #include <stdexcept>
+    #include <unordered_map>
+    #include <vector>
 
-// Handle cuTENSOR errors
-#define HANDLE_ERROR(x)                                                                   \
+    // Handle cuTENSOR errors
+    #define HANDLE_ERROR(x)                                                                   \
         {                                                                                     \
             const auto err = x;                                                               \
             if(err != CUTENSOR_STATUS_SUCCESS) {                                              \
@@ -32,7 +31,7 @@ static constexpr bool tb_cutensor_ndebug = false;
             }                                                                                 \
         }
 
-#define HANDLE_CUDA_ERROR(x)                                                          \
+    #define HANDLE_CUDA_ERROR(x)                                                          \
         {                                                                                 \
             const auto err = x;                                                           \
             if(err != cudaSuccess) {                                                      \
@@ -71,24 +70,24 @@ long get_ops_cute_L(long d, long chiL, long chiR, long m) {
 template<typename Scalar>
 class Meta {
     private:
-    Scalar *      d_ptr = nullptr;
+    Scalar       *d_ptr = nullptr;
     const Scalar *h_ptr = nullptr;
 
     public:
     using value_type = Scalar;
-
+    using RealScalar = decltype(std::real(std::declval<Scalar>()));
     std::vector<int>     mode;
     std::vector<int64_t> extent;
 
     template<auto rank>
-    Meta(const Eigen::Tensor<Scalar, rank> &tensor, const std::vector<int> &mode_)
-        : h_ptr(tensor.data()), mode(mode_) {
+    Meta(const Eigen::Tensor<Scalar, rank> &tensor, const std::vector<int> &mode_) : h_ptr(tensor.data()), mode(mode_) {
         if(rank != mode.size()) throw std::runtime_error("Rank mismatch");
         for(size_t idx = 0; idx < rank; idx++) extent.push_back(tensor.dimension(idx));
     }
 
-    Meta(const std::vector<int> &mode_, const std::vector<int64_t> &extent_)
-        : mode(mode_), extent(extent_) { if(mode.size() != extent.size()) throw std::runtime_error("Mode and extent size mismatch"); }
+    Meta(const std::vector<int> &mode_, const std::vector<int64_t> &extent_) : mode(mode_), extent(extent_) {
+        if(mode.size() != extent.size()) throw std::runtime_error("Mode and extent size mismatch");
+    }
 
     ~Meta() {
         free();
@@ -103,7 +102,7 @@ class Meta {
 
     size_t        byteSize() { return size() * sizeof(Scalar); }
     uint32_t      rank() { return mode.size(); }
-    Scalar *      data_d() { return d_ptr; }
+    Scalar       *data_d() { return d_ptr; }
     const Scalar *data_h() { return h_ptr; }
 
     void copyToDevice() {
@@ -112,8 +111,7 @@ class Meta {
         size_t mf, ma;
         cudaMemGetInfo(&mf, &ma);
         if constexpr(!tb_cutensor_ndebug)
-            tools::log->trace("CUDA: Free {} | Total {}", static_cast<double>(mf) / std::pow(1024, 2),
-                              static_cast<double>(ma) / std::pow(1024, 2));
+            tools::log->trace("CUDA: Free {} | Total {}", static_cast<double>(mf) / std::pow(1024, 2), static_cast<double>(ma) / std::pow(1024, 2));
         if(data_d() == nullptr) {
             HANDLE_CUDA_ERROR(cudaMalloc((void **) &d_ptr, byteSize()));
             if constexpr(!tb_cutensor_ndebug) tools::log->trace("copyToDevice(): cudaMalloc {} bytes to ptr {}", byteSize(), fmt::ptr(d_ptr));
@@ -140,7 +138,8 @@ class Meta {
 
 template<typename Scalar>
 void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scalar> &tensor_B) {
-    auto t_con = tid::tic_token("contract");
+    auto t_con       = tid::tic_token("contract");
+    using RealScalar = typename Meta<Scalar>::RealScalar;
     // CUDA types
     cutensorDataType_t          typeCompute;
     cutensorComputeDescriptor_t descCompute;
@@ -159,19 +158,21 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
     } else
         throw std::runtime_error("Wrong type selected");
 
-    Scalar alpha = 1.0;
-    Scalar beta  = 0.0;
-
     const uint32_t kAlignment = 128; // Alignment of the global-memory device pointers (bytes)
     // assert(uintptr_t(A_d) % kAlignment == 0);
     // assert(uintptr_t(B_d) % kAlignment == 0);
     // assert(uintptr_t(C_d) % kAlignment == 0);
 
-    // Initialize cuTENSOR library
+    /*************************
+     * Initialize cuTENSOR library
+     *************************/
+
     cutensorHandle_t handle;
     HANDLE_ERROR(cutensorCreate(&handle));
 
-    // Create Tensor Descriptors
+    /**********************
+     * Create Tensor Descriptors
+     **********************/
     cutensorTensorDescriptor_t desc_A;
     cutensorTensorDescriptor_t desc_B;
     cutensorTensorDescriptor_t desc_R;
@@ -181,14 +182,17 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
 
     if constexpr(!tb_cutensor_ndebug) tools::log->trace("Initialize cuTENSOR and tensor descriptors");
 
-    // Create the Contraction Descriptor
+    /*******************************
+     * Create Contraction Descriptor
+     *******************************/
+
     cutensorOperationDescriptor_t desc;
-    HANDLE_ERROR(cutensorCreateContraction(handle,
-        &desc,
-        desc_A, tensor_A.mode.data(), /* unary operator A*/CUTENSOR_OP_IDENTITY,
-        desc_B, tensor_B.mode.data(), /* unary operator B*/CUTENSOR_OP_IDENTITY,
-        desc_R, tensor_R.mode.data(), /* unary operator C*/CUTENSOR_OP_IDENTITY,
-        desc_R, tensor_R.mode.data(),
+    HANDLE_ERROR(cutensorCreateContraction(                                       //
+        handle, &desc,                                                            //
+        desc_A, tensor_A.mode.data(), /* unary operator A*/ CUTENSOR_OP_IDENTITY, //
+        desc_B, tensor_B.mode.data(), /* unary operator B*/ CUTENSOR_OP_IDENTITY, //
+        desc_R, tensor_R.mode.data(), /* unary operator C*/ CUTENSOR_OP_IDENTITY, //
+        desc_R, tensor_R.mode.data(),                                             //
         descCompute));
 
     if constexpr(!tb_cutensor_ndebug) tools::log->trace("Initialize contraction descriptor");
@@ -198,14 +202,15 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
      *****************************/
 
     cutensorDataType_t scalarType;
-    HANDLE_ERROR(cutensorOperationDescriptorGetAttribute(handle,
-        desc,
-        CUTENSOR_OPERATION_DESCRIPTOR_SCALAR_TYPE,
-        (void*)&scalarType,
-        sizeof(scalarType)));
+    HANDLE_ERROR(cutensorOperationDescriptorGetAttribute(handle, desc,                              //
+                                                         CUTENSOR_OPERATION_DESCRIPTOR_SCALAR_TYPE, //
+                                                         (void *) &scalarType,                      //
+                                                         sizeof(scalarType)));
 
     // assert(scalarType == CUTENSOR_R_32F);
     /* ***************************** */
+    Scalar alpha = RealScalar{1};
+    Scalar beta  = RealScalar{0};
 
     /**************************
      * Set the algorithm to use
@@ -214,38 +219,26 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
     const cutensorAlgo_t algo = CUTENSOR_ALGO_DEFAULT;
 
     cutensorPlanPreference_t planPref;
-    HANDLE_ERROR(cutensorCreatePlanPreference(
-        handle,
-        &planPref,
-        algo,
-        CUTENSOR_JIT_MODE_NONE));
+    HANDLE_ERROR(cutensorCreatePlanPreference(handle, &planPref, algo, CUTENSOR_JIT_MODE_NONE));
 
-    if constexpr(!tb_cutensor_ndebug)tools::log->trace("Initialize settings to algorithm");
+    if constexpr(!tb_cutensor_ndebug) tools::log->trace("Initialize settings to algorithm");
 
     /**********************
-    * Query workspace estimate
-    **********************/
+     * Query workspace estimate
+     **********************/
 
     uint64_t                           workspaceSizeEstimate = 0;
     const cutensorWorksizePreference_t workspacePref         = CUTENSOR_WORKSPACE_DEFAULT;
-    HANDLE_ERROR(cutensorEstimateWorkspaceSize(handle,
-        desc,
-        planPref,
-        workspacePref,
-        &workspaceSizeEstimate));
+    HANDLE_ERROR(cutensorEstimateWorkspaceSize(handle, desc, planPref, workspacePref, &workspaceSizeEstimate));
 
-    if constexpr(!tb_cutensor_ndebug)tools::log->trace("Query recommended workspace size and allocate it");
+    if constexpr(!tb_cutensor_ndebug) tools::log->trace("Query recommended workspace size and allocate it");
 
     /**************************
-         * Create Contraction Plan
-         **************************/
+     * Create Contraction Plan
+     **************************/
 
     cutensorPlan_t plan;
-    HANDLE_ERROR(cutensorCreatePlan(handle,
-        &plan,
-        desc,
-        planPref,
-        workspaceSizeEstimate));
+    HANDLE_ERROR(cutensorCreatePlan(handle, &plan, desc, planPref, workspaceSizeEstimate));
 
     /**************************
      * Optional: Query information about the created plan
@@ -253,11 +246,7 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
 
     // query actually used workspace
     uint64_t actualWorkspaceSize = 0;
-    HANDLE_ERROR(cutensorPlanGetAttribute(handle,
-        plan,
-        CUTENSOR_PLAN_REQUIRED_WORKSPACE,
-        &actualWorkspaceSize,
-        sizeof(actualWorkspaceSize)));
+    HANDLE_ERROR(cutensorPlanGetAttribute(handle, plan, CUTENSOR_PLAN_REQUIRED_WORKSPACE, &actualWorkspaceSize, sizeof(actualWorkspaceSize)));
 
     // At this point the user knows exactly how much memory is need by the operation and
     // only the smaller actual workspace needs to be allocated
@@ -269,19 +258,16 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
         assert(uintptr_t(work) % 128 == 0); // workspace must be aligned to 128 byte-boundary
     }
 
-    if constexpr(!tb_cutensor_ndebug)tools::log->trace("Execute contraction from plan");
+    if constexpr(!tb_cutensor_ndebug) tools::log->trace("Execute contraction from plan");
     /**********************
-    * Execute
-    **********************/
+     * Execute
+     **********************/
 
     cudaStream_t stream;
     HANDLE_CUDA_ERROR(cudaStreamCreate(&stream));
 
-    HANDLE_ERROR(cutensorContract(handle,
-        plan,
-        (void*) &alpha, tensor_A.data_d(), tensor_B.data_d(),
-        (void*) &beta, tensor_R.data_d(), tensor_R.data_d(),
-        work, actualWorkspaceSize, stream));
+    HANDLE_ERROR(cutensorContract(handle, plan, (void *) &alpha, tensor_A.data_d(), tensor_B.data_d(), (void *) &beta, tensor_R.data_d(), tensor_R.data_d(),
+                                  work, actualWorkspaceSize, stream));
 
     /**********************
      * Free allocated data
@@ -294,13 +280,13 @@ void cuTensorContract(Meta<Scalar> &tensor_R, Meta<Scalar> &tensor_A, Meta<Scala
     HANDLE_ERROR(cutensorDestroyTensorDescriptor(desc_R));
     HANDLE_CUDA_ERROR(cudaStreamDestroy(stream));
     HANDLE_CUDA_ERROR(cudaFree(work));
-    if constexpr(!tb_cutensor_ndebug)tools::log->trace("Successful completion");
+    if constexpr(!tb_cutensor_ndebug) tools::log->trace("Successful completion");
 }
 #endif
 
 template<typename T>
 benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] const tb_setup<T> &tbs) {
-    #if defined(TB_CUTENSOR)
+#if defined(TB_CUTENSOR)
     auto                   t_cutensor = tid::tic_scope("cutensor");
     Eigen::DSizes<long, 3> dsizes     = tbs.psi.dimensions();
 
@@ -315,8 +301,8 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
     ext['o'] = tbs.envL.dimension(1);
     ext['p'] = tbs.envR.dimension(1);
 
-    if constexpr(!tb_cutensor_ndebug)tools::log->trace("cutensor: ext {}", ext);
-    if constexpr(!tb_cutensor_ndebug)tools::log->trace("Define cuda tensor meta objects");
+    if constexpr(!tb_cutensor_ndebug) tools::log->trace("cutensor: ext {}", ext);
+    if constexpr(!tb_cutensor_ndebug) tools::log->trace("Define cuda tensor meta objects");
     Meta<T> cu_psi_envL({'i', 'k', 'l', 'o'}, {ext['i'], ext['k'], ext['l'], ext['o']});
     Meta<T> cu_psi_envL_mpo({'k', 'o', 'm', 'n'}, {ext['k'], ext['o'], ext['m'], ext['n']});
     Meta<T> cu_ham_psi_sq({'n', 'o', 'p'}, {ext['n'], ext['o'], ext['p']});
@@ -327,7 +313,7 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
     {
         Meta<T> cu_psi(tbs.psi, {'i', 'j', 'k'});
         Meta<T> cu_envL(tbs.envL, {'j', 'o', 'l'});
-        if constexpr(!tb_cutensor_ndebug)tools::log->trace("Contract psi and envL");
+        if constexpr(!tb_cutensor_ndebug) tools::log->trace("Contract psi and envL");
         auto t_con1 = tid::tic_scope("psi_envL", tid::level::extra);
         cu_envL.copyToDevice();
         cu_psi.copyToDevice();
@@ -337,7 +323,7 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
 
     {
         Meta<T> cu_mpo(tbs.mpo, {'l', 'm', 'i', 'n'});
-        if constexpr(!tb_cutensor_ndebug)tools::log->trace("Contract psi_envL and mpo");
+        if constexpr(!tb_cutensor_ndebug) tools::log->trace("Contract psi_envL and mpo");
         auto t_con2 = tid::tic_scope("psi_envL_mpo", tid::level::extra);
         cu_mpo.copyToDevice();
         cu_psi_envL_mpo.copyToDevice();
@@ -347,7 +333,7 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
 
     {
         Meta<T> cu_envR(tbs.envR, {'k', 'p', 'm'});
-        if constexpr(!tb_cutensor_ndebug)tools::log->trace("Contract psi_envL_mpo and envR");
+        if constexpr(!tb_cutensor_ndebug) tools::log->trace("Contract psi_envL_mpo and envR");
         auto t_con3 = tid::tic_scope("psi_envL_mpo_envR", tid::level::extra);
         cu_ham_psi_sq.copyToDevice();
         cu_envR.copyToDevice();
@@ -358,9 +344,9 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
     Eigen::Tensor<T, 3> ham_sq_psi(dsizes);
     cu_ham_psi_sq.copyFromDevice(ham_sq_psi.data());
     return ham_sq_psi;
-    #else
+#else
     return {};
-    #endif
+#endif
 }
 
 template benchmark::ResultType<fp32> benchmark::tensor_product_cutensor(const tb_setup<fp32> &tbs);
