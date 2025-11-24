@@ -37,7 +37,7 @@
 #endif
 
 void print_timers() {
-    for(const auto &t : tid::get_tree("", tid::level::detailed)) tools::log->info("{}", t.str());
+    for(const auto &t : tid::get_tree("", tid::level::highest)) tools::log->info("{}", t.str());
 }
 
 /*

@@ -13,7 +13,7 @@ template<class>
 inline constexpr bool unrecognized_type_v = false;
 
 template<typename T>
-constexpr std::string_view enum2sv(const T &item) {
+constexpr std::string_view enum2sv(const T item) {
     static_assert(std::is_enum_v<T> and "enum2sv<T>: T must be an enum");
     if constexpr(std::is_same_v<T, tb_mode>) {
         switch(item) {

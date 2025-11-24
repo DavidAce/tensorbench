@@ -1,34 +1,38 @@
 #include "tid.h"
-#include <fmt/format.h>
-#include <fmt/ranges.h>
 namespace tid {
-    token::token(ur &t_) : t(t_) { t.tic(); }
-    token::token(ur &t_, std::string_view prefix_) : t(t_) {
-        temp_prefix = std::string(prefix_);
-        tic();
+    token::token(ur &t_, double add_time) : t(t_) {
+        if(t.lvl == level::disabled) return;
+        if(add_time != 0)
+            t.add_time(add_time);
+        else
+            t.tic();
+    }
+    token::token(ur &t_, std::string_view prefix_, double add_time) : t(t_) {
+        if(t.lvl == level::disabled) return;
+        temp_prefix = prefix_;
+        tid::internal::ur_prefix_push_back(temp_prefix);
+        if(add_time != 0)
+            t.add_time(add_time);
+        else
+            t.tic();
     }
 
     token::~token() noexcept {
+        if(t.lvl == level::disabled) return;
         try {
             if(t.is_measuring) t.toc();
-            if(not tid::internal::current_scope.empty() and tid::internal::current_scope.back() == temp_prefix) {
-                tid::internal::current_scope.pop_back();
-//                fmt::print("token popped [{}] from scope | current scope {}\n", temp_prefix, tid::internal::current_scope);
-            }
+            tid::internal::ur_prefix_pop_back(temp_prefix);
         } catch(const std::exception &ex) { fprintf(stderr, "tid: error in token destructor for tid::ur [%s]: %s", t.get_label().c_str(), ex.what()); }
     }
 
     void token::tic() noexcept {
-        tid::internal::current_scope.emplace_back(temp_prefix);
-//        fmt::print("token appended [{}] to scope | current scope {}\n", temp_prefix, tid::internal::current_scope);
+        if(t.lvl == level::disabled) return;
         t.tic();
     }
     void token::toc() noexcept {
+        if(t.lvl == level::disabled) return;
         t.toc();
-        if(not tid::internal::current_scope.empty() and tid::internal::current_scope.back() == temp_prefix) {
-            tid::internal::current_scope.pop_back();
-//            fmt::print("token popped [{}] from scope | current scope {}\n", temp_prefix, tid::internal::current_scope);
-        }
+        tid::internal::ur_prefix_pop_back(temp_prefix);
     }
     ur &token::ref() noexcept { return t; }
     ur *token::operator->() noexcept { return &t; }

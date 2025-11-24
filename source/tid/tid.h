@@ -6,9 +6,13 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <map>
 #include <utility>
 #include <vector>
+
+#if defined(_OPENMP)
+    #include <omp.h>
+#endif
+
 namespace tid {
 
 #if defined(TID_DISABLE)
@@ -21,6 +25,13 @@ namespace tid {
     using ur_umap_t = std::unordered_map<std::string, std::shared_ptr<tid::ur>>;
     namespace internal {
         class ur_node_t;
+
+        struct string_hash {
+            using is_transparent = void;
+            [[nodiscard]] size_t operator()(const char *txt) const { return std::hash<std::string_view>{}(txt); }
+            [[nodiscard]] size_t operator()(std::string_view txt) const { return std::hash<std::string_view>{}(txt); }
+            [[nodiscard]] size_t operator()(const std::string &txt) const { return std::hash<std::string>{}(txt); }
+        };
     }
 
     /*! \brief RAII-style token for tid::ur
@@ -33,8 +44,8 @@ namespace tid {
         std::string temp_prefix;
 
         public:
-        explicit token(ur &t_);
-        token(ur &t_, std::string_view prefix_);
+        explicit token(ur &t_, double add_time = 0);
+        token(ur &t_, std::string_view prefix_, double add_time = 0);
         ~token() noexcept;
         void tic() noexcept;
         void toc() noexcept;
@@ -92,28 +103,30 @@ namespace tid {
         ur &operator+=(const ur &rhs) noexcept;
         ur &operator-=(const ur &rhs) noexcept;
 
-        [[nodiscard]] token tic_token() noexcept; /*!< Gives a token RAII-style tic-toc */
-        [[nodiscard]] token tic_token(std::string_view prefix) noexcept; /*!< Gives a token RAII-style tic-toc, and appends a prefix to scope */
+        [[nodiscard]] token tic_token(double add_time = 0) noexcept; /*!< Gives a token RAII-style tic-toc */
+        [[nodiscard]] token tic_token(
+            std::string_view prefix,
+            double add_time = 0) noexcept; /*!< Gives a token RAII-style tic-toc, and temporarily sets a new global prefix for subsequent tic/tokens */
         friend class token;
         friend class internal::ur_node_t;
 
-        using ur_umap_t = std::unordered_map<std::string, std::shared_ptr<tid::ur>>;
+        using ur_umap_t = std::unordered_map<std::string, std::shared_ptr<tid::ur>, internal::string_hash, std::equal_to<>>;
         ur_umap_t ur_under;                                // For making a tree of ur-objects
         ur       &operator[](std::string_view label);      // For adding leafs to the tree
         ur       &insert(std::string_view label, level l); // For adding leafs to the tree
     };
 
-    [[nodiscard]] extern ur   &get(std::string_view key, level l = level::parent);
-    [[nodiscard]] extern ur   &get_unscoped(std::string_view key, level l = level::parent);
-    [[nodiscard]] extern token tic_token(std::string_view key, level l = level::parent);
-    [[nodiscard]] extern token tic_scope(std::string_view key, level l = level::parent);
+    [[nodiscard]] ur   &get(std::string_view key, level l = level::parent, bool unscoped = false);
+    [[nodiscard]] ur   &get_unscoped(std::string_view key, level l = level::parent);
+    [[nodiscard]] token tic_token(std::string_view key, level l = level::parent, double add_time = 0);
+    [[nodiscard]] token tic_scope(std::string_view key, level l = level::parent, double add_time = 0);
 
     extern void add(std::string_view key, std::string_view label = "");
     extern void tic(std::string_view key, level l = level::parent);
     extern void toc(std::string_view key, level l = level::parent);
     extern void reset(const std::vector<std::string> &excl = {});
     extern void reset(std::string_view expr);
-    extern void set_scope(std::string_view);
+    extern void set_prefix(std::string_view);
 
     namespace internal {
         struct ur_ref_t {
@@ -125,19 +138,30 @@ namespace tid {
             [[nodiscard]] std::string             str() const;
             const ur                             *operator->() const;
         };
+        inline tid::level current_level = tid::normal;
+        inline tid::ur    dummy("disabled", level::disabled);
 
-        using tid_db_unordered_map_t = std::unordered_map<std::string, ur>;
+        using tid_db_unordered_map_t = std::unordered_map<std::string, ur, string_hash, std::equal_to<>>;
         inline tid_db_unordered_map_t tid_db;
-        inline std::vector<std::string> current_scope;
 
+#if defined(_OPENMP)
+        inline std::vector<std::string> ur_prefix(static_cast<unsigned long>(omp_get_max_threads())); // Each thread has its own prefix
+#else
+        inline std::vector<std::string> ur_prefix(1); // Only one thread
+#endif
+        extern const std::string &ur_prefix_get();
+        extern void               ur_prefix_set(std::string_view key);
+        extern void               ur_prefix_push_back(std::string_view key);
+        extern void               ur_prefix_pop_back(std::string_view key);
         template<typename T = std::vector<std::string_view>>
-        extern T split(std::string_view strv, std::string_view delims);
+        T split(std::string_view strv, std::string_view delims);
     }
-    [[nodiscard]] extern std::vector<internal::ur_ref_t> get_tree(const tid::ur &u, std::string_view prefix = "", level l = level::normal);
-    [[nodiscard]] extern std::vector<internal::ur_ref_t> get_tree(std::string_view prefix = "", level l = level::normal);
-    [[nodiscard]] extern std::vector<internal::ur_ref_t> search(const tid::ur &u, std::string_view match);
-    [[nodiscard]] extern std::vector<internal::ur_ref_t> search(std::string_view match);
-
+    [[nodiscard]] std::vector<internal::ur_ref_t> get_tree(const tid::ur &u, std::string_view prefix = "", level l = level::normal);
+    [[nodiscard]] std::vector<internal::ur_ref_t> get_tree(std::string_view prefix = "", level l = level::normal);
+    [[nodiscard]] std::vector<internal::ur_ref_t> search(const tid::ur &u, std::string_view match);
+    [[nodiscard]] std::vector<internal::ur_ref_t> search(std::string_view match);
+    void                                          set_level(level l);
+    //    void                                                 merge_thread_enries();
     void print_tree(const tid::ur &u, std::string_view prefix = "", level l = level::normal);
     void print_tree(std::string_view prefix = "", level l = level::normal);
 }

@@ -30,37 +30,37 @@ benchmark::ResultType<T> benchmark::tensor_product_tblis([[maybe_unused]] const 
     Eigen::DSizes<long, 3> dsizes     = tbs.psi.dimensions();
     Eigen::Tensor<T, 3>    ham_sq_psi(dsizes);
     if(tbs.psi.dimension(1) >= tbs.psi.dimension(2)) {
-        auto                t_con = tid::tic_token("contract", tid::level::detailed);
+        auto                t_con = tid::tic_token("contract", tid::level::highest);
         Eigen::Tensor<T, 4> psi_envL(tbs.psi.dimension(0), tbs.psi.dimension(2), tbs.envL.dimension(1), tbs.envL.dimension(2));
         Eigen::Tensor<T, 4> psi_envL_mpo(tbs.psi.dimension(2), tbs.envL.dimension(1), tbs.mpo.dimension(1), tbs.mpo.dimension(3));
         {
-            auto t_con1 = tid::tic_token("contract1", tid::level::detailed);
+            auto t_con1 = tid::tic_token("contract1", tid::level::highest);
             contract_tblis(tbs.psi, tbs.envL, psi_envL, "afb", "fcd", "abcd");
         }
         {
-            auto t_con2 = tid::tic_token("contract2", tid::level::detailed);
+            auto t_con2 = tid::tic_token("contract2", tid::level::highest);
             contract_tblis(psi_envL, tbs.mpo, psi_envL_mpo, "abcd", "diaj", "bcij");
         }
         {
-            auto t_con3 = tid::tic_token("contract3", tid::level::detailed);
+            auto t_con3 = tid::tic_token("contract3", tid::level::highest);
             contract_tblis(psi_envL_mpo, tbs.envR, ham_sq_psi, "bcij", "bki", "jck");
         }
     } else {
-        auto                t_con = tid::tic_token("contract", tid::level::detailed);
+        auto                t_con = tid::tic_token("contract", tid::level::highest);
         Eigen::Tensor<T, 4> psi_envR(tbs.psi.dimension(0), tbs.psi.dimension(1), tbs.envR.dimension(1), tbs.envR.dimension(2));
         Eigen::Tensor<T, 4> psi_envR_mpo(tbs.psi.dimension(1), tbs.envR.dimension(1), tbs.mpo.dimension(0), tbs.mpo.dimension(3));
         {
-            auto t_con1 = tid::tic_token("contract1", tid::level::detailed);
+            auto t_con1 = tid::tic_token("contract1", tid::level::highest);
             contract_tblis(tbs.psi, tbs.envR, psi_envR, "abf", "fcd", "abcd");
         }
 
         {
-            auto t_con2 = tid::tic_token("contract2", tid::level::detailed);
+            auto t_con2 = tid::tic_token("contract2", tid::level::highest);
             contract_tblis(psi_envR, tbs.mpo, psi_envR_mpo, "qijk", "rkql", "ijrl");
         }
 
         {
-            auto t_con3 = tid::tic_token("contract3", tid::level::detailed);
+            auto t_con3 = tid::tic_token("contract3", tid::level::highest);
             contract_tblis(psi_envR_mpo, tbs.envL, ham_sq_psi, "qkri", "qjr", "ijk");
         }
     }

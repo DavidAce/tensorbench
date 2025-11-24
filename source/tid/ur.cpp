@@ -3,13 +3,12 @@
 
 namespace tid {
     ur::ur(std::string_view label_, level l) noexcept : label(label_), lvl(l) {}
+
     void ur::tic() noexcept {
         if constexpr(tid::enable) {
-            if(is_measuring){
-                fprintf(stderr, "tid: error in tid::ur [%s]: called tic() twice: this timer is already active\n", label.c_str());
-                std::exit(1);
-            }
-            //            if(is_measuring) throw std::runtime_error("Called tic() twice: this timer is already measuring: " + label);
+            if(lvl == level::disabled) return;
+            if(is_measuring) fprintf(stderr, "tid: error in tid::ur [%s]: called tic() twice: this timer is already active\n", label.c_str());
+            // if(is_measuring) throw std::runtime_error("Called tic() twice: this timer is already measuring: " + label);
             tic_timepoint = hresclock::now();
             is_measuring  = true;
             count++;
@@ -18,11 +17,9 @@ namespace tid {
 
     void ur::toc() noexcept {
         if constexpr(tid::enable) {
+            if(lvl == level::disabled) return;
             //            if(not is_measuring) throw std::runtime_error("Called toc() twice or without prior tic()");
-            if(not is_measuring){
-                fprintf(stderr, "tid: error in tid::ur [%s]: called toc() twice or without prior tic()\n", label.c_str());
-                std::exit(1);
-            }
+            if(not is_measuring) fprintf(stderr, "tid: error in tid::ur [%s]: called toc() twice or without prior tic()\n", label.c_str());
             toc_timepoint = hresclock::now();
             delta_time    = toc_timepoint - tic_timepoint;
             measured_time += delta_time;
@@ -31,30 +28,35 @@ namespace tid {
         }
     }
 
-    token ur::tic_token() noexcept { return token(*this); }
+    token ur::tic_token(double add_time) noexcept { return token(*this, add_time); }
 
-    token ur::tic_token(std::string_view prefix) noexcept { return {*this, prefix}; }
+    token ur::tic_token(std::string_view prefix, double add_time) noexcept { return {*this, prefix, add_time}; }
 
     void ur::set_label(std::string_view label_) noexcept { label = label_; }
 
     void ur::set_time(double new_time) noexcept {
         if constexpr(tid::enable) { measured_time = std::chrono::duration_cast<hresclock::duration>(std::chrono::duration<double>(new_time)); }
     }
+
     void ur::add_time(double new_time) noexcept {
         if constexpr(tid::enable) { measured_time += std::chrono::duration_cast<hresclock::duration>(std::chrono::duration<double>(new_time)); }
     }
+
     void ur::set_count(size_t count_) noexcept {
         if constexpr(tid::enable) count = count_;
     }
+
     void ur::add_count(size_t count_) noexcept {
         if constexpr(tid::enable) count += count_;
     }
+
     void ur::start_lap() noexcept {
         if constexpr(tid::enable) {
             lap_time      = hresclock::duration::zero();
             lap_timepoint = hresclock::now();
         }
     }
+
     void ur::set_level(level l) noexcept { lvl = l; }
 
     std::string ur::get_label() const noexcept { return label; }
@@ -171,23 +173,32 @@ namespace tid {
     }
 
     ur &ur::operator[](std::string_view label_) {
-        std::fprintf(stdout, "operator [] ur");
-        std::fflush(stdout);
         if(label_.find('.') != std::string_view::npos) { throw std::runtime_error("ur error [" + std::string(label_) + "]: label cannot have '.'"); }
-        auto  result = ur_under.insert(std::make_pair(label_, std::make_shared<tid::ur>(label_)));
-        auto &ur_sub = *result.first->second;
-        if(result.second) ur_sub.set_level(get_level());
-        return ur_sub;
+        auto it       = ur_under.find(std::string(label_));
+        bool emplaced = false;
+        if(it == ur_under.end()) {
+#pragma omp critical(urbracket)
+            {
+                std::tie(it, emplaced) = ur_under.emplace(std::make_pair(std::string(label_), std::make_shared<tid::ur>(label_)));
+                if(emplaced) it->second->set_level(get_level());
+            }
+            if(it == ur_under.end()) throw std::logic_error("ur::operator[]: emplace failed");
+        }
+        return *it->second;
     }
 
     ur &ur::insert(std::string_view label_, level l) {
-        std::fprintf(stdout, "inserting from ur");
-        std::fflush(stdout);
         if(label_.find('.') != std::string_view::npos) { throw std::runtime_error("ur error [" + std::string(label_) + "]: label cannot have '.'"); }
-        auto  result = ur_under.insert(std::make_pair(label_, std::make_shared<tid::ur>(label_)));
-        auto &ur_sub = *result.first->second;
-        if(result.second) ur_sub.set_level(l == level::parent ? get_level() : l);
-        return ur_sub;
+        auto it       = ur_under.find(std::string(label_));
+        bool emplaced = false;
+        if(it == ur_under.end()) {
+#pragma omp critical(urinsert)
+            {
+                std::tie(it, emplaced) = ur_under.emplace(std::make_pair(std::string(label_), std::make_shared<tid::ur>(label_)));
+                if(emplaced) it->second->set_level(l == level::parent ? get_level() : l);
+            }
+            if(it == ur_under.end()) throw std::logic_error("ur::insert: emplace failed");
+        }
+        return *it->second;
     }
-
 }

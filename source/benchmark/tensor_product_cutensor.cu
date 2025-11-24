@@ -314,7 +314,7 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
         Meta<T> cu_psi(tbs.psi, {'i', 'j', 'k'});
         Meta<T> cu_envL(tbs.envL, {'j', 'o', 'l'});
         if constexpr(!tb_cutensor_ndebug) tools::log->trace("Contract psi and envL");
-        auto t_con1 = tid::tic_scope("psi_envL", tid::level::extra);
+        auto t_con1 = tid::tic_scope("psi_envL", tid::level::highest);
         cu_envL.copyToDevice();
         cu_psi.copyToDevice();
         cu_psi_envL.copyToDevice();
@@ -324,7 +324,7 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
     {
         Meta<T> cu_mpo(tbs.mpo, {'l', 'm', 'i', 'n'});
         if constexpr(!tb_cutensor_ndebug) tools::log->trace("Contract psi_envL and mpo");
-        auto t_con2 = tid::tic_scope("psi_envL_mpo", tid::level::extra);
+        auto t_con2 = tid::tic_scope("psi_envL_mpo", tid::level::highest);
         cu_mpo.copyToDevice();
         cu_psi_envL_mpo.copyToDevice();
         cuTensorContract(cu_psi_envL_mpo, cu_psi_envL, cu_mpo);
@@ -334,7 +334,7 @@ benchmark::ResultType<T> benchmark::tensor_product_cutensor([[maybe_unused]] con
     {
         Meta<T> cu_envR(tbs.envR, {'k', 'p', 'm'});
         if constexpr(!tb_cutensor_ndebug) tools::log->trace("Contract psi_envL_mpo and envR");
-        auto t_con3 = tid::tic_scope("psi_envL_mpo_envR", tid::level::extra);
+        auto t_con3 = tid::tic_scope("psi_envL_mpo_envR", tid::level::highest);
         cu_ham_psi_sq.copyToDevice();
         cu_envR.copyToDevice();
         cuTensorContract(cu_ham_psi_sq, cu_psi_envL_mpo, cu_envR);
