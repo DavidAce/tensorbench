@@ -17,7 +17,7 @@
 #if defined(TB_CYCLOPS)
 template<typename T, auto rank>
 CTF::Tensor<T> get_ctf_tensor(const Eigen::Tensor<T, rank> &tensor, CTF::World &w, std::string_view tag) {
-    auto t_get = tid::tic_scope(fmt::format("get_ctf_tensor()", tag));
+    auto t_get = tid::tic_scope(fmt::format("get_ctf_tensor(): {}", tag));
     auto t_sct = class_tic_toc(mpi::world.id == 0, 5, "scatterv");
     auto t_del = class_tic_toc(mpi::world.id == 0, 5, "del");
 
@@ -96,9 +96,20 @@ benchmark::ResultType<T> benchmark::tensor_product_cyclops([[maybe_unused]] cons
     CTF::Tensor<T> envL_ctf = get_ctf_tensor(tbs.envL, world, "envL");
     CTF::Tensor<T> envR_ctf = get_ctf_tensor(tbs.envR, world, "envR");
     auto t_contract = tid::tic_scope("contract");
+
+    auto t_copy_psi = tid::tic_scope("copy_psi");
     auto psi_ctf    = get_ctf_tensor(tbs.psi, world, "psi");
+    t_copy_psi.toc();
+
+    auto t_res_alloc = tid::tic_scope("res_alloc");
     auto res_ctf    = CTF::Tensor<T>(psi_ctf.order, psi_ctf.lens, world); // Same dims as psi_ctf
+    t_res_alloc.toc();
+
+    auto t_contr = tid::tic_scope("ctf_contr");
     res_ctf["ijk"]  = psi_ctf["abc"] * envL_ctf["bjd"] * mpo_ctf["deai"] * envR_ctf["cke"];
+    t_contr.toc();
+
+    auto t_copy_res = tid::tic_scope("copy_res");
     return get_eigen_tensor<T, 3>(res_ctf);
 #else
     return {};
