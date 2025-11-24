@@ -95,8 +95,8 @@ benchmark::ResultType<T> benchmark::tensor_product_cyclops([[maybe_unused]] cons
     CTF::Tensor<T> mpo_ctf  = get_ctf_tensor(tbs.mpo, world, "mpo");
     CTF::Tensor<T> envL_ctf = get_ctf_tensor(tbs.envL, world, "envL");
     CTF::Tensor<T> envR_ctf = get_ctf_tensor(tbs.envR, world, "envR");
-    auto bond = tbs.psi.dimension(1);
-    auto t_contract = tid::tic_scope(fmt::format("contract-bond={}", bond));
+    auto t_contract = tid::tic_scope("contract");
+    auto t_bond    = tid::tic_scope(fmt::format("bond={}", tbs.psi.dimension(1)));
 
     auto t_copy_psi = tid::tic_scope("copy_psi");
     auto psi_ctf    = get_ctf_tensor(tbs.psi, world, "psi");
